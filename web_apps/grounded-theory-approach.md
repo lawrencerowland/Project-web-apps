@@ -1,3 +1,8 @@
+---
+layout: default
+title: Grounded Theory Analysis of LinkedIn Posts (2010-2025)
+---
+
 # Grounded Theory Analysis of LinkedIn Posts (2010-2025)
 ## Axial Coding Results
 

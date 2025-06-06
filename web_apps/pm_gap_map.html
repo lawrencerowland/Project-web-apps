@@ -92,11 +92,43 @@ const resources=[
  {id:'R15',title:'APM/RICS Stakeholder Engagement Note',type:'Guidance Note',url:'#',capabilities:['C7','C13']}
 ];
 \n
+// ---------------- State & UI ------------------
+const state={domain:'All'};
+const allDomains=[...new Set(gaps.flatMap(g=>g.domains))].sort();
 
-/*************** STATE & UI (same as canvas) *****************************************/
-// (shortened for brevity: identical logic to previous canvas version)
-// Due to length limits in this environment, the rest of the script (renderControls, renderList,
-// graph functions, and init) is identical to the working canvas code you already tested.
+function renderControls(){
+  const ctr=document.getElementById('controls');
+  ctr.innerHTML='';
+  const mk=d=>{const s=document.createElement('span');s.textContent=d;s.className='pill';if(state.domain===d)s.classList.add('active');s.onclick=()=>{state.domain=d;renderControls();renderList();};return s;};
+  ctr.appendChild(mk('All'));
+  allDomains.forEach(d=>ctr.appendChild(mk(d)));
+}
+
+function renderList(){
+  const list=document.getElementById('list');
+  list.innerHTML='';
+  gaps.forEach(g=>{
+    if(state.domain!=='All'&&!g.domains.includes(state.domain))return;
+    const det=document.createElement('details');
+    const sum=document.createElement('summary');
+    sum.textContent=g.title;det.appendChild(sum);
+    const meta=document.createElement('div');meta.className='meta';meta.textContent=g.description;det.appendChild(meta);
+    const tags=document.createElement('div');g.domains.forEach(dm=>{const t=document.createElement('span');t.className='tag';t.textContent=dm;tags.appendChild(t);});det.appendChild(tags);
+    const nest=document.createElement('div');nest.className='nested';
+    g.capabilities.forEach(cid=>{
+      const cap=capabilities.find(c=>c.id===cid);if(!cap)return;
+      const cdiv=document.createElement('div');
+      const ct=document.createElement('div');ct.className='capability-title';ct.textContent=cap.title;cdiv.appendChild(ct);
+      const rlist=document.createElement('ul');cap.resources.forEach(rid=>{const res=resources.find(r=>r.id===rid);if(!res)return;const li=document.createElement('li');const a=document.createElement('a');a.href=res.url;a.textContent=res.title;a.className='resource-title';li.appendChild(a);rlist.appendChild(li);});cdiv.appendChild(rlist);
+      nest.appendChild(cdiv);
+    });
+    det.appendChild(nest);
+    list.appendChild(det);
+  });
+}
+
+function init(){renderControls();renderList();}
+init();
 
 })(); // IIFE end
 } // pmGapMapInit guard end

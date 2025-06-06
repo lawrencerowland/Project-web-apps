@@ -4,6 +4,7 @@ title: Grounded Theory Analysis of LinkedIn Posts (2010-2025)
 ---
 
 # Grounded Theory Analysis of LinkedIn Posts (2010-2025)
+[Back to Card Index](../index.html)
 ## Axial Coding Results
 
 ### Research Context

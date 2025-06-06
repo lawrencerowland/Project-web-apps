@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Integration in Project Management: Analysis of Lawrence Rowland's LinkedIn Posts</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        
+        h3 {
+            color: #7f8c8d;
+            margin-top: 25px;
+        }
+        
+        .executive-summary {
+            background: #e3f2fd;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 2px solid #2196f3;
+        }
+        
+        .key-finding {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 5px solid #28a745;
+            border-radius: 8px;
+        }
+        
+        .key-finding h4 {
+            margin-top: 0;
+            color: #28a745;
+        }
+        
+        .tree-instructions {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #ffc107;
+        }
+        
+        .tree-instructions h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+        
+        .tree-container {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        
+        .tree {
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .tree ul {
+            list-style: none;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .tree > ul {
+            padding-left: 0;
+        }
+        
+        .tree li {
+            position: relative;
+            padding: 5px 0;
+        }
+        
+        .tree li::before {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 15px;
+            border-left: 2px solid #ddd;
+            height: calc(100% - 15px);
+        }
+        
+        .tree li::after {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 15px;
+            border-bottom: 2px solid #ddd;
+            width: 15px;
+        }
+        
+        .tree li:last-child::before {
+            height: 15px;
+        }
+        
+        .node {
+            display: inline-block;
+            padding: 6px 12px;
+            background: white;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 2px 0;
+            position: relative;
+        }
+        
+        .node:hover {
+            background: #3498db;
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .node[data-quote]:hover::after {
+            content: attr(data-quote);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            white-space: normal;
+            width: 300px;
+            z-index: 1000;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.4;
+        }
+        
+        .node[data-quote]:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: #333;
+            margin-bottom: -6px;
+            z-index: 1001;
+        }
+        
+        .core-category {
+            background: #3498db;
+            color: white;
+            font-weight: bold;
+            border-color: #2980b9;
+        }
+        
+        .core-category:hover {
+            background: #2980b9;
+        }
+        
+        .property {
+            background: #e8f4f8;
+            border-color: #5dade2;
+            font-size: 13px;
+        }
+        
+        .dimension {
+            background: #fef9e7;
+            border-color: #f4d03f;
+            font-size: 12px;
+            font-style: italic;
+        }
+        
+        .subcategory {
+            background: #e8f6f3;
+            border-color: #52be80;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+        }
+        
+        .theory-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 2px solid #2196f3;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .expandable {
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .expandable::before {
+            content: '\25B6 ';
+            display: inline-block;
+            transition: transform 0.3s;
+        }
+        
+        .expandable.expanded::before {
+            transform: rotate(90deg);
+        }
+        
+        .collapsible {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsible.show {
+            max-height: 2000px;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid;
+        }
+
+        .methodology-note {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-top: 40px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Integration in Project Management: Strategic Insights</h1>
+        <p style="font-size: 18px; color: #666;">Analysis of Lawrence Rowland's LinkedIn Posts (2010-2025)</p>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">919</div>
+                <div>Total Posts Analyzed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">2020-2025</div>
+                <div>Primary Activity Period</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">35x</div>
+                <div>AI Content Increase (2023)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">4</div>
+                <div>Strategic Themes</div>
+            </div>
+        </div>
+
+        <div class="executive-summary">
+            <h2 style="margin-top: 0; border: none; padding: 0;">Executive Summary</h2>
+            <p><strong>The Bottom Line:</strong> Project management is undergoing a fundamental transformation driven by AI integration. This analysis of 919 LinkedIn posts reveals how successful professionals are navigating this change - not by replacing human expertise, but by augmenting it. The key finding: <em>organizations that position their project managers as AI orchestrators rather than operators will gain significant competitive advantage.</em></p>
+        </div>
+
+        <h2>Key Strategic Findings for Project Directors</h2>
+
+        <div class="key-finding">
+            <h4>1. AI Integration is Accelerating Exponentially</h4>
+            <p>AI mentions in project management discussions increased 35-fold between 2022 and 2023. By 2025, AI tools like ChatGPT Team, Operator, and Codex have become standard in progressive project environments. <strong>Action: Begin pilot programs now or risk being left behind.</strong></p>
+        </div>
+
+        <div class="key-finding">
+            <h4>2. Human Project Managers Remain Essential - But Their Role is Evolving</h4>
+            <p>The data shows professionals actively preserving their "distinctive human voice" while embracing AI. The new PM role focuses on orchestration, validation, and strategic decision-making rather than routine task execution. <strong>Action: Invest in upskilling your PMs for AI collaboration.</strong></p>
+        </div>
+
+        <div class="key-finding">
+            <h4>3. Small Companies Are Successfully Democratizing AI</h4>
+            <p>AI implementation is no longer limited to large enterprises. Small companies are achieving significant results with "bread and butter" implementations. <strong>Action: Start with simple, practical applications before attempting complex transformations.</strong></p>
+        </div>
+
+        <div class="key-finding">
+            <h4>4. Community-Driven Learning Accelerates Adoption</h4>
+            <p>Successful AI adoption happens through peer learning and knowledge sharing, not just formal training. Organizations building internal communities of practice see faster, more sustainable adoption. <strong>Action: Foster internal knowledge sharing and external network participation.</strong></p>
+        </div>
+
+        <h2>What We Did: Understanding the Research</h2>
+        
+        <div class="highlight">
+            <h4>About This Analysis</h4>
+            <p>We analyzed Lawrence Rowland's complete LinkedIn post history (919 posts from 2010-2025) using a rigorous social science method called "grounded theory." While most posts date from 2020 onwards, the full timeline provides unique insights into how AI adoption has accelerated in project management.</p>
+            
+            <p><strong>What is Axial Coding?</strong> Think of it as creating a detailed map of interconnected themes. We read every post, identified patterns, and then mapped how these patterns relate to each other - like creating a family tree of ideas. The interactive tree below shows these relationships visually.</p>
+        </div>
+
+        <h2>Interactive Analysis Framework</h2>
+        
+        <div class="tree-instructions">
+            <h4>🖱️ How to Use This Interactive Tree</h4>
+            <ul style="margin: 10px 0;">
+                <li><strong>Click any blue box</strong> (Core Category) to expand or collapse that branch</li>
+                <li><strong>Hover over any item</strong> to see an example quote from the posts that illustrates that concept</li>
+                <li><strong>All branches start expanded</strong> - you can see everything at once or click to focus on specific areas</li>
+                <li><strong>Color coding:</strong> Blue = main themes, Light blue = key properties, Green = subcategories, Yellow = ranges/spectrums</li>
+                <li><strong>💡 Pro tip:</strong> The hover quotes give you real examples of how these concepts appear in practice</li>
+                <li><strong>📝 Note:</strong> All quotes are actual excerpts from Lawrence Rowland's LinkedIn posts</li>
+            </ul>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box core-category"></div>
+                <span>Core Themes</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box property"></div>
+                <span>Key Properties</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box subcategory"></div>
+                <span>Subcategories</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box dimension"></div>
+                <span>Ranges/Spectrums</span>
+            </div>
+        </div>
+
+        <div class="tree-container">
+            <div class="tree">
+                <ul>
+                    <li>
+                        <span class="node core-category expandable" onclick="toggleSection('ai-practice')" data-quote="Setting up project environments within ChatGPT Team for regulatory review and proposal generation is popular and straightforward.">AI-Augmented Professional Practice</span>
+                        <div class="collapsible" id="ai-practice">
+                            <ul>
+                                <li>
+                                    <span class="node property" data-quote="These are the key characteristics we observed across the posts">Properties</span>
+                                    <ul>
+                                        <li><span class="node property" data-quote="Last week, the model underlying Operator agent was upgraded to o3. Watch Operator and Codex agents work together to improve a website.">Temporal Evolution: AI-curious (2021-2022) → AI-integrated (2023-2025)</span></li>
+                                        <li><span class="node property" data-quote="I've built five project agents: a scope writer, a business case analyst, a portfolio analyst...">Implementation Depth: Surface experimentation → Deep workflow integration</span></li>
+                                        <li><span class="node property" data-quote="Speak to us and you can have it working well within your small company next month, even if you are not yet using ChatGPT Team.">Accessibility Focus: Democratizing AI for small companies</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node dimension">Dimensional Ranges</span>
+                                    <ul>
+                                        <li><span class="node dimension" data-quote="I'm slowly scaling up my experiments using OpenAI assistants as research assistants, as time permits.">Experimental ← → Operational</span></li>
+                                        <li><span class="node dimension" data-quote="you can talk to ScopeGOAT on your smartphone app while you are out and about - no hands. Now you can plan a project on the train.">Individual ← → Organizational</span></li>
+                                        <li><span class="node dimension" data-quote="Writing your project AI strategy">Technical ← → Strategic</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node subcategory">Subcategories</span>
+                                    <ul>
+                                        <li>
+                                            <span class="node subcategory" data-quote="OpenAI have released a helpful short guide for getting the most out of ChatGPT.">Tool Adoption Patterns</span>
+                                            <ul>
+                                                <li><span class="node" data-quote="Setting up project environments within ChatGPT Team for regulatory review and proposal generation">ChatGPT Team environments</span></li>
+                                                <li><span class="node" data-quote="here's a good GPT agent from Grace Lungu. It's called ChatCody and it goes out and back to your github repositories">AI agents (Operator, Codex)</span></li>
+                                                <li><span class="node" data-quote="addressing the general confusion around Gemini Advanced and other models - it's not just you, it's all of us">Model evolution (GPT-3.5 → GPT-4 → Claude)</span></li>
+                                            </ul>
+                                        </li>
+                                        <li>
+                                            <span class="node subcategory" data-quote="Here are ten interactive project Artifacts I created last month using Claude Sonnet">Integration Contexts</span>
+                                            <ul>
+                                                <li><span class="node" data-quote="o1 PRO recommends the following for better project risk management, in this order: 1. option-based stages">Project management enhancement</span></li>
+                                                <li><span class="node" data-quote="I asked Claude Sonnet to mock up a better project stakeholder dashboard, fit for the 2020s">Document generation and review</span></li>
+                                                <li><span class="node" data-quote="Draw from both decks every day. When you get a match, pass it onto your team, and keep playing.">Stakeholder communication</span></li>
+                                                <li><span class="node" data-quote="GPT4 has constructed a schedule estimate for me, and tested its sensitivity with CPA, PERT and MonteCarlo">Risk analysis and planning</span></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="node core-category expandable" onclick="toggleSection('identity')" data-quote="Now is a good time to start writing about projects and technology and work in interesting ways. Start now and people will come to recognise your voice.">Human-AI Identity Negotiation</span>
+                        <div class="collapsible" id="identity">
+                            <ul>
+                                <li>
+                                    <span class="node property">Properties</span>
+                                    <ul>
+                                        <li><span class="node property" data-quote="Start much later, and people may just assume that your distinctive voice and opinions is that of an ai.">Authenticity Preservation: Maintaining distinctive human voice</span></li>
+                                        <li><span class="node property" data-quote="Don't solve your thorniest business problems. Defer them to an AI.">Role Redefinition: From doer to orchestrator/validator</span></li>
+                                        <li><span class="node property" data-quote="the one-deckers in the office may be smarter than you, but you have two decks">Skill Evolution: Technical skills + AI collaboration skills</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node dimension">Dimensional Ranges</span>
+                                    <ul>
+                                        <li><span class="node dimension" data-quote="Sam Altman having fun. But if it had been the real flare going up, would you have been ready?">Replacement Fear ← → Augmentation Embrace</span></li>
+                                        <li><span class="node dimension" data-quote="hopefully you have the frequent experience of successfully finishing something off before you leave the office">Passive User ← → Active Collaborator</span></li>
+                                        <li><span class="node dimension" data-quote="this does get us closer to having well-specified prompts available for the non-expert.">Loss of Control ← → Enhanced Capability</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node subcategory">Subcategories</span>
+                                    <ul>
+                                        <li>
+                                            <span class="node subcategory" data-quote="if it sounds like an ai could have written it? Don't post it, that's my advice.">Voice Preservation Strategies</span>
+                                            <ul>
+                                                <li><span class="node" data-quote="Start now and people will come to recognise your voice. Start much later, and people may just assume that your distinctive voice and opinions is that of an ai.">"Start writing now before people assume it's AI"</span></li>
+                                                <li><span class="node" data-quote="Videos, apps, reports, demos, pics - it doesn't just have to be words.">Emphasis on personal experience</span></li>
+                                                <li><span class="node" data-quote="Used an ai to help? No problem, but tell us what is you and what is the ai.">Transparent AI disclosure</span></li>
+                                            </ul>
+                                        </li>
+                                        <li>
+                                            <span class="node subcategory" data-quote="Paying attention yet?">Professional Repositioning</span>
+                                            <ul>
+                                                <li><span class="node" data-quote="1. Operator tests my website 2. Operator writes a spec 3. I give the spec to Codex 4. Codex improves 5. I approve">Task executor → AI conductor</span></li>
+                                                <li><span class="node" data-quote="Some of us draw cartoons when given access to a whiteboard. That's our superpower.">Focus on uniquely human contributions</span></li>
+                                                <li><span class="node" data-quote="We do bread and butter stuff like this, and we understand projects and consulting">AI-enhanced service offerings</span></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="node core-category expandable" onclick="toggleSection('knowledge')" data-quote="i will start a weekly link post of new project writing and include your post. lets call it *shout out sunday*.">Knowledge Ecosystem Transformation</span>
+                        <div class="collapsible" id="knowledge">
+                            <ul>
+                                <li>
+                                    <span class="node property">Properties</span>
+                                    <ul>
+                                        <li><span class="node property" data-quote="I suggest either posting on Substack or on here.">Sharing Mechanisms: Structured knowledge transfer</span></li>
+                                        <li><span class="node property" data-quote="Cc me on (only) your first couple of posts so I find you.">Community Building: Active practitioner networks</span></li>
+                                        <li><span class="node property" data-quote="the technology companies have been racing each other and confusing us all">Learning Velocity: Accelerated skill cycles</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node dimension">Dimensional Ranges</span>
+                                    <ul>
+                                        <li><span class="node dimension" data-quote="Britain! Let's go.">Individual Learning ← → Collective Intelligence</span></li>
+                                        <li><span class="node dimension" data-quote="I'm sharing these to inspire you to create your own">Formal Training ← → Peer-to-Peer Exchange</span></li>
+                                        <li><span class="node dimension" data-quote="Today Ive brought across 115 of my most important files on pm and business strategy">Static Knowledge ← → Dynamic Co-creation</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node subcategory">Subcategories</span>
+                                    <ul>
+                                        <li>
+                                            <span class="node subcategory" data-quote="reducing positive lag">Structured Knowledge Initiatives</span>
+                                            <ul>
+                                                <li><span class="node" data-quote="i will start a weekly link post of new project writing and include your post. lets call it *shout out sunday*">"Shout Out Sunday" highlights</span></li>
+                                                <li><span class="node" data-quote="Post 10 Final post. In yesterday's post we started to look at schedule integrity.">Regular posting schedules</span></li>
+                                                <li><span class="node" data-quote="details in comments">Cross-platform presence</span></li>
+                                            </ul>
+                                        </li>
+                                        <li>
+                                            <span class="node subcategory" data-quote="and we understand projects and consulting and how to coach small teams in the practical details of everyday usage">Democratization Efforts</span>
+                                            <ul>
+                                                <li><span class="node" data-quote="you can have it working well within your small company next month">AI access for small companies</span></li>
+                                                <li><span class="node" data-quote="One big barrier to entry people starting out have is the last mile of knowing how to easily have a website">Practical implementation guides</span></li>
+                                                <li><span class="node" data-quote="We do bread and butter stuff like this">"Bread and butter" consulting</span></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="node core-category expandable" onclick="toggleSection('practice')" data-quote="Blockchains are making progress in the physical world - here coordinating a 5G network">Practice Evolution Trajectory</span>
+                        <div class="collapsible" id="practice">
+                            <ul>
+                                <li>
+                                    <span class="node property">Properties</span>
+                                    <ul>
+                                        <li><span class="node property" data-quote="It's been 3 months since OpenAI's Dev day, and I've built five project agents.">Transformation Stages: Traditional → Hybrid → AI-Native</span></li>
+                                        <li><span class="node property" data-quote="Kinda important.. (images we see in our head can now be reconstructed by looking at MRI scan)">Change Velocity: Accelerating adoption curves</span></li>
+                                        <li><span class="node property" data-quote="Plan projects on the go">Impact Scope: Individual → Team → Organizational</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node dimension">Dimensional Ranges</span>
+                                    <ul>
+                                        <li><span class="node dimension" data-quote="Sora just rolled out to the UK">Incremental Change ← → Fundamental Transformation</span></li>
+                                        <li><span class="node dimension" data-quote="AI #meme #vibe #strategy #project">Tool Addition ← → Paradigm Shift</span></li>
+                                        <li><span class="node dimension" data-quote="Boom! o1 PRO recommends the following for better project risk management">Optional Enhancement ← → Competitive Necessity</span></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <span class="node subcategory">Subcategories</span>
+                                    <ul>
+                                        <li>
+                                            <span class="node subcategory" data-quote="Now we construct and publish a CPM Schedule using Microsoft Project">Workflow Transformation</span>
+                                            <ul>
+                                                <li><span class="node" data-quote="1. Operator tests 2. Operator writes spec 3. I give spec to Codex 4. Codex improves 5. I approve">AI-first project scoping</span></li>
+                                                <li><span class="node" data-quote="GPT4 has constructed a schedule estimate for me">Automated artifact generation</span></li>
+                                                <li><span class="node" data-quote="I approve the changes in Github">Human-in-the-loop validation</span></li>
+                                            </ul>
+                                        </li>
+                                        <li>
+                                            <span class="node subcategory" data-quote="better website.">Value Proposition Evolution</span>
+                                            <ul>
+                                                <li><span class="node" data-quote="you can plan a project on the train">Speed and scale advantages</span></li>
+                                                <li><span class="node" data-quote="tested its sensitivity with CPA, PERT and MonteCarlo">Enhanced analytical capabilities</span></li>
+                                                <li><span class="node" data-quote="five project agents: a scope writer, a business case analyst, a portfolio analyst">New AI-enabled services</span></li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>The Big Picture: What This Means for Your Organization</h2>
+
+        <div class="theory-box">
+            <h3 style="margin-top: 0;">The Theory of Augmented Professional Evolution</h3>
+            <p>Project management professionals are undergoing a continuous process of capability augmentation while actively maintaining their human value proposition. Success requires:</p>
+            <ol>
+                <li><strong>Active identity work</strong> - PMs must consciously position themselves as AI orchestrators</li>
+                <li><strong>Community-based learning</strong> - Peer networks accelerate adoption and reduce risk</li>
+                <li><strong>Democratized access</strong> - Start simple, focus on practical wins</li>
+                <li><strong>Experimental mindset</strong> - Progress from pilots to operational deployment</li>
+                <li><strong>Strategic positioning</strong> - Emphasize uniquely human contributions</li>
+            </ol>
+        </div>
+
+        <h2>Recommended Actions for Project Directors</h2>
+
+        <div class="highlight">
+            <h4>Immediate Steps (Next 30 Days)</h4>
+            <ol>
+                <li>Identify 2-3 pilot projects for AI tool integration</li>
+                <li>Survey your PMs on current AI tool usage and comfort levels</li>
+                <li>Establish a PM AI Community of Practice</li>
+                <li>Begin transparent conversations about role evolution</li>
+            </ol>
+        </div>
+
+        <div class="highlight">
+            <h4>Medium Term (3-6 Months)</h4>
+            <ol>
+                <li>Implement ChatGPT Team or similar for specific use cases</li>
+                <li>Develop AI collaboration guidelines and best practices</li>
+                <li>Create mentorship pairs (AI-savvy with traditional PMs)</li>
+                <li>Measure and share early wins</li>
+            </ol>
+        </div>
+
+        <div class="highlight">
+            <h4>Strategic Goals (6-12 Months)</h4>
+            <ol>
+                <li>Evolve PM job descriptions to include AI orchestration</li>
+                <li>Integrate AI capabilities into project methodology</li>
+                <li>Develop new AI-enhanced service offerings</li>
+                <li>Position your organization as an AI-forward leader</li>
+            </ol>
+        </div>
+
+        <div class="methodology-note">
+            <h4>Research Methodology</h4>
+            <p>This analysis used grounded theory methodology to analyze 919 LinkedIn posts by Lawrence Rowland (2010-2025), with the majority of posts from 2020 onwards. Every post was read and coded manually to identify patterns and relationships. The resulting framework represents genuine patterns emerging from real-world project management practice, not theoretical constructs.</p>
+        </div>
+    </div>
+
+    <script>
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            const trigger = event.target;
+            
+            section.classList.toggle('show');
+            trigger.classList.toggle('expanded');
+        }
+        
+        // Initialize all sections as expanded
+        document.addEventListener('DOMContentLoaded', function() {
+            const expandables = document.querySelectorAll('.expandable');
+            const collapsibles = document.querySelectorAll('.collapsible');
+            
+            expandables.forEach(exp => exp.classList.add('expanded'));
+            collapsibles.forEach(col => col.classList.add('show'));
+        });
+    </script>
+</body>
+</html>

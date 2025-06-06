@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Door Moisture Model</title>
+<style>
+body{font-family:Georgia,serif;margin:20px;max-width:800px;}
+input[type=range]{width:100%;}
+#gap{font-weight:bold;font-size:1.2em;}
+</style>
+</head>
+<body>
+<h1>Seventeenth‑Century Cumbrian Door Moisture Model</h1>
+<p>Adjust the estimated <em>effective moisture content</em> (EMC, %) of each element. The model converts EMC to linear swelling&nbsp;Δ<span style="font-size:smaller;">w</span>=k·(EMC−EMC<sub>eq</sub>) and evaluates the resulting gap between door edge and jamb rebate.</p>
+
+<label>Door EMC (%):
+<input id="door" type="range" min="6" max="28" value="12" step="0.1"
+oninput="update()">
+<span id="doorVal"></span></label><br>
+
+<label>Jamb EMC (%):
+<input id="jamb" type="range" min="6" max="28" value="12" step="0.1"
+oninput="update()">
+<span id="jambVal"></span></label><br>
+
+<label>Wall moisture factor (0‑1; proxy for sandstone movement):
+<input id="wall" type="range" min="0" max="1" value="0.2" step="0.01"
+oninput="update()">
+<span id="wallVal"></span></label><br>
+
+<label>Initial clearance (mm):
+<input id="clear" type="range" min="0" max="10" value="3" step="0.1"
+oninput="update()">
+<span id="clearVal"></span></label>
+
+<p id="gap"></p>
+
+<script>
+const kDoor=0.25; // mm swelling per % EMC above equilibrium
+const kJamb=0.20;
+const kWall=1.5;  // mm wall movement per unit factor
+const EMCeq=12;   // equilibrium moisture content for indoor Cumbrian average
+
+function update(){
+ const doorEMC=parseFloat(door.value);
+ const jambEMC=parseFloat(jamb.value);
+ const wallF=parseFloat(wall.value);
+ const initGap=parseFloat(clear.value);
+
+ doorVal.textContent=doorEMC.toFixed(1);
+ jambVal.textContent=jambEMC.toFixed(1);
+ wallVal.textContent=wallF.toFixed(2);
+ clearVal.textContent=initGap.toFixed(1);
+
+ const swellDoor=kDoor*(doorEMC-EMCeq);
+ const swellJamb=kJamb*(jambEMC-EMCeq);
+ const wallShift= -kWall*wallF; // negative closes the gap
+
+ const remainingGap=initGap - (swellDoor + swellJamb) + wallShift;
+
+ gap.textContent =
+   'Predicted clearance: ' + remainingGap.toFixed(2) + ' mm ' +
+   '(' + (remainingGap<=0 ? 'Door likely sticks' : 'Door free') + ').';
+}
+update();
+</script>
+</body>
+</html>

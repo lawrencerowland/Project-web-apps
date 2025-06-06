@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HS2 Semantic Project Dashboard v2.1 (Debug)</title>
+    <style>
+        /* --- Base Styles --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a; /* Dark background */
+            color: #e0e0e0; /* Light text */
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        :root { /* Define colors */
+            --accent-color: #00ab8e; /* Teal/Green accent */
+            --bg-dark1: #1a1a1a;
+            --bg-dark2: #252525;
+            --bg-dark3: #2c2c2c;
+            --bg-dark4: #3a3a3a;
+            --border-color: #444;
+            --text-color: #e0e0e0;
+            --text-muted: #aaa;
+            --status-red: #e74c3c;
+            --status-amber: #f39c12;
+            --status-green: #2ecc71;
+            --status-blue: #3498db; /* For 'In Progress' */
+            --status-grey: #95a5a6; /* For 'Not Started' / 'On Hold' */
+            --process-color: #ff9800; /* Orange */
+            --deliverable-color: #2196F3; /* Blue */
+        }
+
+        /* --- Layout --- */
+        #sidebar {
+            width: 220px; /* Slightly wider */
+            background-color: var(--bg-dark3);
+            padding: 20px;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        #main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #dashboard {
+            padding: 15px 20px;
+            background-color: var(--bg-dark2);
+            border-bottom: 1px solid var(--border-color);
+            /* Flex layout for KPIs */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        #summary-section {
+            padding: 15px 20px;
+            background-color: var(--bg-dark2);
+            border-bottom: 1px solid var(--border-color);
+        }
+        #wbs-pbs-explorer {
+            padding: 0 20px 20px 20px; /* No top padding, handled by titles */
+            flex-grow: 1;
+            overflow: hidden; /* Hide overflow here */
+            display: flex;
+            gap: 20px;
+        }
+         #wbs-pbs-explorer > div { /* WBS/PBS Columns */
+             flex: 1;
+             background-color: var(--bg-dark3);
+             padding: 15px;
+             border-radius: 5px;
+             overflow-y: auto; /* Scroll within columns */
+             height: calc(100vh - 250px); /* Approximate height calculation, adjust as needed */
+             position: relative; /* For sticky header */
+         }
+
+        /* --- Sidebar --- */
+        #sidebar h2 {
+            color: var(--accent-color);
+            margin: 0 0 15px 0;
+            font-size: 1.3em;
+            text-align: center;
+        }
+        #sidebar ul#phase-selector { list-style: none; padding: 0; margin: 0 0 20px 0; }
+        #sidebar li {
+            padding: 12px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 0.95em;
+            position: relative; /* For status indicator */
+            padding-left: 25px; /* Space for indicator */
+        }
+        #sidebar li:hover { background-color: var(--bg-dark4); }
+        #sidebar li.active { background-color: var(--accent-color); color: var(--bg-dark1); font-weight: bold; }
+        #sidebar li .status-indicator { /* Phase status dot */
+            width: 10px; height: 10px; border-radius: 50%;
+            position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+            border: 1px solid rgba(0,0,0,0.2); /* Subtle border for contrast */
+        }
+        #sidebar #legend { margin-top: auto; /* Push legend to bottom */ padding-top: 15px; border-top: 1px solid var(--border-color); }
+        #legend h4 { margin: 0 0 10px 0; color: var(--text-muted); }
+        #legend p { display: flex; align-items: center; margin: 5px 0; font-size: 0.9em; }
+        #legend span.legend-color { width: 12px; height: 12px; margin-right: 8px; border: 1px solid #555; display: inline-block; }
+
+        /* --- Dashboard KPIs --- */
+        .kpi-card {
+            background-color: var(--bg-dark3);
+            padding: 10px 15px;
+            border-radius: 5px;
+            min-width: 160px;
+            text-align: center;
+            border: 1px solid var(--border-color); /* Subtle border */
+        }
+        .kpi-card h3 { margin: 0 0 8px 0; font-size: 0.85em; color: var(--text-muted); text-transform: uppercase; }
+        .kpi-card .value { font-size: 1.6em; font-weight: bold; color: var(--accent-color); }
+        .kpi-card .sub-value { font-size: 0.8em; color: #bbb; margin-top: 3px; }
+        .progress-bar-container { background-color: #555; border-radius: 5px; height: 10px; overflow: hidden; margin-top: 5px; }
+        .progress-bar { background-color: var(--accent-color); height: 100%; width: 0%; /* Set by JS */ transition: width 0.5s ease; }
+        .status-text { font-weight: bold; }
+        /* Status Color Classes */
+        .status-Red { color: var(--status-red); }
+        .status-Amber { color: var(--status-amber); }
+        .status-Green { color: var(--status-green); }
+        .status-Delayed { color: var(--status-red); }
+        .status-OnHold { color: var(--status-grey); }
+        .status-InProgress { color: var(--status-blue); }
+        .status-Complete, .status-LargelyComplete { color: var(--status-green); }
+        .status-NotStarted { color: var(--status-grey); }
+        .status-PlanningReview { color: var(--status-blue); } /* Treat planning as blue */
+        .status-Planned { color: var(--status-grey); } /* Planned same as not started */
+
+
+        /* --- Summary Section --- */
+        #summary-section h3 { margin: 0 0 10px 0; color: var(--accent-color); }
+        #summary-section p { margin: 0; font-size: 0.95em; line-height: 1.5; color: var(--text-color); }
+
+        /* --- WBS/PBS Explorer --- */
+        #wbs-pbs-explorer h3 { /* Tree Titles */
+            color: var(--accent-color);
+            margin: -15px -15px 10px -15px; /* Pull up and out */
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky; top: -15px; /* Sticky header */
+            background-color: var(--bg-dark3); /* Match column background */
+            z-index: 1;
+        }
+        .tree ul { list-style: none; padding-left: 20px; }
+        .tree li { margin: 3px 0; position: relative; padding-left: 18px; /* Space for toggle + status */ }
+        .tree .node-container { display: flex; align-items: center; }
+        .tree .status-dot { /* Status indicator in tree */
+             width: 8px; height: 8px; border-radius: 50%;
+             margin-right: 6px;
+             flex-shrink: 0; /* Prevent shrinking */
+             border: 1px solid rgba(0,0,0,0.2); /* Subtle border */
+        }
+
+        .tree span.node-label {
+            cursor: pointer;
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+            flex-grow: 1; /* Allow label to take space */
+            line-height: 1.3;
+            font-size: 0.9em;
+        }
+        .tree span.process { border-left: 3px solid var(--process-color); padding-left: 8px; }
+        .tree span.deliverable { border-left: 3px solid var(--deliverable-color); padding-left: 8px;}
+        .tree span.node-label:hover { background-color: #4f4f4f; }
+        .tree span.highlight { background-color: #555 !important; font-weight: bold; color: var(--accent-color); }
+        .tree span.linked-highlight { background-color: #3d4f3e !important; border: 1px dashed var(--accent-color); }
+
+        .tree .toggle { /* Expand/Collapse */
+            position: absolute; /* Position relative to li */
+            left: 0; top: 4px; /* Adjust vertical position */
+            width: 15px; height: 15px; line-height: 15px;
+            text-align: center; cursor: pointer; user-select: none;
+            font-weight: bold; color: var(--text-muted);
+            border: 1px solid var(--text-muted); border-radius: 3px;
+            font-size: 0.8em;
+        }
+         .tree .toggle.hidden { visibility: hidden; }
+         .tree .toggle::before { content: '+'; }
+         .tree li.expanded > .toggle::before { content: '-'; } /* Changed selector */
+         .tree li > ul { display: none; margin-top: 3px;}
+         .tree li.expanded > ul { display: block; }
+
+        /* --- Details Pane --- */
+        #details-pane {
+            position: fixed; bottom: 15px; right: 15px; width: 320px;
+            background-color: var(--bg-dark4); border: 1px solid #666;
+            border-radius: 5px; padding: 15px; display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); color: var(--text-color); z-index: 10;
+            max-height: 45%; overflow-y: auto; /* Allow scrolling in pane */
+        }
+        #details-pane h4 { margin: 0 0 10px 0; color: var(--accent-color); border-bottom: 1px solid #666; padding-bottom: 5px;}
+        #details-pane p { margin: 8px 0; font-size: 0.9em; line-height: 1.4;}
+        #details-pane strong { color: var(--text-muted); min-width: 80px; display: inline-block; vertical-align: top;} /* Align keys */
+        #details-pane .details-progressbar { background-color: #555; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 3px; display: inline-block; width: calc(100% - 90px); /* Align with value */}
+        #details-pane .details-progressbar div { background-color: var(--accent-color); height: 100%; }
+        #details-pane button { margin-top: 15px; padding: 6px 12px; background-color: #666; border: none; color: var(--text-color); cursor: pointer; border-radius: 3px; float: right;}
+        #details-pane button:hover { background-color: #777; }
+
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>HS2 Overview</h2>
+        <ul id="phase-selector">
+            <!-- Populated by JS -->
+            <li>Loading Phases...</li>
+        </ul>
+        <div id="legend">
+            <h4>Legend</h4>
+            <p><span class="legend-color" style="background-color:var(--process-color);"></span> Process (WBS)</p>
+            <p><span class="legend-color" style="background-color:var(--deliverable-color);"></span> Deliverable (PBS)</p>
+             <hr style="border-color: var(--border-color); margin: 8px 0;">
+            <p><span class="legend-color" style="background-color:var(--status-green);"></span> Complete / OK</p>
+            <p><span class="legend-color" style="background-color:var(--status-blue);"></span> In Progress / Planning</p>
+             <p><span class="legend-color" style="background-color:var(--status-amber);"></span> Warning / Amber</p>
+            <p><span class="legend-color" style="background-color:var(--status-red);"></span> Delayed / Red</p>
+            <p><span class="legend-color" style="background-color:var(--status-grey);"></span> Not Started / On Hold / Planned</p>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="dashboard">
+            <!-- KPIs loaded by JS -->
+            <p>Loading KPIs...</p>
+        </div>
+         <div id="summary-section">
+             <h3 id="summary-title">Project Summary</h3>
+             <p id="summary-text">Loading summary...</p>
+         </div>
+        <div id="wbs-pbs-explorer">
+            <div id="wbs-tree" class="tree">
+                <h3>Work Breakdown Structure (Processes)</h3>
+                <ul id="wbs-root"><li>Loading WBS...</li></ul>
+            </div>
+            <div id="pbs-tree" class="tree">
+                <h3>Product Breakdown Structure (Deliverables)</h3>
+                 <ul id="pbs-root"><li>Loading PBS...</li></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="details-pane">
+        <h4 id="details-title">Details</h4>
+        <div id="details-content"><!-- Populated by JS --></div>
+         <button onclick="document.getElementById('details-pane').style.display='none';">Close</button>
+    </div>
+
+    <script>
+        // --- Paste ENHANCED hs2Data Object Here ---
+        const hs2Data = {
+             project: { id: ":HS2_Project_Process", label: "HS2 Project Process", budget: "£98bn (Indicative Overall)", eac: "£105bn", schedulePercentComplete: 15, realizes: ":HS2_Railway_System_Completed", children: [":HS2_Phase1_Process", ":HS2_Phase2a_Process"], status: "Amber", summary: "HS2 project advancing through Phase 1 construction, facing budget and schedule pressures. Phase 2 planning ongoing amid scope reviews." },
+             phases: {
+                 ":HS2_Phase1_Process": { parent: ":HS2_Project_Process", label: "HS2 Phase 1 Process", status: "In Progress", scheduleStatus: "Delayed", budget: "£44.6bn", spent: "£15bn", schedulePercentComplete: 45, realizes: ":HS2_Phase1_Segment", children: [":Phase1_EnablingWorks_Process", ":Phase1_Design_Process", ":Phase1_LandAcquisition_Process", ":Phase1_MainWorks_Civils_Process", ":Phase1_MainWorks_Stations_Process", ":Phase1_MainWorks_RailSystems_Process", ":Phase1_Integration_Process"], summary: "Phase 1 (London-West Mids) construction well underway. Focus on civils (tunnels, viaducts) and station mega-sites. Significant progress on Chiltern tunnelling. Cost and schedule remain key challenges.", metrics: { landAcquiredPercent: 92, tunnelingCompletePercent: 55, majorContractsAwarded: 15 } },
+                 ":HS2_Phase2a_Process": { parent: ":HS2_Project_Process", label: "HS2 Phase 2a Process", status: "Planning / Review", scheduleStatus: "On Hold", budget: "£22bn", spent: "£2bn", schedulePercentComplete: 10, realizes: ":HS2_Phase2a_Segment", children: [":Phase2a_Design_Process", ":Phase2a_Consenting_Process"], summary: "Phase 2a (West Mids-Crewe) scope and schedule under review following government announcements. Design work progressing at reduced pace.", metrics: { landAcquiredPercent: 10, majorContractsAwarded: 2 } }
+             },
+             processes: {
+                 ":Phase1_EnablingWorks_Process": { parent: ":HS2_Phase1_Process", label: "P1 Enabling Works", status: "Largely Complete", percentComplete: 95, realizes: ":Phase1_PreparedSites"},
+                 ":Phase1_Design_Process": { parent: ":HS2_Phase1_Process", label: "P1 Design Process", status: "Largely Complete", percentComplete: 98, realizes: ":Phase1_Design_Specification" },
+                 ":Phase1_LandAcquisition_Process": { parent: ":HS2_Phase1_Process", label: "P1 Land Acquisition", status: "In Progress", percentComplete: 92, realizes: ":Phase1_AcquiredLand" },
+                 ":Phase1_MainWorks_Civils_Process": { parent: ":HS2_Phase1_Process", label: "P1 Main Works - Civils", status: "In Progress", percentComplete: 40, children: [":Phase1_ChilternTunnels_Construction", ":Phase1_ColneValleyViaduct_Construction"] },
+                 ":Phase1_ChilternTunnels_Construction": { parent: ":Phase1_MainWorks_Civils_Process", label: "Chiltern Tunnels Construction", status: "In Progress", budget: "£1.6bn", spent: "£0.9bn", percentComplete: 60, realizes: ":ChilternTunnel_Structure", participants: [":AlignJV_Contractor"], children: [":ChilternTunnels_Boring", ":ChilternTunnels_Lining", ":ChilternTunnels_Portals"] },
+                 ":ChilternTunnels_Boring": { parent: ":Phase1_ChilternTunnels_Construction", label: "Tunnel Boring (Both)", status: "In Progress", percentComplete: 90 },
+                 ":ChilternTunnels_Lining": { parent: ":Phase1_ChilternTunnels_Construction", label: "Tunnel Lining Installation", status: "In Progress", percentComplete: 40 },
+                 ":ChilternTunnels_Portals": { parent: ":Phase1_ChilternTunnels_Construction", label: "Tunnel Portal Construction", status: "In Progress", percentComplete: 70, realizes: ":ChilternTunnel_Portals" },
+                 ":Phase1_ColneValleyViaduct_Construction": { parent: ":Phase1_MainWorks_Civils_Process", label: "Colne Valley Viaduct Construction", status: "In Progress", percentComplete: 50, realizes: ":ColneValleyViaduct_Structure", participants: [":AlignJV_Contractor"] },
+                 ":Phase1_MainWorks_Stations_Process": { parent: ":HS2_Phase1_Process", label: "P1 Main Works - Stations", status: "In Progress", percentComplete: 25, children: [":Phase1_Euston_Construction", ":Phase1_OldOakCommon_Construction"] },
+                 ":Phase1_Euston_Construction": { parent: ":Phase1_MainWorks_Stations_Process", label: "Euston Station Construction", status: "In Progress", scheduleStatus: "Delayed", percentComplete: 15, realizes: ":EustonStation", children: [":EustonStation_Foundations", ":EustonStation_Box"] },
+                 ":EustonStation_Foundations": {parent: ":Phase1_Euston_Construction", label: "Station Foundations", status: "In Progress", percentComplete: 30},
+                 ":EustonStation_Box": {parent: ":Phase1_Euston_Construction", label: "Station Box Construction", status: "Not Started", percentComplete: 0},
+                 ":Phase1_OldOakCommon_Construction": { parent: ":Phase1_MainWorks_Stations_Process", label: "Old Oak Common Construction", status: "In Progress", percentComplete: 35, realizes: ":OldOakCommonStation", children: [":OOC_Foundations", ":OOC_Superstructure"] },
+                 ":OOC_Foundations": { parent: ":Phase1_OldOakCommon_Construction", label: "OOC Foundations", status:"In Progress", percentComplete: 45},
+                 ":OOC_Superstructure": { parent: ":Phase1_OldOakCommon_Construction", label: "OOC Station Box/Roof", status:"In Progress", percentComplete: 20},
+                 ":Phase1_MainWorks_RailSystems_Process": { parent: ":HS2_Phase1_Process", label: "P1 Main Works - Rail Systems", status: "Not Started", percentComplete: 5, children: [":Phase1_TrackLaying_Process", ":Phase1_OHLE_Installation", ":Phase1_Signalling_Installation"] },
+                 ":Phase1_TrackLaying_Process": {parent:":Phase1_MainWorks_RailSystems_Process", label: "Track Laying", status: "Not Started", realizes: ":Phase1_TrackSystem"},
+                 ":Phase1_OHLE_Installation": {parent:":Phase1_MainWorks_RailSystems_Process", label: "OHLE Installation", status: "Not Started", realizes: ":Phase1_OHLE"},
+                 ":Phase1_Signalling_Installation": {parent:":Phase1_MainWorks_RailSystems_Process", label: "Signalling Installation", status: "Not Started", realizes: ":Phase1_Signalling"},
+                 ":Phase1_Integration_Process": { parent: ":HS2_Phase1_Process", label: "P1 Systems Integration & Testing", status: "Not Started", percentComplete: 0 },
+                 ":Phase2a_Design_Process": { parent: ":HS2_Phase2a_Process", label: "P2a Design", status: "In Progress", percentComplete: 20 },
+                 ":Phase2a_Consenting_Process": { parent: ":HS2_Phase2a_Process", label: "P2a Consenting", status: "Not Started" }
+             },
+             deliverables: {
+                 ":HS2_Railway_System_Completed": { label: "Completed HS2 Railway System", children: [":HS2_Phase1_Segment", ":HS2_Phase2a_Segment"] },
+                 ":HS2_Phase1_Segment": { parent: ":HS2_Railway_System_Completed", label: "HS2 Phase 1 Operational Segment", status: "Under Construction", children: [":Phase1_Civils_Deliverables", ":Phase1_Station_Deliverables", ":Phase1_RailSystems_Deliverables"] },
+                 ":Phase1_Civils_Deliverables": { parent: ":HS2_Phase1_Segment", label: "P1 Civil Engineering Structures", children: [":ChilternTunnel_Structure", ":ColneValleyViaduct_Structure"] },
+                 ":Phase1_Station_Deliverables": { parent: ":HS2_Phase1_Segment", label: "P1 Station Complexes", children: [":EustonStation", ":OldOakCommonStation"] },
+                 ":Phase1_RailSystems_Deliverables": { parent: ":HS2_Phase1_Segment", label: "P1 Rail Systems", children: [":Phase1_TrackSystem", ":Phase1_OHLE", ":Phase1_Signalling"] },
+                 ":ChilternTunnel_Structure": { parent: ":Phase1_Civils_Deliverables", label: "Chiltern Tunnel Structure", status: "Under Construction", children: [":ChilternTunnel_BoredSections", ":ChilternTunnel_Portals"] },
+                 ":ChilternTunnel_BoredSections": { parent: ":ChilternTunnel_Structure", label: "Bored Tunnel Sections", status: "Under Construction"},
+                 ":ChilternTunnel_Portals": { parent: ":ChilternTunnel_Structure", label: "Tunnel Portals", status: "Under Construction"},
+                 ":ColneValleyViaduct_Structure": { parent: ":Phase1_Civils_Deliverables", label: "Colne Valley Viaduct Structure", status: "Under Construction" },
+                 ":EustonStation": { parent: ":Phase1_Station_Deliverables", label: "Euston Station Complex", status: "Under Construction", scheduleStatus: "Delayed", children: [":EustonStation_Platforms", ":EustonStation_Concourse"] }, // Added schedule status here too
+                 ":EustonStation_Platforms": {parent: ":EustonStation", label: "Station Platforms", status: "Not Started"},
+                 ":EustonStation_Concourse": {parent: ":EustonStation", label: "Station Concourse", status: "Not Started"},
+                 ":OldOakCommonStation": { parent: ":Phase1_Station_Deliverables", label: "Old Oak Common Station Complex", status: "Under Construction", children: [":OOC_Foundations", ":OOC_Superstructure"]},
+                 ":OOC_Foundations": {parent: ":OldOakCommonStation", label: "OOC Foundations", status:"In Progress"},
+                 ":OOC_Superstructure": {parent: ":OldOakCommonStation", label: "OOC Station Box/Roof", status:"In Progress"},
+                 ":Phase1_TrackSystem": { parent: ":Phase1_RailSystems_Deliverables", label: "P1 Track System", status: "Not Started", children: [":Phase1_BallastSlab", ":Phase1_Rails"] },
+                 ":Phase1_BallastSlab": {parent: ":Phase1_TrackSystem", label: "Ballast/Slab Track", status: "Not Started"},
+                 ":Phase1_Rails": {parent: ":Phase1_TrackSystem", label: "Running Rails", status: "Not Started"},
+                 ":Phase1_OHLE": { parent: ":Phase1_RailSystems_Deliverables", label: "P1 Overhead Line Equipment", status: "Not Started" },
+                 ":Phase1_Signalling": { parent: ":Phase1_RailSystems_Deliverables", label: "P1 Signalling System (ETCS)", status: "Not Started" },
+                 ":Phase1_PreparedSites": { label: "P1 Prepared Sites", status: "Complete"},
+                 ":Phase1_Design_Specification": { label: "P1 Design Specification", status: "Complete"},
+                 ":Phase1_AcquiredLand": { label: "P1 Acquired Land Bank", status: "In Progress"}, // Changed status slightly
+                 ":HS2_Phase2a_Segment": { parent: ":HS2_Railway_System_Completed", label: "HS2 Phase 2a Operational Segment", status: "Planned" }
+             },
+             participants: { ":AlignJV_Contractor": { label: "Align JV" } },
+             linkedProcesses: {}, linkedDeliverables: {}
+        };
+
+        // --- Link Realization Function ---
+        function linkRealization(data) {
+             data.linkedProcesses = {}; data.linkedDeliverables = {};
+             const items = {...data.phases, ...data.processes};
+             Object.entries(items).forEach(([itemId, itemData]) => {
+                 if (itemData.realizes) {
+                     const deliverableId = itemData.realizes;
+                     if (!data.linkedProcesses[itemId]) data.linkedProcesses[itemId] = [];
+                     data.linkedProcesses[itemId].push(deliverableId);
+                     if (!data.linkedDeliverables[deliverableId]) data.linkedDeliverables[deliverableId] = [];
+                     data.linkedDeliverables[deliverableId].push(itemId);
+                 }
+             });
+        }
+        // Check data validity before calling linkRealization
+        if (typeof hs2Data === 'object' && hs2Data !== null) {
+           try {
+               linkRealization(hs2Data);
+               // console.log("Link realization complete."); // Optional success log
+           } catch (e) {
+                console.error("Error during linkRealization:", e);
+           }
+        } else {
+            console.error("hs2Data object is invalid or not defined!");
+        }
+
+
+        // --- DOM Element References ---
+        const phaseSelector = document.getElementById('phase-selector');
+        const dashboard = document.getElementById('dashboard');
+        const summaryTitle = document.getElementById('summary-title');
+        const summaryText = document.getElementById('summary-text');
+        const wbsRoot = document.getElementById('wbs-root');
+        const pbsRoot = document.getElementById('pbs-root');
+        const detailsPane = document.getElementById('details-pane');
+        const detailsTitle = document.getElementById('details-title');
+        const detailsContent = document.getElementById('details-content');
+
+        // Safely get initial scope, fallback if data is bad
+        let currentScope = (typeof hs2Data === 'object' && hs2Data?.project?.id) ? hs2Data.project.id : null;
+
+        // --- Helper Functions ---
+        function getStatusClass(statusString) {
+             if (!statusString) return 'status-Grey';
+             const status = statusString.toLowerCase().replace(/[\s\/]/g, '');
+             if (status.includes('complete')) return 'status-Green';
+             if (status.includes('inprogress')) return 'status-Blue';
+             if (status.includes('delayed')) return 'status-Red';
+             if (status.includes('amber') || status.includes('warning')) return 'status-Amber';
+              // Added PlanningReview and Planned to map to specific colors
+             if (status.includes('planningreview')) return 'status-Blue';
+             if (status.includes('planned')) return 'status-Grey';
+             if (status.includes('onhold') || status.includes('notstarted')) return 'status-Grey';
+             return 'status-Grey'; // Default fallback
+         }
+         function getStatusColor(statusString) {
+             const className = getStatusClass(statusString);
+             // Use CSS variables directly
+             switch(className) {
+                 case 'status-Green': return 'var(--status-green)';
+                 case 'status-Blue': return 'var(--status-blue)';
+                 case 'status-Amber': return 'var(--status-amber)';
+                 case 'status-Red': return 'var(--status-red)';
+                 default: return 'var(--status-grey)';
+             }
+         }
+
+        function createKpiCard(title, value, { subValue = '', status = '', percent = null } = {}) {
+            const card = document.createElement('div');
+            card.className = 'kpi-card';
+            let statusHtml = status ? `<span class="status-text ${getStatusClass(status)}">${status}</span>` : '';
+            let progressHtml = '';
+            if (percent !== null && !isNaN(percent)) {
+                // Ensure percent is within 0-100 range
+                const validPercent = Math.max(0, Math.min(100, percent));
+                progressHtml = `
+                    <div class="progress-bar-container" title="${validPercent}% Complete">
+                        <div class="progress-bar" style="width: ${validPercent}%;"></div>
+                    </div>`;
+            }
+
+            card.innerHTML = `
+                <h3>${title}</h3>
+                <div class="value">${value || 'N/A'} ${statusHtml ? `(${statusHtml})` : ''}</div>
+                ${subValue ? `<div class="sub-value">${subValue}</div>` : ''}
+                ${progressHtml}
+            `;
+            return card;
+        }
+
+        // --- renderDashboardAndSummary Function ---
+        function renderDashboardAndSummary(scopeId) {
+            dashboard.innerHTML = ''; // Clear previous metrics
+            let scopeData;
+            let title = "Select Scope"; // Default title
+
+            // Make sure data structure is valid before accessing
+            if (!hs2Data || !hs2Data.project || !hs2Data.phases) {
+                 summaryTitle.textContent = "Error";
+                 summaryText.textContent = "Project data is not loaded correctly.";
+                 dashboard.innerHTML = '<p>Error loading data.</p>';
+                 return;
+            }
+
+            if (scopeId === hs2Data.project.id) {
+                scopeData = hs2Data.project;
+                title = "Overall Project Status";
+                dashboard.appendChild(createKpiCard('Overall Status', scopeData.status || 'N/A', {status: scopeData.status}));
+                dashboard.appendChild(createKpiCard('Budget', scopeData.budget || 'N/A'));
+                dashboard.appendChild(createKpiCard('Est. Cost @ Completion', scopeData.eac || 'N/A'));
+                dashboard.appendChild(createKpiCard('Schedule Progress', `${scopeData.schedulePercentComplete || 0}%`, {percent: scopeData.schedulePercentComplete}));
+            } else if (hs2Data.phases && hs2Data.phases[scopeId]) {
+                scopeData = hs2Data.phases[scopeId];
+                title = scopeData.label + " Status";
+                dashboard.appendChild(createKpiCard('Phase Status', scopeData.status || 'N/A', {status: scopeData.status}));
+                 dashboard.appendChild(createKpiCard('Schedule Status', scopeData.scheduleStatus || 'N/A', {status: scopeData.scheduleStatus}));
+                dashboard.appendChild(createKpiCard('Budget', scopeData.budget || 'N/A'));
+                dashboard.appendChild(createKpiCard('Spent to Date', scopeData.spent || 'N/A'));
+                dashboard.appendChild(createKpiCard('% Complete', `${scopeData.schedulePercentComplete || 0}%`, {percent: scopeData.schedulePercentComplete}));
+                // Add metrics from scopeData.metrics
+                 if(scopeData.metrics) {
+                    if(scopeData.metrics.landAcquiredPercent !== undefined)
+                        dashboard.appendChild(createKpiCard('Land Acquired', `${scopeData.metrics.landAcquiredPercent}%`, {percent: scopeData.metrics.landAcquiredPercent}));
+                    if(scopeData.metrics.tunnelingCompletePercent !== undefined)
+                        dashboard.appendChild(createKpiCard('Tunnelling %', `${scopeData.metrics.tunnelingCompletePercent}%`, {percent: scopeData.metrics.tunnelingCompletePercent}));
+                    if(scopeData.metrics.majorContractsAwarded !== undefined)
+                         dashboard.appendChild(createKpiCard('Major Contracts', `${scopeData.metrics.majorContractsAwarded}`)); // Just display value
+                 }
+            } else {
+                 scopeData = { summary: "Select a phase or the overall project.", label: "No Scope Selected" };
+                 title = "No Scope Selected";
+                 dashboard.innerHTML = '<p>Select a scope from the sidebar.</p>';
+            }
+
+            // Update Summary Section
+            summaryTitle.textContent = title;
+            summaryText.textContent = scopeData.summary || "No summary available for this scope.";
+        }
+
+        // --- buildTree Function (robust version) ---
+        function buildTree(parentElement, itemIds, allDataSources, isWBS) {
+            // console.log(`Building tree for parent ${parentElement?.id || 'unknown'}, items: ${itemIds?.join(', ')}`);
+            if (!parentElement || !itemIds || itemIds.length === 0 || !allDataSources) {
+                 console.warn("buildTree called with invalid arguments:", {parentElement, itemIds, allDataSources});
+                return;
+            }
+
+             itemIds.forEach(itemId => {
+                 // console.log(`Processing itemId: ${itemId}`);
+                 const item = allDataSources.project && allDataSources.project.id === itemId ? allDataSources.project
+                            : allDataSources.phases && allDataSources.phases[itemId]
+                            || allDataSources.processes && allDataSources.processes[itemId]
+                            || allDataSources.deliverables && allDataSources.deliverables[itemId];
+
+                 if (!item) {
+                     console.warn("Item data not found in any source for ID:", itemId);
+                     // Optionally add placeholder LI
+                     // const errLi = document.createElement('li'); errLi.textContent = `Error: ${itemId} data not found`; parentElement.appendChild(errLi);
+                     return;
+                 }
+                 // console.log(`Found item data for ${itemId}:`, item.label);
+
+                 const li = document.createElement('li');
+                 li.dataset.id = itemId;
+
+                 const childIds = item.children || [];
+                 const hasChildren = childIds.length > 0;
+
+                 const nodeContainer = document.createElement('div');
+                 nodeContainer.className = 'node-container';
+
+                 const toggle = document.createElement('span');
+                 toggle.className = 'toggle';
+                 if (!hasChildren) toggle.classList.add('hidden');
+                 else toggle.onclick = (e) => { e.stopPropagation(); li.classList.toggle('expanded'); };
+                 li.appendChild(toggle); // Toggle first
+
+                 const statusDot = document.createElement('span');
+                 statusDot.className = 'status-dot';
+                 statusDot.style.backgroundColor = getStatusColor(item.status || item.scheduleStatus);
+                 statusDot.title = item.status || item.scheduleStatus || 'Status N/A';
+                 nodeContainer.appendChild(statusDot); // Dot inside container
+
+                 const span = document.createElement('span');
+                 span.className = 'node-label ' + (isWBS ? 'process' : 'deliverable');
+                 span.textContent = item.label || itemId;
+                 span.dataset.id = itemId;
+                 nodeContainer.appendChild(span); // Label after dot
+
+                 li.appendChild(nodeContainer); // Container after toggle
+
+                 try {
+                     parentElement.appendChild(li); // Append the constructed LI
+                     // console.log(`Appended LI for ${item.label} to ${parentElement.id || 'unknown parent'}`);
+                 } catch (e) {
+                      console.error(`Error appending LI for ${itemId} to parent:`, parentElement, e);
+                      return;
+                 }
+
+                 // Add event listeners for the label span *after* appending
+                  span.addEventListener('click', () => showDetails(itemId, isWBS));
+                  span.addEventListener('mouseenter', () => highlightLinked(itemId, isWBS, true));
+                  span.addEventListener('mouseleave', () => highlightLinked(itemId, isWBS, false));
+
+                 if (hasChildren) {
+                     // console.log(`Item ${itemId} has children: ${childIds.join(', ')}. Creating nested UL.`);
+                     const ul = document.createElement('ul');
+                     li.appendChild(ul);
+                     buildTree(ul, childIds, allDataSources, isWBS); // Recurse
+                 }
+             });
+         }
+
+        // --- highlightLinked Function ---
+        function highlightLinked(itemId, isWBS, addHighlight) {
+            // Remove previous highlights first
+             document.querySelectorAll('.tree span.highlight, .tree span.linked-highlight').forEach(el => {
+                 el.classList.remove('highlight', 'linked-highlight');
+             });
+
+             if (!addHighlight) return;
+
+             // Escape ':' for CSS querySelector
+             const safeItemId = itemId.replace(/:/g, '\\:');
+             const mainSelector = `.tree span.node-label[data-id="${safeItemId}"]`;
+             const mainElement = document.querySelector(mainSelector);
+             if (mainElement) mainElement.classList.add('highlight');
+             // else console.warn("Highlight target not found:", mainSelector);
+
+             // Find linked elements in the *other* tree
+              if (!hs2Data || !hs2Data.linkedProcesses || !hs2Data.linkedDeliverables) return; // Check data exists
+             const linkedIds = isWBS ? hs2Data.linkedProcesses[itemId] : hs2Data.linkedDeliverables[itemId];
+
+             if (linkedIds) {
+                 linkedIds.forEach(linkedId => {
+                      const safeLinkedId = linkedId.replace(/:/g, '\\:');
+                     const linkedSelector = `.tree span.node-label[data-id="${safeLinkedId}"]`;
+                     const linkedElement = document.querySelector(linkedSelector);
+                     if (linkedElement) linkedElement.classList.add('linked-highlight');
+                     // else console.warn("Linked highlight target not found:", linkedSelector);
+                 });
+             }
+        }
+
+        // --- showDetails Function ---
+        function showDetails(itemId, isWBS) {
+             if (!hs2Data) return; // Ensure data exists
+
+            const itemData = hs2Data.project && hs2Data.project.id === itemId ? hs2Data.project
+                           : hs2Data.phases && hs2Data.phases[itemId]
+                           || hs2Data.processes && hs2Data.processes[itemId]
+                           || hs2Data.deliverables && hs2Data.deliverables[itemId];
+            if (!itemData) {
+                 console.warn("No data found for details pane:", itemId);
+                 detailsContent.innerHTML = `<p>Error: Data not found for ${itemId}</p>`;
+                 detailsPane.style.display = 'block';
+                 return;
+            };
+
+             detailsTitle.textContent = itemData.label || "Details";
+
+            let detailsHtml = `<p><strong>ID:</strong> ${itemId}</p>`;
+            detailsHtml += `<p><strong>Type:</strong> ${isWBS ? 'Process/Phase' : 'Deliverable'}</p>`;
+
+             if (itemData.status) {
+                 detailsHtml += `<p><strong>Status:</strong> <span class="status-text ${getStatusClass(itemData.status)}">${itemData.status}</span></p>`;
+             }
+            if (itemData.scheduleStatus && itemData.scheduleStatus !== itemData.status) { // Only show if different from main status
+                 detailsHtml += `<p><strong>Schedule:</strong> <span class="status-text ${getStatusClass(itemData.scheduleStatus)}">${itemData.scheduleStatus}</span></p>`;
+             }
+
+            if (itemData.percentComplete !== undefined && !isNaN(itemData.percentComplete)) {
+                 const validPercent = Math.max(0, Math.min(100, itemData.percentComplete));
+                detailsHtml += `<p><strong>Complete:</strong> ${validPercent}%`;
+                // Add progress bar inline with the text
+                 detailsHtml += `<span class="details-progressbar"><div style="width:${validPercent}%"></div></span></p>`;
+            }
+
+            if (itemData.budget) detailsHtml += `<p><strong>Budget:</strong> ${itemData.budget}</p>`;
+            if (itemData.spent) detailsHtml += `<p><strong>Spent:</strong> ${itemData.spent}</p>`;
+            if (itemData.eac) detailsHtml += `<p><strong>EAC:</strong> ${itemData.eac}</p>`;
+
+            if (itemData.participants && itemData.participants.length > 0 && hs2Data.participants) {
+                const participants = itemData.participants.map(pId => hs2Data.participants[pId]?.label || pId).join(', ');
+                detailsHtml += `<p><strong>Participants:</strong> ${participants}</p>`;
+            }
+
+            if (isWBS && hs2Data.linkedProcesses && hs2Data.linkedProcesses[itemId]) {
+                const realized = hs2Data.linkedProcesses[itemId]
+                                    .map(dId => hs2Data.deliverables[dId]?.label || dId)
+                                    .join(', ') || 'None specified';
+                detailsHtml += `<p><strong>Realizes:</strong> ${realized}</p>`;
+            } else if (!isWBS && hs2Data.linkedDeliverables && hs2Data.linkedDeliverables[itemId]) {
+                const realizers = hs2Data.linkedDeliverables[itemId]
+                                    .map(pId => (hs2Data.phases[pId]?.label || hs2Data.processes[pId]?.label) || pId)
+                                    .join(', ') || 'None specified';
+                detailsHtml += `<p><strong>Realized by:</strong> ${realizers}</p>`;
+            }
+
+            detailsContent.innerHTML = detailsHtml;
+            detailsPane.style.display = 'block';
+
+            highlightLinked(itemId, isWBS, true);
+        }
+
+        // --- initialize Function (robust version) ---
+        function initialize() {
+            console.log("Initializing Dashboard...");
+
+            // Check core data objects
+            if (typeof hs2Data !== 'object' || hs2Data === null || !hs2Data.project || !hs2Data.phases || !hs2Data.processes || !hs2Data.deliverables) {
+                console.error("FATAL: Core hs2Data structure is invalid. Cannot initialize.");
+                summaryText.textContent = "Error: Failed to load project data structure.";
+                dashboard.innerHTML = '<p>Error loading data.</p>';
+                wbsRoot.innerHTML = '<li>Data Error</li>';
+                pbsRoot.innerHTML = '<li>Data Error</li>';
+                return; // Stop initialization
+            }
+             // Check core DOM elements
+             if (!phaseSelector || !dashboard || !summaryTitle || !summaryText || !wbsRoot || !pbsRoot || !detailsPane) {
+                 console.error("FATAL: Core DOM elements not found. Cannot initialize.");
+                 // Maybe display an error message in the body itself
+                 document.body.innerHTML = "<h1>Error: UI components failed to load.</h1>";
+                 return;
+             }
+
+            // Populate Phase Selector
+             try {
+                 phaseSelector.innerHTML = ''; // Clear loading message
+                 const phasesAndProject = [
+                     {id: hs2Data.project.id, data: hs2Data.project},
+                     ...(hs2Data.project.children || []).map(id => ({id: id, data: hs2Data.phases[id]})) // Use project children
+                 ];
+
+                 phasesAndProject.forEach(item => {
+                     const phase = item.data;
+                     if (phase) { // Check if phase data exists
+                         const li = document.createElement('li');
+                         li.textContent = phase.id === hs2Data.project.id ? "Overall Project" : phase.label || item.id; // Friendlier name
+                         li.dataset.scope = item.id;
+                         if (item.id === currentScope) li.classList.add('active');
+
+                         const statusIndicator = document.createElement('span');
+                         statusIndicator.className = 'status-indicator';
+                         statusIndicator.style.backgroundColor = getStatusColor(phase.status || phase.scheduleStatus);
+                         statusIndicator.title = phase.status || phase.scheduleStatus || 'N/A';
+                         li.prepend(statusIndicator);
+
+                         phaseSelector.appendChild(li);
+                     } else {
+                         console.warn(`Data for phase ID ${item.id} listed in project children not found.`);
+                     }
+                 });
+             } catch (e) {
+                 console.error("Error populating phase selector:", e);
+                 phaseSelector.innerHTML = '<li>Error loading phases.</li>';
+             }
+
+
+            // Phase Selector Event Listener
+             phaseSelector.addEventListener('click', (e) => {
+                 const targetLi = e.target.closest('li');
+                 if (targetLi && targetLi.dataset.scope) { // Check scope exists
+                     currentScope = targetLi.dataset.scope;
+                     document.querySelectorAll('#phase-selector li').forEach(el => el.classList.remove('active'));
+                     targetLi.classList.add('active');
+                     renderDashboardAndSummary(currentScope);
+                     detailsPane.style.display = 'none';
+                     // Clear highlights when changing scope
+                     document.querySelectorAll('.tree span.highlight, .tree span.linked-highlight').forEach(el => {
+                        el.classList.remove('highlight', 'linked-highlight');
+                     });
+                 }
+             });
+
+            // Combine all data sources
+            const allData = { project: hs2Data.project, phases: hs2Data.phases, processes: hs2Data.processes, deliverables: hs2Data.deliverables };
+            // console.log("Combined data sources:", allData);
+
+            // Build Trees safely
+             console.log("Attempting to build WBS tree...");
+             wbsRoot.innerHTML = ''; // Clear loading message
+             try {
+                 if (hs2Data.project.id) {
+                     buildTree(wbsRoot, [hs2Data.project.id], allData, true);
+                     console.log("WBS tree build initiated.");
+                 } else { throw new Error("hs2Data.project.id is missing."); }
+             } catch (e) {
+                 console.error("Error building WBS tree:", e);
+                 wbsRoot.innerHTML = '<li>Error building WBS tree. Check console.</li>';
+             }
+
+
+             console.log("Attempting to build PBS tree...");
+             pbsRoot.innerHTML = ''; // Clear loading message
+             try {
+                 const rootDeliverableId = hs2Data.project.realizes;
+                 if (rootDeliverableId && hs2Data.deliverables && hs2Data.deliverables[rootDeliverableId]) {
+                     buildTree(pbsRoot, [rootDeliverableId], allData, false);
+                     console.log("PBS tree build initiated.");
+                 } else { throw new Error(`Root deliverable ID '${rootDeliverableId}' missing or data not found.`); }
+             } catch (e) {
+                  console.error("Error building PBS tree:", e);
+                  pbsRoot.innerHTML = `<li>Error building PBS tree. Check console. ${e.message}</li>`;
+             }
+
+            // Initial Render
+            console.log("Rendering initial dashboard...");
+            if (currentScope) { // Only render if scope is valid
+               renderDashboardAndSummary(currentScope);
+            } else {
+                 summaryTitle.textContent = "Error";
+                 summaryText.textContent = "Initial project scope could not be determined.";
+            }
+
+
+            // Close details pane on outside click
+            document.addEventListener('click', function(event) {
+                if (!detailsPane) return; // Element might not exist if init failed
+                const isClickInsideDetails = detailsPane.contains(event.target);
+                const isClickOnTreeNode = event.target.closest('.tree span.node-label');
+                const isClickOnDetailsButton = event.target.closest('#details-pane button');
+                const isClickOnToggle = event.target.closest('.tree .toggle');
+
+                if (!isClickInsideDetails && !isClickOnTreeNode && !isClickOnDetailsButton && !isClickOnToggle && detailsPane.style.display === 'block') {
+                    detailsPane.style.display = 'none';
+                     document.querySelectorAll('.tree span.highlight, .tree span.linked-highlight').forEach(el => {
+                         el.classList.remove('highlight', 'linked-highlight');
+                     });
+                }
+            });
+
+            console.log("Initialization Complete.");
+        }
+
+        // --- Run Init ---
+        // Wrap in a try-catch in case of top-level errors during setup
+        try {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } catch (e) {
+             console.error("FATAL ERROR during script execution:", e);
+             // Display a critical error message if JS fails very early
+             document.body.innerHTML = `<h1>A critical error occurred loading the dashboard. Please check the browser console (F12) for details.</h1><pre>${e.stack}</pre>`;
+        }
+
+    </script>
+</body>
+</html>

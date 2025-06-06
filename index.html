@@ -84,9 +84,22 @@ function createCards(data){
         const origin=document.createElement('p');
         origin.innerHTML='<strong>Origin:</strong> '+item.origin;
         card.appendChild(origin);
+        if(item.model){
+            const model=document.createElement('p');
+            model.innerHTML='<strong>Model:</strong> '+item.model;
+            card.appendChild(model);
+        }
         const tags=document.createElement('p');
         tags.innerHTML='<strong>Tags:</strong> '+item.tags;
         card.appendChild(tags);
+        if(item['explainer post']){
+            const exp=document.createElement('p');
+            const l=document.createElement('a');
+            l.href=item['explainer post'];
+            l.textContent='Explainer post';
+            exp.appendChild(l);
+            card.appendChild(exp);
+        }
         container.appendChild(card);
     });
 }
@@ -99,7 +112,7 @@ function filterExamples(tag){
     });
 }
 
-fetch('app-index.csv')
+fetch('app-index.csv?t='+Date.now())
   .then(resp=>resp.text())
   .then(text=>{
       const data=parseCSV(text);

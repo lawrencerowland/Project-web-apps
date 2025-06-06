@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","GTM-WXM2VXQH");</script>
+    <!-- End Google Tag Manager -->
+    <title>Project Management SaaS Decision Tree</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script> <!-- Include D3.js for visualization -->
+    <style>
+        .node {
+            cursor: pointer;
+        }
+        .node circle {
+            fill: #fff;
+            stroke: steelblue;
+            stroke-width: 3px;
+        }
+        .node text {
+            font: 12px sans-serif;
+        }
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 2px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+         /* Style for buttons */
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background-color: #3e8e41;
+        }
+    </style>
+</head>
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WXM2VXQH" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+<p><a href='../project-examples.html'>Back to Project Examples</a></p>
+
+<h1>Project Management SaaS Decision Tree</h1>
+<p>This interactive tool simulates a decision-making process for selecting a Project Management SaaS solution. It uses a five-deep decision tree and a Monte Carlo Tree Search (MCTS) to estimate the most likely path for an 80th percentile technology manager.</p>
+
+<button onclick="runSimulation(1000)">Run 1000 Simulations</button>
+<button onclick="runSimulation(10000)">Run 10000 Simulations</button> <button onclick="runSimulation(100000)">Run 100000 Simulations</button>
+
+
+<div id="tree-container"></div>
+<div id="result"></div>
+
+<script>
+// 1. Define the Decision Tree Structure
+const treeData = {
+    name: "Root",
+    description: "Select SaaS Solution",
+    children: [
+        {
+            name: "Budget",
+            description: "< $10/user/month",
+            transitionProbability: 0.6,  // 80th percentile likely cares, but might have exceptions.
+            children: [
+                {
+                    name: "Integration",
+                    description: "Needs deep integration with existing tools",
+                    transitionProbability: 0.7, // 80th percentile: high importance, but not absolute.
+                    children: [
+                        {
+                            name: "Usability",
+                            description: "Intuitive UI is crucial",
+                            transitionProbability: 0.85, // 80th percentile places high value on usability
+                            children: [
+                                {
+                                    name: "Scalability",
+                                    description: "Must scale to 500+ users",
+                                    transitionProbability: 0.75,
+                                    children: [
+                                      { name: "Solution A", description: "Meets all criteria", transitionProbability: 1.0 },
+                                      { name: "Solution B", description: "Lacks scalability", transitionProbability: 0.0 }
+                                    ]
+
+                                },
+                                {
+                                    name: "Scalability",
+                                    description: "Must scale to 500+ users",
+                                     transitionProbability: 0.25,
+                                    children: [
+                                        { name: "Solution C", description: "Good, but less intuitive", transitionProbability: 1.0 }
+                                    ]
+                                }
+
+                            ]
+                        },
+                        {
+                            name: "Usability",
+                            description: "Intuitive UI is less of a priority",
+                            transitionProbability: 0.15,
+                            children: [
+                                { name: "Solution D", description: "Excellent Integration, but difficult UI", transitionProbability: 1.0 }
+                            ]
+                        }
+
+                    ]
+                },
+                 {
+                    name: "Integration",
+                    description: "Basic integration is sufficient",
+                    transitionProbability: 0.3,
+                    children: [
+                       { name: "Solution E", transitionProbability: 1.0, description: "Cheap, limited integration" },
+                       { name: "Solution F", transitionProbability: 1.0, description: "Cheap, limited integration" }
+                    ]
+                }
+            ]
+        },
+        {
+            name: "Budget",
+            description: "> $10/user/month",
+            transitionProbability: 0.4,
+            children: [
+                 {
+                    name: "Features",
+                    description: "Advanced Features",
+                     transitionProbability: 0.8,
+                    children: [
+                       { name: "Solution G", transitionProbability: 1.0, description: "Expensive, but powerful" },
+                       { name: "Solution H", transitionProbability: 1.0, description: "Expensive, but powerful" },
+
+                    ]
+                },
+                {
+                    name: "Features",
+                    description: "Basic Features",
+                    transitionProbability: 0.2,
+                    children: [
+                        { name: "Solution I", transitionProbability: 1.0, description: "Moderately expensive" }
+                    ]
+                }
+            ]
+        }
+    ]
+};
+
+
+// 2. Monte Carlo Tree Search Simulation
+function monteCarloSimulation(root, numSimulations) {
+    const results = {};
+    const paths = {}; // Store paths for visualization
+
+    for (let i = 0; i < numSimulations; i++) {
+        let currentNode = root;
+        let path = [currentNode.name]; // Start path with root name
+
+        while (currentNode.children && currentNode.children.length > 0) {
+            // Choose a child node based on transition probabilities
+            let totalProbability = currentNode.children.reduce((sum, child) => sum + (child.transitionProbability || 0), 0);
+            let randomValue = Math.random() * totalProbability;
+            let cumulativeProbability = 0;
+            let selectedChild = null;
+
+
+             for (const child of currentNode.children) {
+                cumulativeProbability += (child.transitionProbability || 0);
+                if (randomValue <= cumulativeProbability) {
+                    selectedChild = child;
+                    break;
+                }
+            }
+
+            if (!selectedChild) {
+               // Handle cases where probabilities don't sum to 1 (or are missing)
+                selectedChild = currentNode.children[currentNode.children.length - 1];
+            }
+
+            currentNode = selectedChild;
+            path.push(currentNode.name); // Add node name to path
+        }
+        // Count the final decision (leaf node)
+        const decision = currentNode.name;
+        results[decision] = (results[decision] || 0) + 1;
+
+        // Convert path to string for storage/visualization
+        const pathString = path.join(" -> ");
+        paths[pathString] = (paths[pathString] || 0) + 1;
+    }
+
+    return { results, paths };
+}
+
+
+
+// 3. Visualization with D3.js
+function visualizeTree(treeData, simulationResults) {
+    const width = 900;
+    const height = 600;
+
+    // Clear previous tree (if any)
+    d3.select("#tree-container").selectAll("*").remove();
+
+    const svg = d3.select("#tree-container").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", "translate(50,50)");  // Add some margin
+
+    const treeLayout = d3.tree().size([height - 100, width - 200]);
+
+    const root = d3.hierarchy(treeData);
+    treeLayout(root);
+
+    // --- Links ---
+    svg.selectAll('.link')
+        .data(root.links())
+        .enter()
+        .append('path')
+        .attr('class', 'link')
+        .attr('d', d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x));
+
+    // --- Nodes ---
+    const node = svg.selectAll('.node')
+        .data(root.descendants())
+        .enter().append('g')
+        .attr('class', 'node')
+        .attr('transform', d => `translate(${d.y},${d.x})`);
+
+    node.append('circle')
+        .attr('r', 10);
+
+    node.append('text')
+        .attr('dy', '.35em')
+        .attr('x', d => d.children ? -13 : 13)
+        .style('text-anchor', d => d.children ? 'end' : 'start')
+        .text(d => {
+                let text = d.data.name;
+                if (simulationResults && simulationResults.results[d.data.name]) { //check that simulation Results exits
+                    const count = simulationResults.results[d.data.name];
+                    text += ` (${count})`;  // Append simulation count if available
+                }
+                return text;
+        });
+
+      // Display Descriptions on hover
+      node.append("title")
+        .text(d => d.data.description);
+}
+
+
+
+// 4. Run Simulation and Display Results (Integrated with visualization)
+function runSimulation(numSimulations) {
+    const simulation = monteCarloSimulation(treeData, numSimulations);
+
+    // Display results
+    let resultText = `After ${numSimulations} simulations:<br>`;
+    const sortedResults = Object.entries(simulation.results).sort(([, a], [, b]) => b - a);
+    for (const [decision, count] of sortedResults) {
+        resultText += `${decision}: ${count} times (${(count / numSimulations * 100).toFixed(2)}%)<br>`;
+    }
+    document.getElementById("result").innerHTML = resultText;
+
+
+    // Most Frequent Path (for highlighting)
+    let mostFrequentPath = "";
+    let maxCount = 0;
+    for (const path in simulation.paths) {
+      if (simulation.paths[path] > maxCount) {
+          maxCount = simulation.paths[path];
+          mostFrequentPath = path;
+      }
+    }
+
+    visualizeTree(treeData, simulation);  // Pass simulation results to visualization
+
+    // Find nodes on the most frequent path and style differently (e.g., highlight)
+    const pathNodes = mostFrequentPath.split(" -> ");
+    d3.selectAll(".node").each(function(d) {
+        if (pathNodes.includes(d.data.name)) {
+            d3.select(this).select("circle").style("fill", "orange"); // Highlight nodes in path
+        }
+    });
+
+}
+
+
+// Initial visualization (empty, before simulation)
+visualizeTree(treeData);
+</script>
+
+</body>
+</html>

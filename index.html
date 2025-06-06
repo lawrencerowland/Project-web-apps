@@ -1,0 +1,115 @@
+---
+layout: default
+title: Project Examples
+schema_type: CollectionPage
+tags: [Examples, Visualization, KnowledgeManagement]
+---
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Project Examples</title>
+<style>
+body{font-family:Arial, sans-serif;margin:20px;}
+.filter{margin-bottom:1em;}
+.filter button{margin-right:0.5em;padding:0.3em 0.6em;}
+.example-card{border:1px solid #ccc;border-radius:4px;padding:1em;margin:0.5em;display:inline-block;vertical-align:top;width:250px;}
+.example-card h3{margin-top:0;margin-bottom:0.5em;font-size:1.1em;}
+</style>
+</head>
+<body>
+<h1>Project Examples</h1>
+<div class="filter" id="filter"></div>
+<div id="examples"></div>
+<script>
+function parseCSV(text){
+    const lines=text.trim().split(/\r?\n/).filter(l=>l.trim());
+    const headers=parseLine(lines[0].replace(/^\uFEFF/,''));
+    const data=[];
+    for(let i=1;i<lines.length;i++){
+        const row=parseLine(lines[i]);
+        if(row.length===headers.length){
+            const obj={};
+            headers.forEach((h,idx)=>obj[h]=row[idx].replace(/^"|"$/g,''));
+            data.push(obj);
+        }
+    }
+    return data;
+    function parseLine(line){
+        const result=[];let cur='';let inQuotes=false;
+        for(let i=0;i<line.length;i++){
+            const ch=line[i];
+            if(ch==='"'){
+                if(inQuotes && line[i+1]==='"'){cur+='"';i++;}
+                else inQuotes=!inQuotes;
+            }else if(ch===','&&!inQuotes){result.push(cur);cur='';}
+            else{cur+=ch;}
+        }
+        result.push(cur);
+        return result;
+    }
+}
+
+function createFilters(tags){
+    const container=document.getElementById('filter');
+    const allBtn=document.createElement('button');
+    allBtn.textContent='All';
+    allBtn.dataset.tag='all';
+    container.appendChild(allBtn);
+    tags.forEach(tag=>{
+        const btn=document.createElement('button');
+        btn.textContent=tag;
+        btn.dataset.tag=tag;
+        container.appendChild(btn);
+    });
+}
+
+function createCards(data){
+    const container=document.getElementById('examples');
+    data.forEach(item=>{
+        if(!item.name) return;
+        const card=document.createElement('div');
+        card.className='example-card';
+        card.dataset.tags=item.tags;
+        const title=document.createElement('h3');
+        const link=document.createElement('a');
+        link.href='web_apps/'+item.name+'.html';
+        link.textContent=item.name;
+        title.appendChild(link);
+        card.appendChild(title);
+        const desc=document.createElement('p');
+        desc.textContent=item.description;
+        card.appendChild(desc);
+        const origin=document.createElement('p');
+        origin.innerHTML='<strong>Origin:</strong> '+item.origin;
+        card.appendChild(origin);
+        const tags=document.createElement('p');
+        tags.innerHTML='<strong>Tags:</strong> '+item.tags;
+        card.appendChild(tags);
+        container.appendChild(card);
+    });
+}
+
+function filterExamples(tag){
+    document.querySelectorAll('.example-card').forEach(card=>{
+        const tags=card.dataset.tags.split(',').map(t=>t.trim());
+        if(tag==='all'||tags.includes(tag)) card.style.display='inline-block';
+        else card.style.display='none';
+    });
+}
+
+fetch('app-index.csv')
+  .then(resp=>resp.text())
+  .then(text=>{
+      const data=parseCSV(text);
+      const tags=[...new Set(data.flatMap(d=>d.tags.split(',').map(t=>t.trim())))]
+            .filter(t=>t);
+      createFilters(tags);
+      createCards(data);
+      document.querySelectorAll('.filter button').forEach(btn=>{
+          btn.addEventListener('click',()=>filterExamples(btn.dataset.tag));
+      });
+  });
+</script>
+</body>
+</html>

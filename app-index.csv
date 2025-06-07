@@ -6,4 +6,5 @@
 5,hs2-decision-graph,HS2 Supply Chain Risk and Value Decision Making Knowledge Graph,Claude,Sonnet3.7,"knowledge-graph, ontology, risk, value, rail, decision",
 6,hs2_WBS_to_PBS,dashboard showing both a Product (output) view and a work view for HS2,,,"WBS, PBS, moving-between-perspectives, output, scope",
 7,pm_gap_map,Gap between what we need in Project mgt practice and what we have,ChatGPT,o3,"capabiity, solution, resources, idea maze, product-management",
-,Project_Decision_Framing_Tool,Helps you apply Powell's sequential decision making framework to a real problem,Cant remember,Cant remember,"decision, sequential_decisions",
+8,Project_Decision_Framing_Tool,Helps you apply Powell's sequential decision making framework to a real problem,Cant remember,Cant remember,"decision, sequential_decisions",
+9,3D-Construction-Workflow,,Cant remember,Cant remember,"visualisation, education, imagination, dependencies, tasks, complexity",

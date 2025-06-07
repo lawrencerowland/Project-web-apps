@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dynamic Construction Workflow: Interdependencies in Construction Projects</title>
+    <style>
+      body { margin: 0; overflow: hidden; background-color: #222; color: #fff; }
+      h1 { text-align: center; font-family: Arial, sans-serif; margin: 20px 0; }
+      canvas { display: block; }
+    </style>
+    <!-- Include Three.js and dat.GUI from CDNs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
+  </head>
+  <body>
+    <h1>Dynamic Construction Workflow: Interdependencies in Construction Projects</h1>
+    <script>
+      // Set up scene, camera, and renderer
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x222222);
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 0, 50);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Add ambient and directional lighting
+      scene.add(new THREE.AmbientLight(0xaaaaaa));
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(0, 50, 50);
+      scene.add(directionalLight);
+
+      // Global parameters for interactivity and dynamic behavior
+      const params = {
+          globalFrequency: 0.5,
+          globalAmplitude: 3,
+          resourceInfluence: 1,
+          scopeInfluence: 1,
+          riskInfluence: 1,
+      };
+
+      // Initialize dat.GUI for interactive parameter tuning
+      const gui = new dat.GUI();
+      gui.add(params, 'globalFrequency', 0.1, 2).name('Frequency');
+      gui.add(params, 'globalAmplitude', 1, 10).name('Amplitude');
+      gui.add(params, 'resourceInfluence', 0, 2).name('Resource Influence');
+      gui.add(params, 'scopeInfluence', 0, 2).name('Scope Influence');
+      gui.add(params, 'riskInfluence', 0, 2).name('Risk Influence');
+
+      // Define tasks with positions and initial dynamic properties
+      const tasks = [
+        { id: 1, pos: new THREE.Vector3(-20, 10, 0), dependencies: [2] },
+        { id: 2, pos: new THREE.Vector3(0, 20, 0), dependencies: [3, 4] },
+        { id: 3, pos: new THREE.Vector3(20, 10, 0), dependencies: [] },
+        { id: 4, pos: new THREE.Vector3(0, -10, 0), dependencies: [5] },
+        { id: 5, pos: new THREE.Vector3(20, -20, 0), dependencies: [] }
+      ];
+
+      // Create groups for task meshes and dependency lines
+      const taskGroup = new THREE.Group();
+      const dependencyGroup = new THREE.Group();
+      scene.add(taskGroup);
+      scene.add(dependencyGroup);
+
+      // Function to create label sprites using a canvas texture
+      function createLabel(text) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = "Bold 24px Arial";
+        const metrics = context.measureText(text);
+        canvas.width = metrics.width;
+        canvas.height = 30;
+        context.font = "Bold 24px Arial";
+        context.fillStyle = "rgba(255,255,255,1)";
+        context.fillText(text, 0, 24);
+        const texture = new THREE.CanvasTexture(canvas);
+        const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(canvas.width / 10, canvas.height / 10, 1);
+        return sprite;
+      }
+
+      // Create polyhedral task representations using Icosahedron geometry and attach labels
+      tasks.forEach(task => {
+        const geometry = new THREE.IcosahedronGeometry(3, 0);
+        const material = new THREE.MeshStandardMaterial({ color: 0x00ff00, flatShading: true });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(task.pos);
+        task.mesh = mesh; 
+
+        const label = createLabel("Task " + task.id);
+        label.position.set(0, 4, 0);
+        mesh.add(label);
+
+        taskGroup.add(mesh);
+      });
+
+      // Function to create an elastic dependency string between two tasks
+      function createDependencyLine(taskA, taskB) {
+        const points = [];
+        points.push(taskA.pos.clone());
+        const mid = new THREE.Vector3().addVectors(taskA.pos, taskB.pos).multiplyScalar(0.5);
+        mid.x += (Math.random() - 0.5) * 5;
+        mid.y += (Math.random() - 0.5) * 5;
+        points.push(mid);
+        points.push(taskB.pos.clone());
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+        const line = new THREE.Line(geometry, material);
+        return { line, taskA, taskB, material };
+      }
+
+      const dependencyLines = [];
+      tasks.forEach(task => {
+        task.dependencies.forEach(depId => {
+          const target = tasks.find(t => t.id === depId);
+          if (target) {
+            const depLine = createDependencyLine(task, target);
+            dependencyLines.push(depLine);
+            dependencyGroup.add(depLine.line);
+          }
+        });
+      });
+
+      function updateDependencyLine(dep, time) {
+        const frequency = params.globalFrequency;
+        const amplitude = params.globalAmplitude;
+
+        const start = dep.taskA.mesh.position.clone();
+        const end = dep.taskB.mesh.position.clone();
+        const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+        mid.x += Math.sin(time * frequency + dep.taskA.id) * amplitude;
+        mid.y += Math.cos(time * frequency + dep.taskB.id) * amplitude;
+        const points = [start, mid, end];
+
+        dep.line.geometry.setFromPoints(points);
+      }
+
+      const clock = new THREE.Clock();
+      function animate() {
+        requestAnimationFrame(animate);
+        const time = clock.getElapsedTime();
+        tasks.forEach(task => {
+          task.mesh.rotation.x += 0.01;
+          task.mesh.rotation.y += 0.01;
+        });
+
+        dependencyLines.forEach(dep => {
+          updateDependencyLine(dep, time);
+        });
+
+        renderer.render(scene, camera);
+      }
+      animate();
+      
+    </script>
+  </body>
+</html>

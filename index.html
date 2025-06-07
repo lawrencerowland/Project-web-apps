@@ -15,6 +15,7 @@ body{font-family:Arial, sans-serif;margin:20px;}
 .filter button{margin-right:0.5em;padding:0.3em 0.6em;}
 .example-card{border:1px solid #ccc;border-radius:4px;padding:1em;margin:0.5em;display:inline-block;vertical-align:top;width:250px;}
 .example-card h3{margin-top:0;margin-bottom:0.5em;font-size:1.1em;}
+.example-card img{width:100%;height:auto;margin-bottom:0.5em;}
 </style>
 </head>
 <body>
@@ -72,6 +73,11 @@ function createCards(data){
         const card=document.createElement('div');
         card.className='example-card';
         card.dataset.tags=item.tags;
+        const img=document.createElement('img');
+        img.src='pics/'+item['#']+'.PNG';
+        img.alt=item.name;
+        img.onerror=()=>{img.src='pics/blank.png';};
+        card.appendChild(img);
         const title=document.createElement('h3');
         const link=document.createElement('a');
         link.href='web_apps/'+item.name+'.html';

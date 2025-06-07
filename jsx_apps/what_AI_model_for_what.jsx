@@ -163,8 +163,8 @@ const AICapabilitiesDiagram = () => {
       
       {/* Model selector */}
       <div className="flex flex-wrap justify-center mb-8 gap-2">
-        <button 
-          className={px-3 py-1 rounded-full text-sm ${!activeModel ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-800'}}
+        <button
+          className={`px-3 py-1 rounded-full text-sm ${!activeModel ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-800'}`}
           onClick={() => setActiveModel(null)}
         >
           All Models
@@ -172,7 +172,7 @@ const AICapabilitiesDiagram = () => {
         {models.map(model => (
           <button
             key={model.id}
-            className={px-3 py-1 rounded-full text-sm ${activeModel === model.id ? 'text-white' : 'bg-gray-200 text-gray-800'}}
+            className={`px-3 py-1 rounded-full text-sm ${activeModel === model.id ? 'text-white' : 'bg-gray-200 text-gray-800'}`}
             style={{ backgroundColor: activeModel === model.id ? model.color : '' }}
             onClick={() => setActiveModel(model.id)}
             title={model.description}
@@ -189,17 +189,17 @@ const AICapabilitiesDiagram = () => {
           <h2 className="text-lg font-semibold mb-4">Inputs</h2>
           <div className="space-y-3 w-full">
             {layers.inputs.map(node => {
-              const isEgoNode = hoveredNode === inputs:${node.id};
+              const isEgoNode = hoveredNode === `inputs:${node.id}`;
               const isConnected = isPartOfPath(node, 'inputs');
               const opacity = hoveredNode && !isConnected ? 0.3 : 1;
               
               return (
                 <div
                   key={node.id}
-                  className={p-3 rounded-lg text-center transition-all duration-200 
-                    ${!isHighlighted(node) ? 'opacity-30' : ''} 
-                    ${isEgoNode ? 'ring-4 ring-blue-600 shadow-lg scale-105 z-10' : 
-                     isConnected ? 'ring-2 ring-blue-400 shadow-md' : 'shadow-sm'}}
+                  className={`p-3 rounded-lg text-center transition-all duration-200
+                    ${!isHighlighted(node) ? 'opacity-30' : ''}
+                    ${isEgoNode ? 'ring-4 ring-blue-600 shadow-lg scale-105 z-10' :
+                     isConnected ? 'ring-2 ring-blue-400 shadow-md' : 'shadow-sm'}`}
                   style={{ 
                     backgroundColor: isHighlighted(node) ? 
                       (isEgoNode ? '#e6f0ff' : isConnected ? '#f0f7ff' : '#f0f4f8') : 
@@ -209,11 +209,11 @@ const AICapabilitiesDiagram = () => {
                     transform: isEgoNode ? 'scale(1.05)' : 'scale(1)',
                     transition: 'all 0.2s ease-in-out'
                   }}
-                  onMouseEnter={() => setHoveredNode(inputs:${node.id})}
+                  onMouseEnter={() => setHoveredNode(`inputs:${node.id}`)}
                   onMouseLeave={() => setHoveredNode(null)}
                   title={node.description}
                 >
-                  <div className={font-medium ${isEgoNode ? 'text-blue-800' : ''}}>{node.label}</div>
+                  <div className={`font-medium ${isEgoNode ? 'text-blue-800' : ''}`}>{node.label}</div>
                   <div className="flex flex-wrap gap-1 mt-2 justify-center">
                     {node.models.map(modelId => {
                       const model = models.find(m => m.id === modelId);
@@ -241,17 +241,17 @@ const AICapabilitiesDiagram = () => {
           <h2 className="text-lg font-semibold mb-4">Processing & Reasoning</h2>
           <div className="space-y-3 w-full">
             {layers.processing.map(node => {
-              const isEgoNode = hoveredNode === processing:${node.id};
+              const isEgoNode = hoveredNode === `processing:${node.id}`;
               const isConnected = isPartOfPath(node, 'processing');
               const opacity = hoveredNode && !isConnected ? 0.3 : 1;
               
               return (
                 <div
                   key={node.id}
-                  className={p-3 rounded-lg text-center transition-all duration-200 
-                    ${!isHighlighted(node) ? 'opacity-30' : ''} 
-                    ${isEgoNode ? 'ring-4 ring-blue-600 shadow-lg scale-105 z-10' : 
-                     isConnected ? 'ring-2 ring-blue-400 shadow-md' : 'shadow-sm'}}
+                  className={`p-3 rounded-lg text-center transition-all duration-200
+                    ${!isHighlighted(node) ? 'opacity-30' : ''}
+                    ${isEgoNode ? 'ring-4 ring-blue-600 shadow-lg scale-105 z-10' :
+                     isConnected ? 'ring-2 ring-blue-400 shadow-md' : 'shadow-sm'}`}
                   style={{ 
                     backgroundColor: isHighlighted(node) ? 
                       (isEgoNode ? '#e6f0ff' : isConnected ? '#f0f7ff' : '#edf2ff') : 
@@ -261,11 +261,11 @@ const AICapabilitiesDiagram = () => {
                     transform: isEgoNode ? 'scale(1.05)' : 'scale(1)',
                     transition: 'all 0.2s ease-in-out'
                   }}
-                  onMouseEnter={() => setHoveredNode(processing:${node.id})}
+                  onMouseEnter={() => setHoveredNode(`processing:${node.id}`)}
                   onMouseLeave={() => setHoveredNode(null)}
                   title={node.description}
                 >
-                  <div className={font-medium ${isEgoNode ? 'text-blue-800' : ''}}>{node.label}</div>
+                  <div className={`font-medium ${isEgoNode ? 'text-blue-800' : ''}`}>{node.label}</div>
                   <div className="flex flex-wrap gap-1 mt-2 justify-center">
                     {node.models.map(modelId => {
                       const model = models.find(m => m.id === modelId);
@@ -293,17 +293,17 @@ const AICapabilitiesDiagram = () => {
           <h2 className="text-lg font-semibold mb-4">Outputs</h2>
           <div className="space-y-3 w-full">
             {layers.outputs.map(node => {
-              const isEgoNode = hoveredNode === outputs:${node.id};
+              const isEgoNode = hoveredNode === `outputs:${node.id}`;
               const isConnected = isPartOfPath(node, 'outputs');
               const opacity = hoveredNode && !isConnected ? 0.3 : 1;
               
               return (
                 <div
                   key={node.id}
-                  className={p-3 rounded-lg text-center transition-all duration-200 
-                    ${!isHighlighted(node) ? 'opacity-30' : ''} 
-                    ${isEgoNode ? 'ring-4 ring-blue-600 shadow-lg scale-105 z-10' : 
-                     isConnected ? 'ring-2 ring-blue-400 shadow-md' : 'shadow-sm'}}
+                  className={`p-3 rounded-lg text-center transition-all duration-200
+                    ${!isHighlighted(node) ? 'opacity-30' : ''}
+                    ${isEgoNode ? 'ring-4 ring-blue-600 shadow-lg scale-105 z-10' :
+                     isConnected ? 'ring-2 ring-blue-400 shadow-md' : 'shadow-sm'}`}
                   style={{ 
                     backgroundColor: isHighlighted(node) ? 
                       (isEgoNode ? '#e6f0ff' : isConnected ? '#f0f7ff' : '#f0f8f4') : 
@@ -313,11 +313,11 @@ const AICapabilitiesDiagram = () => {
                     transform: isEgoNode ? 'scale(1.05)' : 'scale(1)',
                     transition: 'all 0.2s ease-in-out'
                   }}
-                  onMouseEnter={() => setHoveredNode(outputs:${node.id})}
+                  onMouseEnter={() => setHoveredNode(`outputs:${node.id}`)}
                   onMouseLeave={() => setHoveredNode(null)}
                   title={node.description}
                 >
-                  <div className={font-medium ${isEgoNode ? 'text-blue-800' : ''}}>{node.label}</div>
+                  <div className={`font-medium ${isEgoNode ? 'text-blue-800' : ''}`}>{node.label}</div>
                   <div className="flex flex-wrap gap-1 mt-2 justify-center">
                     {node.models.map(modelId => {
                       const model = models.find(m => m.id === modelId);

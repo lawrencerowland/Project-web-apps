@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+const { useState } = React;
 
 const AICapabilitiesDiagram = () => {
   // Define the three layers of nodes
@@ -417,4 +417,4 @@ const AICapabilitiesDiagram = () => {
   );
 };
 
-export default AICapabilitiesDiagram;
+window.AICapabilitiesDiagram = AICapabilitiesDiagram;

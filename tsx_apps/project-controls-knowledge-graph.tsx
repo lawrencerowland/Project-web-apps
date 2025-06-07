@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import * as d3 from 'd3';
+const { useState, useEffect, useRef } = React;
+
 
 const ProjectControlsKnowledgeGraph = () => {
   const svgRef = useRef(null);
@@ -543,5 +543,3 @@ const ProjectControlsKnowledgeGraph = () => {
     </div>
   );
 };
-
-export default ProjectControlsKnowledgeGraph;

@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Background and axes -->
+  <rect width="800" height="600" fill="#ffffff"/>
+  
+  <!-- Axes labels -->
+  <text x="400" y="20" text-anchor="middle" font-family="Arial" font-size="16" font-weight="bold">Project Planning &amp; Controls: 2010s to 2025 Transformation</text>
+  <text x="20" y="300" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" transform="rotate(-90, 20, 300)">Value Chain (Visibility)</text>
+  <text x="400" y="580" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">Evolution</text>
+  
+  <!-- Horizontal axis ticks -->
+  <text x="100" y="560" text-anchor="middle" font-family="Arial" font-size="12">Genesis</text>
+  <text x="300" y="560" text-anchor="middle" font-family="Arial" font-size="12">Custom</text>
+  <text x="500" y="560" text-anchor="middle" font-family="Arial" font-size="12">Product</text>
+  <text x="700" y="560" text-anchor="middle" font-family="Arial" font-size="12">Commodity</text>
+  
+  <!-- Vertical axis ticks -->
+  <text x="50" y="80" text-anchor="start" font-family="Arial" font-size="12">Visible to User</text>
+  <text x="50" y="500" text-anchor="start" font-family="Arial" font-size="12">Invisible Components</text>
+  
+  <!-- Legend -->
+  <rect x="600" y="50" width="20" height="10" fill="#6495ED"/>
+  <text x="630" y="60" font-family="Arial" font-size="12">2010s Components</text>
+  <rect x="600" y="70" width="20" height="10" fill="#FF7F50"/>
+  <text x="630" y="80" font-family="Arial" font-size="12">2025 Components</text>
+  
+  <!-- 2010s Components -->
+  <circle cx="480" cy="100" r="10" fill="#6495ED"/>
+  <text x="480" y="85" text-anchor="middle" font-family="Arial" font-size="10">Project Management Software</text>
+  <text x="480" y="100" text-anchor="middle" font-family="Arial" font-size="8">(MS Project, Primavera)</text>
+  <circle cx="400" cy="130" r="10" fill="#6495ED"/>
+  <text x="400" y="120" text-anchor="middle" font-family="Arial" font-size="10">Document Management</text>
+  <circle cx="450" cy="160" r="10" fill="#6495ED"/>
+  <text x="450" y="150" text-anchor="middle" font-family="Arial" font-size="10">Schedule Management</text>
+  <circle cx="420" cy="190" r="10" fill="#6495ED"/>
+  <text x="420" y="180" text-anchor="middle" font-family="Arial" font-size="10">Cost Management</text>
+  <circle cx="300" cy="220" r="10" fill="#6495ED"/>
+  <text x="300" y="210" text-anchor="middle" font-family="Arial" font-size="10">Risk Registers</text>
+  <text x="300" y="225" text-anchor="middle" font-family="Arial" font-size="8">(Spreadsheet-based)</text>
+  <circle cx="350" cy="250" r="10" fill="#6495ED"/>
+  <text x="350" y="240" text-anchor="middle" font-family="Arial" font-size="10">Manual Progress Reporting</text>
+  <circle cx="370" cy="310" r="10" fill="#6495ED"/>
+  <text x="370" y="300" text-anchor="middle" font-family="Arial" font-size="10">Siloed Data Storage</text>
+  <circle cx="320" cy="340" r="10" fill="#6495ED"/>
+  <text x="320" y="330" text-anchor="middle" font-family="Arial" font-size="10">Basic Analytics</text>
+  <circle cx="450" cy="370" r="10" fill="#6495ED"/>
+  <text x="450" y="360" text-anchor="middle" font-family="Arial" font-size="10">Basic Cloud Infrastructure</text>
+  <circle cx="250" cy="400" r="10" fill="#6495ED"/>
+  <text x="250" y="390" text-anchor="middle" font-family="Arial" font-size="10">Manual Integration</text>
+  
+  <!-- 2025 Components -->
+  <circle cx="280" cy="100" r="15" fill="#FF7F50"/>
+  <text x="280" y="85" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold">AI-Powered Platforms</text>
+  <text x="280" y="100" text-anchor="middle" font-family="Arial" font-size="9">(Nplan)</text>
+  <circle cx="180" cy="150" r="10" fill="#FF7F50"/>
+  <text x="180" y="140" text-anchor="middle" font-family="Arial" font-size="10">Digital Project Twins</text>
+  <circle cx="220" cy="200" r="10" fill="#FF7F50"/>
+  <text x="220" y="190" text-anchor="middle" font-family="Arial" font-size="10">Automated Risk Management</text>
+  <circle cx="150" cy="250" r="10" fill="#FF7F50"/>
+  <text x="150" y="240" text-anchor="middle" font-family="Arial" font-size="10">Real-time Monitoring</text>
+  <text x="150" y="255" text-anchor="middle" font-family="Arial" font-size="8">(IoT, Drones)</text>
+  <circle cx="180" cy="350" r="10" fill="#FF7F50"/>
+  <text x="180" y="340" text-anchor="middle" font-family="Arial" font-size="10">Unified Data Platform</text>
+  <circle cx="550" cy="400" r="10" fill="#FF7F50"/>
+  <text x="550" y="390" text-anchor="middle" font-family="Arial" font-size="10">Cloud Services</text>
+  
+  <!-- Value Chain Lines -->
+  <path d="M 480,100 L 400,130 L 450,160 L 420,190 L 300,220 L 350,250 L 370,310 L 320,340 L 450,370 L 250,400 L 100,500" stroke="#6495ED" stroke-width="2" fill="none"/>
+  <path d="M 280,100 L 180,150 L 220,200 L 150,250 L 180,350 L 550,400 L 100,500" stroke="#FF7F50" stroke-width="2" fill="none"/>
+  
+  <!-- Transformation Arrow -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#000"/>
+    </marker>
+  </defs>
+  <path d="M 400,500 Q 300,400 200,500" stroke="#000" stroke-width="4" stroke-dasharray="10,5" fill="none" marker-end="url(#arrowhead)"/>
+  <text x="300" y="520" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold">Transformation</text>
+  
+  <!-- Info Boxes -->
+  <g id="wardleyMapInfo">
+    <circle cx="580" cy="150" r="12" fill="#6495ED" stroke="#333" stroke-width="1"/>
+    <text x="580" y="154" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="white">i</text>
+    <rect x="600" y="110" width="180" height="110" rx="5" ry="5" fill="#f8f8f8" stroke="#6495ED" stroke-width="1.5"/>
+    <text x="610" y="130" font-family="Arial" font-size="12" font-weight="bold">What is a Wardley Map?</text>
+    <text x="610" y="150" font-family="Arial" font-size="10">Wardley Maps visualize business</text>
+    <text x="610" y="165" font-family="Arial" font-size="10">components along two axes:</text>
+    <text x="610" y="185" font-family="Arial" font-size="10">• Vertical: Value chain (visibility)</text>
+    <text x="610" y="200" font-family="Arial" font-size="10">• Horizontal: Evolution from</text>
+    <text x="610" y="215" font-family="Arial" font-size="10">  genesis to commodity</text>
+    <path d="M 592,150 L 600,150" stroke="#6495ED" stroke-width="1.5"/>
+  </g>
+  <g id="transformationInfo">
+    <circle cx="580" cy="300" r="12" fill="#FF7F50" stroke="#333" stroke-width="1"/>
+    <text x="580" y="304" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="white">i</text>
+    <rect x="600" y="240" width="180" height="120" rx="5" ry="5" fill="#fff8f5" stroke="#FF7F50" stroke-width="1.5"/>
+    <text x="610" y="260" font-family="Arial" font-size="12" font-weight="bold">About Transformation</text>
+    <text x="610" y="280" font-family="Arial" font-size="10">2010s: Multiple disconnected</text>
+    <text x="610" y="295" font-family="Arial" font-size="10">tools requiring manual effort</text>
+    <text x="610" y="310" font-family="Arial" font-size="10">and integration.</text>
+    <text x="610" y="330" font-family="Arial" font-size="10">2025: AI platforms like Nplan</text>
+    <text x="610" y="345" font-family="Arial" font-size="10">consolidate functions and</text>
+    <text x="610" y="360" font-family="Arial" font-size="10">enhance predictive capabilities.</text>
+    <path d="M 592,300 L 600,300" stroke="#FF7F50" stroke-width="1.5"/>
+  </g>
+</svg>

@@ -1,6 +1,7 @@
-import React from 'react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Info } from 'lucide-react';
+// This file is executed directly in the browser using Babel. We therefore
+// avoid ES module imports and rely on the global `React` variable which is
+// provided by the HTML page.  Any custom UI components are replaced with
+// simple HTML elements so that no external dependencies are required.
 
 const contractJourney = [
   {
@@ -47,7 +48,7 @@ const ContractJourney = () => {
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">NEC Contract Journey: HVAC System Installation</h2>
       <div className="bg-blue-100 p-4 rounded-lg mb-4 flex items-start">
-        <Info className="text-blue-500 mr-2 mt-1" />
+        <span className="text-blue-500 mr-2 mt-1">ℹ️</span>
         <div>
           <h3 className="font-bold text-lg mb-2">How to use this interactive guide:</h3>
           <ol className="list-decimal list-inside space-y-1">
@@ -60,18 +61,19 @@ const ContractJourney = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {contractJourney.map((item) => (
-          <Card 
-            key={item.id} 
-            className={`cursor-pointer transition-all duration-300 ${selectedCard === item.id ? 'ring-2 ring-blue-500' : ''}`}
+          <div
+            key={item.id}
+            className={`border rounded-md p-4 cursor-pointer transition-all duration-300 bg-white shadow ${
+              selectedCard === item.id ? 'ring-2 ring-blue-500' : ''
+            }`}
             onClick={() => setSelectedCard(selectedCard === item.id ? null : item.id)}
           >
-            <CardHeader className="font-bold">{item.title}</CardHeader>
-            <CardContent>{selectedCard === item.id ? item.content : 'Click to view details'}</CardContent>
-          </Card>
+            <div className="font-bold mb-2">{item.title}</div>
+            <div>{selectedCard === item.id ? item.content : 'Click to view details'}</div>
+          </div>
         ))}
       </div>
     </div>
   );
 };
 
-export default ContractJourney;

@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Download, Upload, ChevronRight, ChevronDown, Check, X, Target, TrendingUp, BarChart3, Filter, Info, HelpCircle, BookOpen } from 'lucide-react';
+const { useState, useEffect } = React;
+const {
+  Plus, Trash2, Download, Upload, ChevronRight, ChevronDown,
+  Check, X, Target, TrendingUp, BarChart3, Filter, Info,
+  HelpCircle, BookOpen
+} = lucideReact;
 
 const P3MCapabilityTool = () => {
   // Parse the initial data into hierarchical structure with typical maturity levels
@@ -1252,5 +1256,3 @@ const P3MCapabilityTool = () => {
     </div>
   );
 };
-
-export default P3MCapabilityTool;

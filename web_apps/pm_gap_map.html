@@ -37,7 +37,6 @@
 if(!window.pmGapMapInit){
 window.pmGapMapInit=true;
 (function(){
-\n
 
 /*************** DATA *****************************************/
 const gaps=[
@@ -92,7 +91,6 @@ const resources=[
  {id:'R14',title:'Atlassian Jira',type:'Software Tool',url:'#',capabilities:['C2','C6','C16']},
  {id:'R15',title:'APM/RICS Stakeholder Engagement Note',type:'Guidance Note',url:'#',capabilities:['C7','C13']}
 ];
-\n
 // ---------------- State & UI ------------------
 const state={domain:'All'};
 const allDomains=[...new Set(gaps.flatMap(g=>g.domains))].sort();

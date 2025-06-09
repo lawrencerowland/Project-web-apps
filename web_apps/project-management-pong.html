@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project Management Pong</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+        }
+        #gameCanvas {
+            border: 4px solid #333;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        #controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .info {
+            background-color: #e9f7fe;
+            border: 1px solid #a8d8ea;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            max-width: 600px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            width: 600px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 70%;
+            max-width: 600px;
+            border-radius: 5px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .modal-content ul {
+            text-align: left;
+        }
+        .modal-content li {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Project Management Pong</h1>
+    <div class="info">
+        <p>You are the <strong>Project Manager</strong> (bottom paddle). Control your paddle with the left and right arrow keys.</p>
+        <p>The ball represents <strong>completed scope</strong>. It grows and slows over time. Each hit is one week in the project.</p>
+        <p>Goal: Get the scope to the target size in the minimum number of weeks (average is 52 weeks).</p>
+    </div>
+    <div class="stats">
+        <div>Weeks: <span id="weeks">0</span></div>
+        <div>Current Scope Size: <span id="ballSize">1.0</span></div>
+        <div>Target Size: <span id="targetSize">10.0</span></div>
+    </div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <div id="controls">
+        <button id="startBtn">Start Game</button>
+        <button id="resetBtn">Reset Game</button>
+        <button id="featuresBtn">Project Features</button>
+    </div>
+    
+    <div id="featuresModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Project Management Features</h2>
+            <ul>
+                <li><strong>Growing Scope:</strong> The ball represents project scope that naturally grows over time, making progress slower.</li>
+                <li><strong>Weekly Progress:</strong> Each paddle hit represents one week of project work.</li>
+                <li><strong>Project Problems Wall:</strong> The left wall represents uncommunicated problems that absorb energy and slow down progress.</li>
+                <li><strong>Superficial Progress Wall:</strong> The right wall represents superficial progress that temporarily accelerates the ball but is unsustainable.</li>
+                <li><strong>Direct Communication:</strong> When the Project Manager hits the ball straight through to the Programme Manager, scope is properly communicated and grows effectively.</li>
+                <li><strong>Programme Manager Miss:</strong> When the Programme Manager misses, scope increases as work falls back to the project.</li>
+                <li><strong>Project Manager Miss:</strong> When the Project Manager misses, scope decreases as requirements are dropped.</li>
+                <li><strong>Target:</strong> The goal is to reach the target scope size in fewer than 52 weeks (the average project duration).</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Game elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const weeksElement = document.getElementById('weeks');
+        const ballSizeElement = document.getElementById('ballSize');
+        const targetSizeElement = document.getElementById('targetSize');
+
+        // Game settings
+        const PADDLE_WIDTH = 100;
+        const PADDLE_HEIGHT = 15;
+        const INITIAL_BALL_RADIUS = 10;
+        const TARGET_BALL_SIZE = 10.0;
+        const MIN_BALL_SIZE = 0.5;
+        const gameState = {
+            ball: {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                dx: 4,
+                dy: 4,
+                radius: INITIAL_BALL_RADIUS,
+                sizeMultiplier: 1.0
+            },
+            projectManager: {
+                x: canvas.width / 2 - PADDLE_WIDTH / 2,
+                width: PADDLE_WIDTH,
+                height: PADDLE_HEIGHT,
+                speed: 8
+            },
+            programmeManager: {
+                x: canvas.width / 2 - PADDLE_WIDTH / 2,
+                width: PADDLE_WIDTH,
+                height: PADDLE_HEIGHT,
+                speed: 5
+            },
+            weeks: 0,
+            playing: false,
+            keys: {
+                left: false,
+                right: false
+            },
+            lastHitByPM: false
+        };
+
+        // Initialize game
+        targetSizeElement.textContent = TARGET_BALL_SIZE.toFixed(1);
+
+        // Wall properties
+        const leftWall = {
+            name: 'Project Problems Not Communicated',
+            color: '#e74c3c',
+            absorptionFactor: 0.3
+        };
+
+        const rightWall = {
+            name: 'Project Progress Superficial',
+            color: '#f1c40f',
+            accelerationFactor: 1.3
+        };
+
+        // Modal elements
+        const featuresBtn = document.getElementById('featuresBtn');
+        const featuresModal = document.getElementById('featuresModal');
+        const closeBtn = document.querySelector('.close');
+        
+        // Event listeners
+        startBtn.addEventListener('click', startGame);
+        resetBtn.addEventListener('click', resetGame);
+        featuresBtn.addEventListener('click', () => {
+            featuresModal.style.display = 'block';
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            featuresModal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === featuresModal) {
+                featuresModal.style.display = 'none';
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') gameState.keys.left = true;
+            if (e.key === 'ArrowRight') gameState.keys.right = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') gameState.keys.left = false;
+            if (e.key === 'ArrowRight') gameState.keys.right = false;
+        });
+
+        // Draw functions
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(
+                gameState.ball.x, 
+                gameState.ball.y, 
+                gameState.ball.radius * gameState.ball.sizeMultiplier, 
+                0, 
+                Math.PI * 2
+            );
+            ctx.fillStyle = '#3498db';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawPaddle(x, y, width, height, color) {
+            ctx.beginPath();
+            ctx.rect(x, y, width, height);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawWalls() {
+            // Left wall - Project Problems Not Communicated
+            ctx.beginPath();
+            ctx.rect(0, 0, 10, canvas.height);
+            ctx.fillStyle = leftWall.color;
+            ctx.fill();
+            ctx.closePath();
+            
+            ctx.save();
+            ctx.translate(30, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#000';
+            ctx.fillText(leftWall.name, 0, 0);
+            ctx.restore();
+
+            // Right wall - Project Progress Superficial
+            ctx.beginPath();
+            ctx.rect(canvas.width - 10, 0, 10, canvas.height);
+            ctx.fillStyle = rightWall.color;
+            ctx.fill();
+            ctx.closePath();
+            
+            ctx.save();
+            ctx.translate(canvas.width - 30, canvas.height / 2);
+            ctx.rotate(Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#000';
+            ctx.fillText(rightWall.name, 0, 0);
+            ctx.restore();
+        }
+
+        function drawLabels() {
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#2c3e50';
+            ctx.textAlign = 'center';
+            ctx.fillText('Programme Manager', canvas.width / 2, 40);
+            ctx.fillText('Project Manager (You)', canvas.width / 2, canvas.height - 40);
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw game elements
+            drawWalls();
+            drawBall();
+            drawPaddle(gameState.projectManager.x, canvas.height - PADDLE_HEIGHT - 10, PADDLE_WIDTH, PADDLE_HEIGHT, '#2ecc71');
+            drawPaddle(gameState.programmeManager.x, 10, PADDLE_WIDTH, PADDLE_HEIGHT, '#9b59b6');
+            drawLabels();
+            
+            if (gameState.playing) {
+                update();
+                requestAnimationFrame(draw);
+            } else {
+                ctx.font = '24px Arial';
+                ctx.fillStyle = '#2c3e50';
+                ctx.textAlign = 'center';
+                if (gameState.weeks > 0) {
+                    if (gameState.ball.sizeMultiplier >= TARGET_BALL_SIZE) {
+                        ctx.fillText(`Success! Completed in ${gameState.weeks} weeks`, canvas.width / 2, canvas.height / 2);
+                    } else {
+                        ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
+                    }
+                } else {
+                    ctx.fillText('Press Start to Play', canvas.width / 2, canvas.height / 2);
+                }
+            }
+        }
+
+        // Game logic
+        function update() {
+            // Move project manager paddle (user controlled)
+            if (gameState.keys.left && gameState.projectManager.x > 10) {
+                gameState.projectManager.x -= gameState.projectManager.speed;
+            }
+            if (gameState.keys.right && gameState.projectManager.x < canvas.width - PADDLE_WIDTH - 10) {
+                gameState.projectManager.x += gameState.projectManager.speed;
+            }
+            
+            // Simple AI for programme manager
+            const paddleCenter = gameState.programmeManager.x + gameState.programmeManager.width / 2;
+            if (paddleCenter < gameState.ball.x - 20 && gameState.programmeManager.x < canvas.width - PADDLE_WIDTH - 10) {
+                gameState.programmeManager.x += gameState.programmeManager.speed;
+            } else if (paddleCenter > gameState.ball.x + 20 && gameState.programmeManager.x > 10) {
+                gameState.programmeManager.x -= gameState.programmeManager.speed;
+            }
+            
+            // Ball movement - adjust speed based on size
+            const speedFactor = 1 / (0.5 + 0.5 * gameState.ball.sizeMultiplier);
+            gameState.ball.x += gameState.ball.dx * speedFactor;
+            gameState.ball.y += gameState.ball.dy * speedFactor;
+            
+            // Wall collisions
+            const ballRadius = gameState.ball.radius * gameState.ball.sizeMultiplier;
+            
+            // Left wall - Project Problems Not Communicated (absorptive)
+            if (gameState.ball.x - ballRadius < 10) {
+                gameState.ball.dx = -gameState.ball.dx * leftWall.absorptionFactor;
+                gameState.ball.x = 10 + ballRadius;
+                
+                // Ball gets smaller when hitting this wall
+                decreaseBallSize(0.2);
+            }
+            
+            // Right wall - Project Progress Superficial (spring-like)
+            if (gameState.ball.x + ballRadius > canvas.width - 10) {
+                gameState.ball.dx = -gameState.ball.dx * rightWall.accelerationFactor;
+                gameState.ball.x = canvas.width - 10 - ballRadius;
+                
+                // Ball gets smaller when hitting this wall
+                decreaseBallSize(0.2);
+            }
+            
+            // Paddle collisions
+            // Project Manager (bottom)
+            if (
+                gameState.ball.y + ballRadius > canvas.height - PADDLE_HEIGHT - 10 &&
+                gameState.ball.x > gameState.projectManager.x && 
+                gameState.ball.x < gameState.projectManager.x + PADDLE_WIDTH
+            ) {
+                gameState.ball.dy = -Math.abs(gameState.ball.dy);
+                gameState.weeks++;
+                weeksElement.textContent = gameState.weeks;
+                
+                // Ball gets larger if hit straight through
+                if (!gameState.lastHitByPM && 
+                    gameState.ball.x > gameState.projectManager.x + PADDLE_WIDTH * 0.2 && 
+                    gameState.ball.x < gameState.projectManager.x + PADDLE_WIDTH * 0.8) {
+                    increaseBallSize(0.4);
+                }
+                
+                gameState.lastHitByPM = true;
+            }
+            
+            // Programme Manager (top)
+            if (
+                gameState.ball.y - ballRadius < PADDLE_HEIGHT + 10 &&
+                gameState.ball.x > gameState.programmeManager.x && 
+                gameState.ball.x < gameState.programmeManager.x + PADDLE_WIDTH
+            ) {
+                gameState.ball.dy = Math.abs(gameState.ball.dy);
+                gameState.weeks++;
+                weeksElement.textContent = gameState.weeks;
+                
+                gameState.lastHitByPM = false;
+            }
+            
+            // Miss conditions
+            if (gameState.ball.y + ballRadius > canvas.height) {
+                // Project Manager missed
+                decreaseBallSize(0.3);
+                resetBall();
+            }
+            
+            if (gameState.ball.y - ballRadius < 0) {
+                // Programme Manager missed
+                increaseBallSize(0.5);
+                resetBall();
+            }
+            
+            // Check win condition
+            if (gameState.ball.sizeMultiplier >= TARGET_BALL_SIZE) {
+                gameState.playing = false;
+            }
+            
+            // Update ball size display
+            ballSizeElement.textContent = gameState.ball.sizeMultiplier.toFixed(1);
+        }
+        
+        function increaseBallSize(amount) {
+            gameState.ball.sizeMultiplier += amount;
+            updateBallSizeDisplay();
+        }
+        
+        function decreaseBallSize(amount) {
+            gameState.ball.sizeMultiplier = Math.max(MIN_BALL_SIZE, gameState.ball.sizeMultiplier - amount);
+            updateBallSizeDisplay();
+        }
+        
+        function updateBallSizeDisplay() {
+            ballSizeElement.textContent = gameState.ball.sizeMultiplier.toFixed(1);
+        }
+        
+        function resetBall() {
+            gameState.ball.x = canvas.width / 2;
+            gameState.ball.y = canvas.height / 2;
+            gameState.ball.dx = (Math.random() > 0.5 ? 1 : -1) * 4;
+            gameState.ball.dy = (Math.random() > 0.5 ? 1 : -1) * 4;
+            gameState.lastHitByPM = false;
+        }
+
+        function startGame() {
+            if (!gameState.playing) {
+                gameState.playing = true;
+                draw();
+            }
+        }
+        
+        function resetGame() {
+            gameState.ball.x = canvas.width / 2;
+            gameState.ball.y = canvas.height / 2;
+            gameState.ball.dx = 4;
+            gameState.ball.dy = 4;
+            gameState.ball.sizeMultiplier = 1.0;
+            gameState.projectManager.x = canvas.width / 2 - PADDLE_WIDTH / 2;
+            gameState.programmeManager.x = canvas.width / 2 - PADDLE_WIDTH / 2;
+            gameState.weeks = 0;
+            gameState.playing = false;
+            gameState.lastHitByPM = false;
+            
+            weeksElement.textContent = gameState.weeks;
+            ballSizeElement.textContent = gameState.ball.sizeMultiplier.toFixed(1);
+            
+            draw();
+        }
+        
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

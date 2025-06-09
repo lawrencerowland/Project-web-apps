@@ -13,3 +13,4 @@
 12,project-controls-knowledge-graph,visual learning tool for professionals transitioning from project management to project controls. Includes paths through KG,Claude,Sonnet3.7,"tsx, knowledge_graph, education, project_controls, graph_pathways, moving-between-perspectives,",
 13,interactive-nec-contract-journey,Each card represents a key section of the NEC contract related to an example project (HVAC installation) scope.,Claude,Cant remember,"tsx, learning, contract_management, procurement",
 14,p3m-capability-tool,,Claude,Opus4,"tsx, portfolio_management, capabilities, TOM",
+15,project-management-pong,"Pong re-imagined for project interactions with the programme manager, and how progress is handled within companies",Claude,Cant remember,"gamification, learning, scope, culture, management_culture",

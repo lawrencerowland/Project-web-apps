@@ -1,9 +1,29 @@
 const { useState, useEffect } = React;
-const {
-  Plus, Trash2, Download, Upload, ChevronRight, ChevronDown,
-  Check, X, Target, TrendingUp, BarChart3, Filter, Info,
-  HelpCircle, BookOpen
-} = lucideReact;
+
+// Minimal icon placeholders so the tool can run without external
+// dependencies like `lucide-react`. Each icon simply renders a
+// character wrapped in a span so Tailwind sizing classes continue to
+// work when the TSX is compiled in the browser.
+const createIcon = (symbol: string) =>
+  ({ className = '', ...props }) => (
+    <span className={`inline-block ${className}`} {...props}>{symbol}</span>
+  );
+
+const Plus = createIcon('+');
+const Trash2 = createIcon('🗑');
+const Download = createIcon('⬇');
+const Upload = createIcon('⬆');
+const ChevronRight = createIcon('▶');
+const ChevronDown = createIcon('▼');
+const Check = createIcon('✔');
+const X = createIcon('✕');
+const Target = createIcon('🎯');
+const TrendingUp = createIcon('📈');
+const BarChart3 = createIcon('📊');
+const Filter = createIcon('🔍');
+const Info = createIcon('ℹ');
+const HelpCircle = createIcon('❓');
+const BookOpen = createIcon('📖');
 
 const P3MCapabilityTool = () => {
   // Parse the initial data into hierarchical structure with typical maturity levels

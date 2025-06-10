@@ -1,4 +1,7 @@
-import React, { useState, useCallback } from 'react';
+// This file runs directly in the browser via Babel so we can't rely on ES module
+// imports. Instead we use the globally provided `React` variable from the HTML
+// wrapper.
+const { useState, useCallback } = React;
 
 const TriadGraph = ({ triad }) => {
   const centerX = 150;
@@ -166,4 +169,3 @@ const InteractiveConceptMap = () => {
   );
 };
 
-export default InteractiveConceptMap;

@@ -571,3 +571,4 @@ const ProjectDynamicsSimulator = () => {
     </div>
   );
 };
+

@@ -1,9 +1,93 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Info } from 'lucide-react';
+// This file is executed directly in the browser using Babel. To avoid the need
+// for a build step or external libraries, we rely on the global `React` object
+// provided by the HTML wrapper.  Minimal stand‑ins for the UI components from
+// `shadcn/ui` and `lucide-react` are implemented below so the game can run
+// without additional dependencies.
+
+const { useState, useEffect } = React;
+
+const Card = ({ className = '', ...props }) => (
+  <div className={`border rounded shadow p-4 ${className}`} {...props} />
+);
+const CardHeader = ({ className = '', ...props }) => (
+  <div className={`mb-4 ${className}`} {...props} />
+);
+const CardContent = ({ className = '', ...props }) => (
+  <div className={`mb-4 ${className}`} {...props} />
+);
+const CardFooter = ({ className = '', ...props }) => (
+  <div className={`mt-4 ${className}`} {...props} />
+);
+
+const Button = ({ className = '', variant, ...props }) => (
+  <button
+    className={`px-4 py-2 rounded ${
+      variant === 'outline' ? 'border' : 'bg-blue-500 text-white'
+    } ${className}`}
+    {...props}
+  />
+);
+
+const Slider = ({ value, onValueChange, max = 100, step = 1 }) => (
+  <input
+    type="range"
+    value={value[0]}
+    onChange={(e) => onValueChange([Number(e.target.value)])}
+    max={max}
+    step={step}
+    className="w-full"
+  />
+);
+
+const Info = ({ className = '' }) => (
+  <span className={`inline-block ${className}`}>ℹ</span>
+);
+
+// Simple modal implementation used in place of `AlertDialog` from shadcn/ui.
+const AlertDialogContext = React.createContext(null);
+
+const AlertDialog = ({ children }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <AlertDialogContext.Provider value={{ open, setOpen }}>
+      {children}
+    </AlertDialogContext.Provider>
+  );
+};
+
+const AlertDialogTrigger = ({ children, asChild = false }) => {
+  const { setOpen } = React.useContext(AlertDialogContext);
+  const props = { onClick: () => setOpen(true) };
+  return asChild && React.isValidElement(children)
+    ? React.cloneElement(children, props)
+    : <span {...props}>{children}</span>;
+};
+
+const AlertDialogContent = ({ children }) => {
+  const { open, setOpen } = React.useContext(AlertDialogContext);
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white p-4 rounded max-w-md">
+        {children}
+        <div className="mt-4 text-right">
+          <Button onClick={() => setOpen(false)}>Close</Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AlertDialogHeader = ({ children }) => <div className="mb-2">{children}</div>;
+const AlertDialogTitle = ({ children }) => <h3 className="text-lg font-bold mb-1">{children}</h3>;
+const AlertDialogDescription = ({ children }) => <p>{children}</p>;
+const AlertDialogFooter = ({ children }) => <div className="mt-2">{children}</div>;
+const AlertDialogAction = ({ children }) => {
+  const { setOpen } = React.useContext(AlertDialogContext);
+  return (
+    <Button onClick={() => setOpen(false)}>{children}</Button>
+  );
+};
 
 const GameTheorySimulator = () => {
   const [round, setRound] = useState(1);

@@ -572,8 +572,3 @@ const ProjectDynamicsSimulator = () => {
   );
 };
 
-// Bootstrap the React component once the DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(<ProjectDynamicsSimulator />);
-});

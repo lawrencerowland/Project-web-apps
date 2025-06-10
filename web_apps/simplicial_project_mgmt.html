@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triangular Tug‑of‑War — Project‑Management View</title>
+<style>
+  :root{--bg:#fafafa;--fg:#222;--accent:#0d6efd;--warn:#d9534f;--gap:.75rem;}
+  html,body{margin:0;padding:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);}  
+  h1{font-size:clamp(1.2rem,3.5vw,2rem);margin:0 0 .5rem;}  
+  h2{font-size:clamp(1.05rem,2.7vw,1.45rem);}  
+  p,li{font-size:clamp(.85rem,2.2vw,1rem);}  
+  .wrapper{display:flex;flex-direction:column;gap:var(--gap);padding:var(--gap);max-width:900px;margin-inline:auto;}  
+  #viz{position:relative;width:80%;margin:0 auto;aspect-ratio:1/1;min-height:12rem;border:1px solid #ccc;border-radius:.6rem;overflow:visible;background:#fff;contain:strict;}
+  svg{width:100%;height:100%;}
+  text{font-size:clamp(.5rem,1.3vw,.85rem);fill:var(--fg);pointer-events:none;user-select:none;}
+  .simp{cursor:pointer;stroke-width:2;pointer-events:all;transition:opacity .15s ease-in-out;}
+  .simp:hover{opacity:.4;}
+  .simp.filled{opacity:.18;}
+  .simp.hole{fill-opacity:.05;}
+  .node{r:3.5;fill:var(--fg);pointer-events:none;}
+  .toast{position:fixed;top:1rem;left:50%;transform:translateX(-50%);padding:.4rem .8rem;border-radius:.5rem;background:var(--warn);color:#fff;font-weight:500;box-shadow:0 2px 6px rgba(0,0,0,.2);opacity:.95;z-index:50;font-size:.9rem;}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:40;padding:var(--gap);}  
+  .modal-card{position:relative;max-width:85%;background:#fff;border-radius:.65rem;padding:1rem;box-shadow:0 4px 16px rgba(0,0,0,.3);}  
+  .modal-card h3{margin:.2rem 0 .5rem;font-size:clamp(.95rem,2.5vw,1.3rem);}  
+  .modal-card button{position:absolute;top:.3rem;right:.5rem;border:none;background:none;font-size:1.25rem;line-height:1;cursor:pointer;color:var(--fg);}  
+  #viz::before{pointer-events:none;content:"Interactive visualisation";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#888;letter-spacing:.05em;font-size:.9rem;}
+  [data-smoke="ok"]::before{display:none;}
+  .explain ul{padding-left:1.1em;margin:0;}
+  .explain li{margin-bottom:.4rem;line-height:1.35;}
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <h1>When Three Things Pull Together (or Drift Apart)</h1>
+    <p>Picture each coloured triangle as a three‑way tug‑of‑war. A <strong>filled</strong> face means all three corners share the same rope—tweak one, and the other two shift with it. An outlined face? Corners still chat in pairs, but nobody’s tying the trio together, so gaps creep in.</p>
+  </header>
+
+  <section id="viz" aria-label="Simplicial visualisation"></section>
+
+  <section class="explain">
+    <h2>Quick Guide: What the Triangles Tell You</h2>
+    <ul>
+      <li><strong>Filled ▴ Scope – Schedule – Resources</strong> → The classic <em>Iron Triangle</em>. Cut scope, and you either stretch the calendar or spend more.</li>
+      <li><strong>Filled ▴ Schedule – Resources – Risk</strong> → Risk Monte‑Carlo shapes staffing buffers and float. The plan’s padded on purpose.</li>
+      <li><strong>Outline ▵ Scope – Quality – Stakeholder</strong> → Agreements exist two‑by‑two, but no three‑way charter: expect hand‑offs and re‑work.</li>
+      <li><strong>Outline ▵ Quality – Risk – Schedule</strong> → QA + risk talk, but the timeline’s missing—bugs stack up late and squeeze delivery.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(function(){"use strict";
+  const container=document.getElementById("viz");
+  function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3200);}  
+  function fallback(r){console.error('fallback:',r);toast('⚠︎ '+r);window.__canvasStatus='fallback';}
+  function removeModal(){const m=document.querySelector('.modal-backdrop');if(m) m.remove();}
+  function showModal(title,body){removeModal();const b=document.createElement('div');b.className='modal-backdrop';const c=document.createElement('div');c.className='modal-card';c.innerHTML=`<button aria-label="Close">&times;</button><h3>${title}</h3><p>${body}</p>`;c.querySelector('button').onclick=removeModal;b.appendChild(c);b.onclick=e=>{if(e.target===b)removeModal();};document.body.appendChild(b);}  
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')removeModal();});
+  try{
+    const SIMPLICES=[
+      {verts:['scope','schedule','resources'],filled:true, meaning:'Budget, timeline and scope are firmly linked.'},
+      {verts:['schedule','resources','risk'],  filled:true, meaning:'Risk forecasts drive staffing and float—buffers baked in.'},
+      {verts:['scope','quality','stakeholder'],filled:false,meaning:'No owner for the trio—requirements drift likely.'},
+      {verts:['quality','risk','schedule'],    filled:false,meaning:'Calendar absent from QA‑risk chats—surprises land late.'}
+    ];
+
+    /* Build unique vertex list */
+    const nodeSet=new Set();for(const s of SIMPLICES){for(const v of s.verts){nodeSet.add(v);}}const nodes=[...nodeSet];
+
+    const coords={},phi=Math.PI*2/nodes.length;
+    nodes.forEach((v,i)=>{const a=i*phi-Math.PI/2;coords[v]={x:0.5+0.46*Math.cos(a),y:0.5+0.46*Math.sin(a)};});
+
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 1000 1000');container.appendChild(svg);
+    const S=x=>x*1000;
+    const palette=["#0d6efd","#198754","#fd7e14","#d63384"];
+
+    SIMPLICES.forEach((s,i)=>{
+      const pts=s.verts.map(v=>S(coords[v].x)+','+S(coords[v].y)).join(' ');
+      const poly=document.createElementNS(svg.namespaceURI,'polygon');
+      poly.setAttribute('points',pts);
+      poly.setAttribute('stroke',palette[i]);
+      if(s.filled){poly.setAttribute('fill',palette[i]);poly.setAttribute('class','simp filled');}
+      else{poly.setAttribute('fill',palette[i]);poly.setAttribute('fill-opacity','0.05');poly.setAttribute('class','simp hole');}
+      poly.addEventListener('click',()=>showModal((s.filled?'Filled triangle':'Outline')+' — '+s.verts.join(' – '),s.meaning));
+      svg.appendChild(poly);
+    });
+
+    nodes.forEach(v=>{
+      const {x,y}=coords[v];
+      const dot=document.createElementNS(svg.namespaceURI,'circle');dot.setAttribute('class','node');dot.setAttribute('cx',S(x));dot.setAttribute('cy',S(y));svg.appendChild(dot);
+      const label=document.createElementNS(svg.namespaceURI,'text');label.setAttribute('x',S(x)+8);label.setAttribute('y',S(y)+4);label.textContent=v;svg.appendChild(label);
+    });
+
+    container.setAttribute('data-smoke','ok');window.__canvasStatus='ready';
+    setTimeout(()=>{if(container.getAttribute('data-smoke')!=='ok')fallback('timeout');},500);
+  }catch(e){fallback(e?.message||String(e));}
+})();
+</script>
+
+<div style="padding:.5rem var(--gap);font-style:italic;border-top:1px solid #ddd;">Coffee‑break prompt: sketch your change‑control board as a triangle—who tugs hardest?</div>
+</body>
+</html>

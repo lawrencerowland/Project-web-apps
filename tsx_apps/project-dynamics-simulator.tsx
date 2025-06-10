@@ -571,5 +571,3 @@ const ProjectDynamicsSimulator = () => {
     </div>
   );
 };
-
-export default ProjectDynamicsSimulator;

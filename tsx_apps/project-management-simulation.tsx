@@ -1,9 +1,72 @@
-import React, { useState, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, ErrorBar, ReferenceLine } from 'recharts';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { AlertCircle, Info, ArrowRight, Activity, BarChart2, Clock } from 'lucide-react';
+// This file is executed directly in the browser using Babel. We therefore rely
+// on the globally provided `React` and `Recharts` variables rather than ES
+// module imports. Minimal stand-ins for the UI components from `shadcn/ui` and
+// the `lucide-react` icons are implemented below so the simulation can run
+// without additional build steps or dependencies.
+
+const { useState, useEffect } = React;
+const {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ErrorBar,
+  ReferenceLine,
+} = Recharts;
+
+const Card = ({ className = '', ...props }) => (
+  <div className={`border rounded shadow p-4 ${className}`} {...props} />
+);
+const CardHeader = ({ className = '', ...props }) => (
+  <div className={`mb-4 ${className}`} {...props} />
+);
+const CardContent = ({ className = '', ...props }) => (
+  <div className={`mb-4 ${className}`} {...props} />
+);
+const CardFooter = ({ className = '', ...props }) => (
+  <div className={`mt-4 ${className}`} {...props} />
+);
+
+const Button = ({ className = '', variant, ...props }) => (
+  <button
+    className={`px-4 py-2 rounded ${
+      variant === 'outline'
+        ? 'border'
+        : variant === 'destructive'
+        ? 'bg-red-500 text-white'
+        : 'bg-blue-500 text-white'
+    } ${className}`}
+    {...props}
+  />
+);
+
+const Slider = ({ value, onValueChange, max = 100, step = 1 }) => (
+  <input
+    type="range"
+    value={value[0]}
+    onChange={(e) => onValueChange([Number(e.target.value)])}
+    max={max}
+    step={step}
+    className="w-full"
+  />
+);
+
+const createIcon = (symbol: string) =>
+  ({ className = '', ...props }) => (
+    <span className={`inline-block ${className}`} {...props}>{symbol}</span>
+  );
+
+const AlertCircle = createIcon('!');
+const Info = createIcon('ℹ');
+const ArrowRight = createIcon('→');
+const Activity = createIcon('🏃');
+const BarChart2 = createIcon('📊');
+const Clock = createIcon('⏱');
 
 const initialState = {
   step: 0,
@@ -390,4 +453,3 @@ const ProjectManagementSimulation = () => {
   );
 };
 
-export default ProjectManagementSimulation;

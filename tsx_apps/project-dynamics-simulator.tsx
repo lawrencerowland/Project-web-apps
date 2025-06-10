@@ -1,6 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { AlertCircle, Clock, Target, ThumbsUp, AlertTriangle, Zap } from 'lucide-react';
+const { useState, useEffect, useRef } = React;
+const {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  CartesianGrid,
+  ResponsiveContainer,
+} = Recharts;
+
+const createIcon = (symbol: string) =>
+  ({ className = "", ...props }) => (
+    <span className={`inline-block ${className}`} {...props}>{symbol}</span>
+  );
+
+const AlertCircle = createIcon("⚠");
+const Clock = createIcon("⏰");
+const Target = createIcon("🎯");
+const ThumbsUp = createIcon("👍");
+const AlertTriangle = createIcon("⚠");
+const Zap = createIcon("⚡");
+
 
 const ProjectDynamicsSimulator = () => {
   // State for simulation parameters

@@ -268,4 +268,3 @@ const GameTheorySimulator = () => {
   );
 };
 
-export default GameTheorySimulator;

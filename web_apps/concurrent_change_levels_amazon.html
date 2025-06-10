@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concurrent Change Layers – Amazon Case Study</title>
+<style>
+html,body{margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f9fafb;color:#111;line-height:1.45;}
+.container{max-width:860px;margin:0 auto;padding:2rem 1rem;}
+h1{font-size:1.6rem;font-weight:600;text-align:center;margin:0 0 1rem;}
+label{font-weight:600;}
+.slider-container{display:flex;align-items:center;gap:1rem;margin-top:.5rem;}
+.slider-container input[type=range]{flex:1;}
+.result{margin-top:1rem;font-size:1.05rem;min-height:3rem;}
+canvas{border:1px solid #e5e7eb;border-radius:.5rem;background:#fff;width:100%;max-width:840px;display:block;margin:1.5rem auto 0;transition:box-shadow .3s ease-in-out;}
+canvas.danger{box-shadow:0 0 0 4px rgba(239,68,68,.4);} /* red glow */
+canvas.units{height:140px;}
+.min-h-64{min-height:16rem;}
+ul{padding-left:1.2rem;margin:1rem 0;}
+li{margin:.25rem 0;}
+.toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);padding:.5rem 1rem;background:#111;color:#fff;border-radius:4px;font-size:.9rem;opacity:0;transition:opacity .3s ease-in-out;pointer-events:none;z-index:9999;}
+.toast.show{opacity:.9;}
+.legend{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.5rem;font-size:.85rem;align-items:center;}
+.legend span{display:inline-flex;align-items:center;gap:.25rem;}
+.legend i{width:.9rem;height:.9rem;border-radius:2px;display:inline-block;}
+</style>
+</head>
+<body>
+<div id="app" class="min-h-64" data-timeout="3000">
+  <noscript>Interactive visualisation</noscript>
+  <div class="container">
+    <h1>How Many Concurrent Change Layers Can Amazon Handle?</h1>
+    <label for="layers">Layers of simultaneous change:</label>
+    <div class="slider-container">
+      <span aria-hidden="true">1</span>
+      <input id="layers" type="range" min="1" max="5" value="3" step="1" aria-label="Layers slider">
+      <span aria-hidden="true">5</span>
+    </div>
+    <div id="result" class="result"></div>
+    <!-- Primary strain propagation diagram -->
+    <canvas id="chart" width="840" height="260" role="img" aria-label="Propagation of organisational strain through change layers"></canvas>
+    <!-- Autonomous unit spin‑off diagram (appears when layers>3) -->
+    <canvas id="chartUnits" class="units" width="840" height="140" role="img" aria-label="Autonomous unit spin‑offs"></canvas>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:#10b981"></i>Safe</span>
+      <span><i style="background:#fbbf24"></i>Caution</span>
+      <span><i style="background:#ef4444"></i>Danger</span>
+      <span><i style="background:#4b5563;border-radius:50%"></i>Spin‑out</span>
+    </div>
+
+    <section id="explanation">
+      <p>This toy model treats Amazon’s <em>two‑pizza team</em> as the atomic BAU unit, aggregates project‑level initiatives (e.g.&nbsp;a new Prime Video codec), and layers PMO oversight at the divisional and corporate levels. The primary diagram visualises <strong>propagation</strong>: each bar is a layer, its length the incremental strain, coloured by <em>safety‑to‑danger</em> thresholds, and grey arrows show how overhead ripples downward.</p>
+      <p>Once strain exceeds the <em>danger</em> threshold (≥4 layers), the second panel depicts how Amazon historically resolves overload by spinning out semi‑autonomous units – AWS, Lab126, Project&nbsp;Kuiper – each shown as a self‑governing node that inherits only the necessary interfaces.</p>
+    </section>
+  </div>
+</div>
+<script>
+(function(){
+  const container=document.getElementById('app');
+  let toastNode=null;
+  function toast(msg){
+    if(toastNode){toastNode.remove();}
+    toastNode=document.createElement('div');
+    toastNode.className='toast';
+    toastNode.textContent=msg;
+    document.body.appendChild(toastNode);
+    requestAnimationFrame(()=>toastNode.classList.add('show'));
+    setTimeout(()=>toastNode.classList.remove('show'),3000);
+  }
+
+  function fallback(reason){
+    container.innerHTML='<div class="container"><p style="padding:1rem;border:2px dashed #999;border-radius:.5rem;">Static fallback: empirical evidence suggests three concurrent change layers are the sustainable ceiling for Amazon; extra layers escalate latency and coupling costs non‑linearly.</p></div>';
+    toast('Interactive failed ('+reason+'). Showing static view.');
+    container.setAttribute('data-smoke','fallback');
+    window.__canvasStatus='fallback';
+  }
+
+  try{
+    const slider=document.getElementById('layers');
+    const result=document.getElementById('result');
+    const canvas=document.getElementById('chart');
+    const canvasUnits=document.getElementById('chartUnits');
+    const ctx=canvas.getContext('2d');
+    const ctxU=canvasUnits.getContext('2d');
+
+    const COLORS_SAFE='#10b981', COLORS_CAUTION='#fbbf24', COLORS_DANGER='#ef4444', COLORS_CRIT='#b91c1c', COLOR_UNIT='#4b5563';
+
+    function computeStrain(l){return Math.pow(l,3)/10;} // cubic toy model
+
+    function barColor(layerIdx){
+      if(layerIdx<=1) return COLORS_SAFE;          // 1‑2 layers safe
+      if(layerIdx===2) return COLORS_CAUTION;      // 3rd layer caution (idx starts 0)
+      if(layerIdx===3) return COLORS_DANGER;       // 4th layer danger
+      return COLORS_CRIT;                          // 5th+ critical
+    }
+
+    function draw(layers){
+      // *** Primary diagram ***
+      const deltas=[];
+      for(let i=1;i<=layers;i++) deltas.push(computeStrain(i)-computeStrain(i-1));
+      const barH=22, gap=18, baseY=40;
+      canvas.height=baseY + layers*(barH+gap) + 40;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      const maxTotal=computeStrain(5);
+      const scale=(canvas.width-200)/maxTotal;
+      const lengths=deltas.map(d=>d*scale);
+      lengths.forEach((len,idx)=>{
+        const y=baseY + idx*(barH+gap);
+        ctx.fillStyle=barColor(idx);
+        ctx.fillRect(120,y,len,barH);
+        ctx.fillStyle='#111';
+        ctx.font='600 12px system-ui,sans-serif';
+        ctx.textAlign='right';
+        ctx.fillText('Layer '+(idx+1),110,y+barH-4);
+      });
+      ctx.strokeStyle='#6b7280';
+      ctx.lineWidth=1.4;
+      for(let i=0;i<lengths.length-1;i++){
+        const y1=baseY + i*(barH+gap) + barH/2;
+        const y2=baseY + (i+1)*(barH+gap) + barH/2;
+        const x1=120+lengths[i];
+        const x2=120+lengths[i+1];
+        ctx.beginPath();
+        ctx.moveTo(x1,y1);
+        ctx.lineTo(x1+14,y1);
+        ctx.lineTo(x2+14,y2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x2+14,y2);
+        ctx.lineTo(x2+10,y2-4);
+        ctx.lineTo(x2+10,y2+4);
+        ctx.closePath();
+        ctx.fillStyle='#6b7280';
+        ctx.fill();
+      }
+      const total=computeStrain(layers).toFixed(1);
+      ctx.fillStyle='#111';
+      ctx.textAlign='center';
+      ctx.font='600 16px system-ui, sans-serif';
+      ctx.fillText('Total strain '+total,canvas.width/2,20);
+      canvas.classList.toggle('danger',layers>=4);
+
+      // *** Autonomous unit diagram ***
+      ctxU.clearRect(0,0,canvasUnits.width,canvasUnits.height);
+      if(layers<=3){
+        ctxU.fillStyle='#6b7280';
+        ctxU.font='14px system-ui,sans-serif';
+        ctxU.textAlign='center';
+        ctxU.fillText('No spin‑outs required (≤3 layers)',canvasUnits.width/2,canvasUnits.height/2);
+        return;
+      }
+      // compute number of units (layers-3) as example
+      const units=layers-3;
+      const radius=22;
+      const spacing=160;
+      const startX=(canvasUnits.width - (units-1)*spacing)/2;
+      const centerY=canvasUnits.height/2;
+      for(let i=0;i<units;i++){
+        const x=startX + i*spacing;
+        ctxU.fillStyle=COLOR_UNIT;
+        ctxU.beginPath();
+        ctxU.arc(x,centerY,radius,0,Math.PI*2);
+        ctxU.fill();
+        ctxU.fillStyle='#fff';
+        ctxU.font='600 12px system-ui,sans-serif';
+        ctxU.textAlign='center';
+        ctxU.fillText('Unit '+(i+1),x,centerY+4);
+      }
+      // connectors back to main org
+      ctxU.strokeStyle='#9ca3af';
+      ctxU.lineWidth=1.5;
+      for(let i=0;i<units;i++){
+        const x=startX + i*spacing;
+        ctxU.beginPath();
+        ctxU.moveTo(x,centerY-radius);
+        ctxU.lineTo(x,20);
+        ctxU.stroke();
+      }
+    }
+
+    function update(){
+      const l=parseInt(slider.value,10);
+      const s=computeStrain(l);
+      result.innerHTML=`With <strong>${l}</strong> concurrent change layer${l>1?'s':''}, the modelled organisational strain index is <strong>${s.toFixed(1)}</strong>.`;
+      draw(l);
+    }
+
+    slider.addEventListener('input',update);
+    update();
+
+    container.setAttribute('data-smoke','ok');
+    window.__canvasStatus='ready';
+
+    let waited=0;
+    const timeout=parseInt(container.getAttribute('data-timeout')||3000,10);
+    function watchdog(){
+      if(container.getAttribute('data-smoke')==='ok')return;
+      waited+=500;
+      if(waited>=timeout){fallback('timeout');return;}
+      setTimeout(watchdog,500);
+    }
+    setTimeout(watchdog,500);
+
+    window.addEventListener('error',e=>fallback(e.message||'error'));
+  }catch(e){fallback(e.message||'error');}
+})();
+</script>
+</body>
+</html>

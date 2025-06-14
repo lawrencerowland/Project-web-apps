@@ -6,13 +6,12 @@
   <link href="../vendor/tailwind.min.css" rel="stylesheet">
   <script crossorigin src="../vendor/react.development.js"></script>
   <script crossorigin src="../vendor/react-dom.development.js"></script>
-  <script src="../vendor/babel.min.js"></script>
 </head>
 <body class="p-4">
   <p><a href="../index.html">Back to Card Index</a></p>
   <div id="root"></div>
-  <script type="text/babel" src="../jsx_apps/what_AI_model_for_what.jsx"></script>
-  <script type="text/babel">
+  <script src="dist/what_AI_model_for_what.js"></script>
+  <script>
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<AICapabilitiesDiagram />);
   </script>

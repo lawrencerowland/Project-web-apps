@@ -4,15 +4,16 @@ A collection of small web app examples.
 
 ## Setup
 
-Run the `setup.sh` script to install Node.js dependencies before running tests:
+Install Node.js dependencies and build the browser bundles before serving the site:
 
 ```bash
-./setup.sh
+npm install
+npm run build
 ```
 
 ## Testing
 
-After running the setup script, execute:
+After installing dependencies, execute:
 
 ```bash
 npm test

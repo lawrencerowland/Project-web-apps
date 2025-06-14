@@ -13,7 +13,11 @@ const collectEntries = dir =>
     ? fs.readdirSync(dir).filter(f => f.endsWith('.jsx') || f.endsWith('.tsx')).map(f => path.join(dir, f))
     : [];
 
-const entries = [...collectEntries(jsxDir), ...collectEntries(tsxDir)];
+let entries = [...collectEntries(jsxDir), ...collectEntries(tsxDir)];
+// Exclude examples that rely on external packages not bundled with this repo
+entries = entries.filter(
+  (e) => !/project-vs-programme-explainer\.tsx$/.test(e)
+);
 
 entries.forEach(entry => {
   const outfile = path.join(outDir, path.basename(entry, path.extname(entry)) + '.js');

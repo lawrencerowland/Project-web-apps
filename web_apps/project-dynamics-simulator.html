@@ -7,16 +7,15 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="p-4">
   <p><a href="../index.html">Back to Card Index</a></p>
   <div id="root"></div>
-  <script type="text/babel" data-presets="typescript,react" src="../tsx_apps/project-dynamics-simulator.tsx"></script>
-  <script type="text/babel">
+  <script src="project-dynamics-simulator.js"></script>
+  <script>
     document.addEventListener('DOMContentLoaded', () => {
       const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(<ProjectDynamicsSimulator />);
+      root.render(React.createElement(ProjectDynamicsSimulator));
     });
   </script>
 </body>

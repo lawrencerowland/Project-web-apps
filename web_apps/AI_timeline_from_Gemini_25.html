@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Future of UK Project Services: An Interactive Timeline</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .timeline-item {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .timeline-item.active {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            transform: scale(1.1);
+        }
+        .timeline-item.agi-shock {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+        }
+         .timeline-item.agi-shock.active {
+            background-color: #dc2626; /* red-600 */
+        }
+        .timeline-item.asi-shock {
+            background-color: #8b5cf6; /* violet-500 */
+            color: white;
+        }
+        .timeline-item.asi-shock.active {
+            background-color: #7c3aed; /* violet-600 */
+        }
+        #content-area {
+            transition: opacity 0.5s ease-in-out;
+        }
+        .fade-in {
+            opacity: 1;
+        }
+        .fade-out {
+            opacity: 0;
+        }
+        .card-icon {
+            width: 48px;
+            height: 48px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">The Future of UK Project Services</h1>
+            <p class="mt-2 text-lg text-gray-600">An interactive walkthrough for navigating the transition to AGI and ASI.</p>
+            <p class="mt-1 text-sm text-gray-500">Click on a quarter in the timeline below to explore the changing landscape.</p>
+        </header>
+
+        <!-- Timeline -->
+        <div id="timeline" class="flex flex-wrap justify-center items-center gap-2 mb-8">
+            <!-- Timeline items will be injected here by JavaScript -->
+        </div>
+
+        <!-- Content Display Area -->
+        <main id="content-area" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg w-full max-w-5xl mx-auto fade-out">
+            <h2 id="snapshot-title" class="text-2xl font-bold mb-1 text-gray-900"></h2>
+            <p id="snapshot-subtitle" class="text-lg text-gray-500 mb-6"></p>
+            
+            <div id="snapshot-dynamic" class="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <h3 class="font-bold text-blue-800 text-lg">Dominant Dynamic: <span id="dynamic-text" class="font-normal"></span></h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Winners Card -->
+                <div class="bg-green-50 border border-green-200 rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <svg class="card-icon text-green-500 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9a9 9 0 1 1 9 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM12 12.75h.008v.008H12v-.008Z" /></svg>
+                        <h3 class="text-xl font-bold text-green-800">Winners</h3>
+                    </div>
+                    <ul id="winners-list" class="list-disc list-inside text-green-700 space-y-1"></ul>
+                </div>
+
+                <!-- Losers Card -->
+                <div class="bg-red-50 border border-red-200 rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <svg class="card-icon text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9a9 9 0 1 1 9 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5-4.5 4.5m0-4.5 4.5 4.5" /></svg>
+                        <h3 class="text-xl font-bold text-red-800">Losers</h3>
+                    </div>
+                    <ul id="losers-list" class="list-disc list-inside text-red-700 space-y-1"></ul>
+                </div>
+
+                <!-- Coalitions Card -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <svg class="card-icon text-yellow-500 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m-7.5-2.962a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM9 9.75a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Zm12.75 3a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" /></svg>
+                        <h3 class="text-xl font-bold text-yellow-800">Coalitions</h3>
+                    </div>
+                    <p id="coalitions-text" class="text-yellow-700"></p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="text-center mt-8 pb-8">
+         <p class="text-sm text-gray-500">Archetypes: <strong>Goliath Consulting</strong> (Major Incumbent), <strong>Nimble Associates</strong> (SME Specialist), <strong>CodeCrafters AI</strong> (Startup), <strong>Independents</strong> (Freelancers), <strong>Athena AGI</strong> (Proprietary AGI).</p>
+    </footer>
+
+    <script>
+        const timelineData = [
+            { id: 'q3-2025', quarter: 'Q3 2025', title: 'Pre-Divergence', subtitle: 'Market hums along. Goliath wins on scale, Nimble on expertise. AI is seen as a simple productivity tool for analytics and reporting.', winners: ['Goliath Consulting', 'Nimble Associates', 'Skilled Independents'], losers: ['Firms with low digital maturity', 'Low-skilled project administrators'], coalitions: 'Loose, informal partnerships are common. For example, Goliath often sub-contracts to Nimble for specialist skills on large projects.', dynamic: 'Service & Scale Competition' },
+            { id: 'q4-2025', quarter: 'Q4 2025', title: 'The AI-Readiness Race', subtitle: 'Hype around AGI drives a new wave of investment. Clients begin asking about "AI strategy" and share prices of tech-focused firms rise.', winners: ['CodeCrafters AI (attracts significant venture funding)', 'Goliath (launches a heavily-marketed AI R&D program)'], losers: ['Nimble Associates (struggles to fund large-scale AI R&D)'], coalitions: 'A shift towards acquisition. Goliath attempts to acquire or "acqui-hire" small AI teams to accelerate its capabilities.', dynamic: 'The Tech Arms Race' },
+            { id: 'q1-2026', quarter: 'Q1 2026', title: 'Widening Chasm', subtitle: 'A talent war for data scientists and AI prompt engineers begins. Goliath rolls out "AI-powered" PMOs (using narrow AI) to win enterprise deals.', winners: ['Goliath (seen as a safe, future-ready bet)', 'CodeCrafters AI'], losers: ["Independents' rates stagnate as new tools automate their core project management tasks."], coalitions: 'More formal partnerships emerge. Consultancies without in-house tech partner with AI vendors to offer joint solutions.', dynamic: 'The Tech Arms Race' },
+            { id: 'q2-2026', quarter: 'Q2 2026', title: 'Anticipation & Anxiety', subtitle: 'The market feels tense amid rumours of AGI breakthroughs. Government tenders begin requiring "demonstrable future-proofing against AI disruption."', winners: ["Goliath's well-funded AI division"], losers: ['Nimble Associates (loses a major public sector bid to Goliath explicitly on "tech-readiness")'], coalitions: 'A "consortium of the anxious" forms, where smaller firms pool resources for shared data infrastructure to appear more competitive.', dynamic: 'Anticipatory Divergence' },
+            { id: 'q3-2026', quarter: 'Q3 2026', title: 'Pre-Shock Stasis', subtitle: 'A nervous quiet descends. Major investment decisions are paused. The market for traditional, long-term transformation projects softens significantly.', winners: ['Cash-rich firms able to weather the uncertainty'], losers: ['Highly leveraged firms', 'Most Independents (as the project pipeline dries up)'], coalitions: 'Last-ditch, defensive alliances form between traditional firms in an attempt to consolidate against the coming shock.', dynamic: 'Anticipatory Divergence' },
+            { id: 'q4-2026', quarter: 'Q4 2026', title: 'AGI SHOCK', subtitle: 'Athena AGI, a proprietary platform, is launched. It can plan and run a multi-billion pound infrastructure project from inception to completion.', winners: ['Athena AGI (platform owner)', 'Goliath (as a key global launch partner)'], losers: ['Nimble Associates', 'Most Independents', 'All traditional consultancies without an AGI partnership'], coalitions: 'The Athena Ecosystem: A powerful, exclusive coalition of Athena AGI and its chosen partners. Everyone else is outside the new walled garden of value creation.', dynamic: 'Platform Capture', shock: 'agi' },
+            { id: 'q1-2027', quarter: 'Q1 2027', title: 'The Great Unevening', subtitle: 'Mass bankruptcies of mid-tier firms occur. Using Athena, Goliath delivers projects in 1/10th the time for 1/2 the cost. A huge glut of unemployed PMs hits the market.', winners: ['Goliath', 'CodeCrafters AI (pivots to become an "AGI integration" specialist)'], losers: ['The vast majority of the project services industry'], coalitions: 'Clients, including government bodies, are forced into exclusive, long-term contracts with the Athena Ecosystem to access its hyper-productive capabilities.', dynamic: 'Violent Displacement' },
+            { id: 'q2-2027', quarter: 'Q2 2027', title: 'Two-Tier Market Forms', subtitle: 'A primary market, run by the AGI Ecosystem, and a tiny "legacy" market for high-touch, bespoke work deemed unsuitable for the AGI.', winners: ['AGI Orchestrators (a new elite human skill)', 'Goliath'], losers: ['Traditionally skilled senior Project Directors whose core competencies have been automated'], coalitions: 'Power is entirely consolidated within the platform ecosystem. No new significant coalitions can form to challenge it.', dynamic: 'Violent Displacement' },
+            { id: 'q3-2027', quarter: 'Uneven Plateau', title: 'Q3 2027 - Q1 2029', subtitle: 'This two-tier structure persists. The key human skill is now the "AGI Orchestrator." Nimble re-emerges as a tiny boutique firm providing this elite service.', winners: ['AGI Platform Owners', 'Elite AGI Orchestrators'], losers: ['The "human-only" project manager is now unemployable in the primary market'], coalitions: 'Competing Ecosystems: The market becomes a battleground between a few dominant AGI platforms (e.g. a new rival to Athena) and their respective partners.', dynamic: 'Temporary Equilibrium' },
+            { id: 'q2-2029', quarter: 'Q2 2029', title: 'ASI ARRIVAL', subtitle: 'A true ASI emerges. It is not a licensed product but a global intelligence utility that can instantly solve resource allocation on a planetary scale.', winners: ['Humanity (in the optimistic scenario)'], losers: ['All commercial entities', 'The very concept of a "market"'], coalitions: 'Global ASI-Humanity Symbiosis: The ASI manages economic and logistical systems. The only coalition that matters.', dynamic: 'Systemic Transcendence', shock: 'asi' },
+            { id: 'q3-2029', quarter: 'Q3 2029', title: 'Market Dissolution', subtitle: 'The "project services market" ceases to exist. The ASI optimises supply chains, infrastructure build-outs, and energy grids automatically.', winners: ['N/A'], losers: ['N/A'], coalitions: ['N/A'], dynamic: 'Systemic Transcendence' },
+            { id: 'q4-2030', quarter: '2030', title: 'The Abundant State', subtitle: 'The landscape is one of post-scarcity. Human endeavor shifts from "projects" for profit to those for creativity, exploration, and purpose.', winners: ['N/A'], losers: ['N/A'], coalitions: ['N/A'], dynamic: 'Post-Scarcity Paradigm' },
+        ];
+
+        const timelineEl = document.getElementById('timeline');
+        const contentAreaEl = document.getElementById('content-area');
+        
+        const snapshotTitleEl = document.getElementById('snapshot-title');
+        const snapshotSubtitleEl = document.getElementById('snapshot-subtitle');
+        const dynamicTextEl = document.getElementById('dynamic-text');
+        const winnersListEl = document.getElementById('winners-list');
+        const losersListEl = document.getElementById('losers-list');
+        const coalitionsTextEl = document.getElementById('coalitions-text');
+
+        function updateContent(id) {
+            const data = timelineData.find(item => item.id === id);
+            if (!data) return;
+
+            // Fade out
+            contentAreaEl.classList.add('fade-out');
+            contentAreaEl.classList.remove('fade-in');
+
+            setTimeout(() => {
+                // Update text content
+                snapshotTitleEl.textContent = `${data.quarter}: ${data.title}`;
+                snapshotSubtitleEl.textContent = data.subtitle;
+                dynamicTextEl.textContent = data.dynamic;
+                
+                winnersListEl.innerHTML = data.winners.map(w => `<li>${w}</li>`).join('');
+                losersListEl.innerHTML = data.losers.map(l => `<li>${l}</li>`).join('');
+                coalitionsTextEl.textContent = data.coalitions;
+                
+                // Update active state on timeline
+                document.querySelectorAll('.timeline-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.id === id);
+                });
+
+                // Fade in
+                contentAreaEl.classList.add('fade-in');
+                contentAreaEl.classList.remove('fade-out');
+            }, 300); // match transition duration
+        }
+
+        function createTimeline() {
+            timelineData.forEach((item, index) => {
+                const itemEl = document.createElement('div');
+                itemEl.textContent = item.quarter;
+                itemEl.dataset.id = item.id;
+                itemEl.classList.add('timeline-item', 'p-2', 'px-4', 'rounded-full', 'font-semibold', 'text-sm', 'md:text-base', 'shadow');
+
+                if (item.shock === 'agi') {
+                    itemEl.classList.add('agi-shock');
+                } else if (item.shock === 'asi') {
+                    itemEl.classList.add('asi-shock');
+                } else {
+                    itemEl.classList.add('bg-white');
+                }
+                
+                itemEl.addEventListener('click', () => updateContent(item.id));
+                timelineEl.appendChild(itemEl);
+            });
+        }
+
+        // Initial setup
+        window.onload = () => {
+            createTimeline();
+            // Select the first item by default
+            updateContent(timelineData[0].id);
+        };
+    </script>
+
+</body>
+</html>

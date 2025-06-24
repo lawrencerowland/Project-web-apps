@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Consulting Offerings for Project Directors — Classic vs. AI‑Enabled</title>
+<style>
+    :root{
+        --typical:#004b8d; --new:#6b007b; --bg:#f5f7fa; --card:#ffffff; --hover:#e1ecfa;
+        font-size:16px;
+    }
+    body{margin:0;padding:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);}
+    header{background:#222;color:#fff;padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;}
+    header h1{margin:0;font-size:1.25rem;font-weight:600;}
+    header nav button{margin-left:.5rem;padding:.4rem .8rem;border:none;border-radius:4px;background:#555;color:#fff;cursor:pointer;font-weight:600;}
+    header nav button.active{background:#1e90ff;}
+    .container{padding:2rem;max-width:1200px;margin:auto;}
+    #searchBar{width:100%;max-width:400px;padding:.6rem;border:1px solid #ccc;border-radius:4px;margin-bottom:1.5rem;}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;}
+    .card{background:var(--card);border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,.08);padding:1rem;cursor:pointer;transition:background .2s;}
+    .card:hover{background:var(--hover);}
+    .card h3{margin-top:0;font-size:1.1rem;}
+    .card p{margin:.3rem 0;font-size:.875rem;color:#444;}
+    .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;}
+    .modal-content{background:#fff;border-radius:8px;max-width:600px;width:90%;padding:1.5rem;position:relative;}
+    .close{position:absolute;top:.6rem;right:.8rem;font-size:1.5rem;font-weight:700;color:#888;cursor:pointer;}
+    .tag{display:inline-block;padding:.2rem .5rem;border-radius:4px;font-size:.75rem;font-weight:600;color:#fff;margin-right:.3rem;}
+    .tag.typical{background:var(--typical);}
+    .tag.new{background:var(--new);}
+    @media(max-width:500px){header{flex-direction:column;gap:.5rem;}}
+</style>
+</head>
+<body>
+<header>
+    <h1>Project‑Director Consulting Catalogue</h1>
+    <nav>
+        <button id="btnTypical" class="active">Typical</button>
+        <button id="btnNew">AI‑Enabled</button>
+    </nav>
+</header>
+
+<div class="container">
+    <input type="text" id="searchBar" placeholder="Search offerings (e.g. risk, backlog, twin)…">
+    <div id="cardGrid" class="grid"></div>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close" id="modalClose">&times;</span>
+    <h2 id="modalTitle"></h2>
+    <p id="modalDesc"></p>
+    <p><strong>Key artefacts:</strong> <span id="modalArtefacts"></span></p>
+    <p><strong>Value metrics:</strong> <span id="modalMetrics"></span></p>
+  </div>
+</div>
+
+<script>
+//------------------- Data -------------------
+const offerings = {
+  typical: [
+    {title:"Strategic Alignment Workshop",
+     desc:"Facilitated sessions aligning project objectives with corporate strategy.",
+     artefacts:"Strategy map, objective hierarchy, alignment scorecard",
+     metrics:"Executive buy‑in index, goal coherence %"},
+    {title:"Comprehensive Project Chartering",
+     desc:"End‑to‑end charter formation with scope, budget, and governance embeds.",
+     artefacts:"Charter document, RACI, governance model",
+     metrics:"Scope clarity score, baseline variance"},
+    {title:"PMO Establishment & Maturity Uplift",
+     desc:"Design and stand‑up of central PMO, then maturity roadmap execution.",
+     artefacts:"PMO handbook, process playbooks, KPI set",
+     metrics:"Maturity level (OPM3), project cadence adherence"},
+    {title:"Integrated Master Scheduling",
+     desc:"Primavera/MSP schedule build with critical‑path & resource levelling.",
+     artefacts:"IMS file, what‑if scenarios, float heatmap",
+     metrics:"Schedule‑risk index, resource utilisation %"},
+    {title:"Risk & Issue Management Framework",
+     desc:"Enterprise‑scale heatmaps, Monte‑Carlo analysis, mitigation design.",
+     artefacts:"Risk register, simulation output, mitigation backlog",
+     metrics:"Expected monetary value, risk‑burn rate"},
+    {title:"Change‑Management & Comms Plan",
+     desc:"ADKAR‑based readiness assessment and communications cascade.",
+     artefacts:"Stakeholder matrix, comms calendar, sentiment survey",
+     metrics:"Adoption velocity, resistance incidents"},
+    {title:"Benefits Realisation Tracking",
+     desc:"Build KPIs and dashboards linking outputs to strategic benefits.",
+     artefacts:"Benefits map, KPI catalogue, dashboard",
+     metrics:"Realised value %, benefit lag time"}
+  ],
+  new: [
+    {title:"AI‑Augmented Workflow Orchestration",
+     desc:"LLM agents monitor tasks in GitHub/JIRA and auto‑draft pull requests or tickets.",
+     artefacts:"Agent policies, auto‑generated PRs, workflow graphs",
+     metrics:"Lead‑time delta, automation coverage %"},
+    {title:"Real‑Time Digital‑Twin Dashboards",
+     desc:"Streaming sensor & meta‑data feed into a simulation twin with variance alerts.",
+     artefacts:"Twin model, live anomaly log, simulation snapshots",
+     metrics:"Prediction MAE, alert‑to‑action latency"},
+    {title:"Generative Scenario Labs",
+     desc:"GPT‑4o generates & scores counterfactual project plans under constraints.",
+     artefacts:"Scenario set, risk‑utility portfolio, narrative briefs",
+     metrics:"Option diversity index, ROI at confidence x"},
+    {title:"Autonomous Backlog Grooming",
+     desc:"Agent triages backlog, clusters tickets, and proposes sprint goals nightly.",
+     artefacts:"Cluster reports, sprint candidate list, rationale logs",
+     metrics:"Backlog staleness %, points‑to‑goal fit"},
+    {title:"Knowledge‑Graph Commons",
+     desc:"Auto‑extracted entity‑relation graphs from docs, chat, and wikis; semantic search.",
+     artefacts:"Graph DB, ontology file, query snippets",
+     metrics:"Answer precision@5, discovery time"},
+    {title:"Continuous Compliance Copilot",
+     desc:"Monitors regulation feeds; rewrites policies and flags contractual exposure.",
+     artefacts:"Delta diff reports, suggested clauses, audit trail",
+     metrics:"Non‑compliance risk %, remediation cycle"},
+    {title:"Natural‑Language Project Diagnostics",
+     desc:"LLM reads meetings/transcripts, scores morale, and proposes interventions.",
+     artefacts:"Sentiment timeline, discourse map, coaching scripts",
+     metrics:"Morale index, intervention efficacy"},
+    {title:"Predictive Resource‑Leveling",
+     desc:"Hybrid ML model anticipates bottlenecks and auto‑swaps assignments.",
+     artefacts:"Bottleneck forecast, revised roster, skill heatmap",
+     metrics:"Over‑allocation hours, fulfilment hit rate"}
+  ]
+};
+
+//------------------- DOM Elements -------------------
+const grid = document.getElementById('cardGrid');
+const btnTypical = document.getElementById('btnTypical');
+const btnNew = document.getElementById('btnNew');
+const searchBar = document.getElementById('searchBar');
+const modal = document.getElementById('modal');
+const modalClose = document.getElementById('modalClose');
+const modalTitle = document.getElementById('modalTitle');
+const modalDesc = document.getElementById('modalDesc');
+const modalArtefacts = document.getElementById('modalArtefacts');
+const modalMetrics = document.getElementById('modalMetrics');
+
+let currentSet = 'typical';
+
+//------------------- Functions -------------------
+function renderCards(){
+    const query = searchBar.value.toLowerCase();
+    grid.innerHTML='';
+    offerings[currentSet]
+      .filter(o=>o.title.toLowerCase().includes(query)||o.desc.toLowerCase().includes(query))
+      .forEach(o=>{
+        const card=document.createElement('div');
+        card.className='card';
+        card.innerHTML=`<h3>${o.title}</h3>
+                        <p>${o.desc}</p>
+                        <span class="tag ${currentSet==='typical'?'typical':'new'}">${currentSet==='typical'?'Typical':'AI‑enabled'}</span>`;
+        card.onclick=()=>openModal(o);
+        grid.appendChild(card);
+      });
+}
+function openModal(o){
+    modalTitle.textContent=o.title;
+    modalDesc.textContent=o.desc;
+    modalArtefacts.textContent=o.artefacts;
+    modalMetrics.textContent=o.metrics;
+    modal.style.display='flex';
+}
+function closeModal(){modal.style.display='none';}
+function switchSet(set){
+    currentSet=set;
+    btnTypical.classList.toggle('active',set==='typical');
+    btnNew.classList.toggle('active',set==='new');
+    renderCards();
+}
+
+//------------------- Event Listeners -------------------
+btnTypical.addEventListener('click',()=>switchSet('typical'));
+btnNew.addEventListener('click',()=>switchSet('new'));
+searchBar.addEventListener('input',renderCards);
+modalClose.addEventListener('click',closeModal);
+window.addEventListener('click',e=>{if(e.target===modal)closeModal();});
+
+//------------------- Init -------------------
+renderCards();
+</script>
+</body>
+</html>

@@ -76,7 +76,14 @@ function createCards(data){
         const img=document.createElement('img');
         img.src='pics/'+item['#']+'.PNG';
         img.alt=item.name;
-        img.onerror=()=>{img.src='pics/blank.png';};
+        img.onerror=()=>{
+            if(!img.dataset.fallback){
+                img.dataset.fallback='lower';
+                img.src='pics/'+item['#']+'.png';
+            } else {
+                img.src='pics/blank.png';
+            }
+        };
         card.appendChild(img);
         const title=document.createElement('h3');
         const link=document.createElement('a');

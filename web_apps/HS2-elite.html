@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>HS2 Elite - Intuitive Thrust Edition</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            display: block;
+            border: 2px solid #0f0;
+            outline: none;
+        }
+        
+        #gameCanvas:focus {
+            border-color: #ff0;
+            box-shadow: 0 0 10px #ff0;
+        }
+        
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 14px;
+            text-shadow: 0 0 5px #0f0;
+            line-height: 1.5;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        #market {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #0f0;
+            padding: 20px;
+            display: none;
+            width: 600px;
+            max-width: 90vw;
+            box-shadow: 0 0 20px #0f0;
+            z-index: 100;
+        }
+        
+        #market h2 {
+            margin: 0 0 15px 0;
+            text-align: center;
+            color: #0f0;
+        }
+        
+        .market-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            align-items: center;
+            margin: 5px 0;
+            padding: 5px;
+            border: 1px solid #0f0;
+        }
+        
+        .market-item:hover {
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .market-button {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin: 0 5px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .market-button:hover {
+            background: #0f0;
+            color: #000;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            pointer-events: none;
+        }
+        
+        #messages {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            text-align: center;
+            pointer-events: none;
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        #compass {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 100px;
+            height: 100px;
+            border: 2px solid #0f0;
+            border-radius: 50%;
+        }
+
+        /* Touch Controls Styles */
+        #touch-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 250px;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 20px;
+            box-sizing: border-box;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .control-pad { display: flex; align-items: center; gap: 20px; }
+        
+        #left-pad {
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 15px;
+        }
+
+        .touch-btn { width: 60px; height: 60px; border: 2px solid rgba(0, 255, 0, 0.5); color: rgba(0, 255, 0, 0.8); display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; border-radius: 50%; user-select: none; pointer-events: auto; transition: background-color 0.1s, border-color 0.1s; }
+        .touch-btn.active, .touch-btn:active { background-color: rgba(0, 255, 0, 0.3); border-color: #ff0; color: #ff0; }
+        .d-pad { position: relative; width: 180px; height: 180px; }
+        .d-pad .touch-btn { position: absolute; }
+        .d-pad #pitch-up { top: 0; left: 60px; } .d-pad #pitch-down { bottom: 0; left: 60px; } .d-pad #yaw-left { top: 60px; left: 0; } .d-pad #yaw-right { top: 60px; right: 0; }
+        #right-pad { flex-direction: row-reverse; align-items: flex-end; }
+        .action-buttons, .thrust-buttons { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .roll-buttons { display: flex; gap: 15px; }
+        .thrust-buttons .touch-btn.tall { height: 90px; width: 70px; border-radius: 35px; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <p><a href="../index.html">Back to Card Index</a></p>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="hud">
+        <div>CMDR: PROJECT CONSULTANT</div>
+        <div>CREDITS: £<span id="credits">10000</span></div>
+        <div>CARGO: <span id="cargo">0</span>/20</div>
+        <div>LOCATION: <span id="location">EUSTON</span></div>
+        <div>FUEL: <span id="fuel">100</span>%</div>
+        <div>SPEED: <span id="speed">0</span> | THRUST: <span id="thrustLevel" style="color: #0f0">OFF</span></div>
+        <div>HEADING: <span id="heading">000°</span></div>
+        <div id="dockingStatus"></div>
+    </div>
+    
+    <canvas id="compass"></canvas>
+    
+    <div id="market">
+        <h2 id="marketTitle">MARKET</h2>
+        <div id="marketContent"></div>
+        <div style="margin-top: 10px; border-top: 1px solid #0f0; padding-top: 10px;">
+            <div>Credits: £<span id="marketCredits">0</span></div>
+            <div>Cargo Space: <span id="marketCargo">0</span></div>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="market-button" onclick="undockAndClose()">UNDOCK</button>
+            <button class="market-button" onclick="closeMarket()">CLOSE (ESC)</button>
+        </div>
+    </div>
+    
+    <div id="messages"></div>
+    
+    <div id="instructions">
+        <div id="instructions-keyboard">
+            <div style="color: #ff0; font-size: 14px; margin-bottom: 5px;">CLICK GAME TO ACTIVATE CONTROLS</div>
+            <div>FLIGHT CONTROLS:</div>
+            <div>1. AIM: W/S=Pitch, A/D=Yaw, Q/E=Roll (when thrust OFF)</div>
+            <div>2. CLICK anywhere to auto-aim there!</div>
+            <div>3. THRUST: SPACE=Forward, X=Reverse</div>
+            <div>4. M=Market (when docked)</div>
+            <div style="color: #0ff;">BRIGHT CYAN LINE shows where you'll go!</div>
+        </div>
+        <div id="instructions-touch" style="display: none;">
+            <div style="color: #ff0; font-size: 14px; margin-bottom: 5px;">TOUCH CONTROLS ACTIVE</div>
+            <div>Left Pad: Pitch & Yaw | Right Pad: Thrust, Reverse & Roll</div>
+            <div>Dock and press 'M' button for Market.</div>
+            <div style="color: #0ff;">Blue line shows thrust direction</div>
+        </div>
+    </div>
+
+    <div id="touch-controls">
+        <div class="control-pad" id="left-pad">
+             <div class="touch-btn" id="market-btn">M</div>
+            <div class="d-pad">
+                <div class="touch-btn" id="pitch-up">▲</div>
+                <div class="touch-btn" id="yaw-left">◀</div>
+                <div class="touch-btn" id="yaw-right">▶</div>
+                <div class="touch-btn" id="pitch-down">▼</div>
+            </div>
+        </div>
+        <div class="control-pad" id="right-pad">
+            <div class="action-buttons">
+                <div class="roll-buttons">
+                    <div class="touch-btn" id="roll-left">⟲</div>
+                    <div class="touch-btn" id="roll-right">⟳</div>
+                </div>
+            </div>
+            <div class="thrust-buttons">
+                <div class="touch-btn tall" id="thrust">THR</div>
+                <div class="touch-btn tall" id="reverse">REV</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Game constants and elements
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const compass = document.getElementById('compass');
+        const compassCtx = compass.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        compass.width = 100;
+        compass.height = 100;
+        
+        // Game state
+        const game = {
+            credits: 10000, cargo: [], maxCargo: 20, fuel: 100, location: null, docked: false,
+            nearestOutpost: null, dockingDistance: 0, messageTimer: 0, message: '', messageColor: '#0f0'
+        };
+        
+        // Player ship
+        const ship = {
+            x: 0, y: 0, z: -300, rotX: 0, rotY: 0, rotZ: 0, vx: 0, vy: 0, vz: 0, thrust: 0
+        };
+        
+        // Click-to-orient functionality
+        let targetDirection = null;
+        let isAutoOrienting = false;
+        
+        // Data
+        const outposts = [
+            { name: 'EUSTON', x: 0, y: 0, z: 0, type: 'TERMINUS', rotation: 0 },
+            { name: 'OLD OAK COMMON', x: 300, y: 50, z: -200, type: 'INTERCHANGE', rotation: 0 },
+            { name: 'WEST RUISLIP', x: 600, y: -30, z: 300, type: 'TUNNEL PORTAL', rotation: 0 },
+            { name: 'CHILTERN TUNNEL', x: 900, y: 100, z: -100, type: 'TBM SITE', rotation: 0 },
+            { name: 'BIRMINGHAM INT.', x: 1200, y: -80, z: 250, type: 'STATION', rotation: 0 },
+            { name: 'CURZON STREET', x: 1500, y: 20, z: 0, type: 'TERMINUS', rotation: 0 }
+        ];
+        const commodities = [
+            { name: 'CONSULTANTS', basePrice: 500, variance: 0.3 }, { name: 'CONCRETE', basePrice: 100, variance: 0.2 },
+            { name: 'STEEL RAILS', basePrice: 300, variance: 0.25 }, { name: 'TBM PARTS', basePrice: 800, variance: 0.4 },
+            { name: 'SIGNALLING TECH', basePrice: 600, variance: 0.35 }, { name: 'ENV. REPORTS', basePrice: 200, variance: 0.5 }
+        ];
+        
+        let currentMarketPrices = {};
+        const keys = {};
+        
+        // Setup
+        canvas.tabIndex = 1;
+        canvas.focus();
+        canvas.addEventListener('click', (e) => { 
+            canvas.focus(); 
+            if (ship.thrust === 0) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                targetDirection = screenToWorldDirection(x, y);
+                isAutoOrienting = true;
+                showMessage('AUTO-ORIENTING TO TARGET...', '#ff0', 2000);
+            } else {
+                showMessage('RELEASE THRUST TO AIM', '#f00', 1000);
+            }
+        });
+        
+        const keyMap = {
+            'w': 'w', 's': 's', 'a': 'a', 'd': 'd', 'q': 'q', 'e': 'e', 'x': 'x', ' ': 'space',
+            'm': 'm', 'Escape': 'escape', 'Shift': 'shift', 'Control': 'control'
+        };
+        
+        canvas.addEventListener('keydown', (e) => { const key = keyMap[e.key] || e.key.toLowerCase(); keys[key] = true; if (Object.values(keyMap).includes(key)) e.preventDefault(); });
+        canvas.addEventListener('keyup', (e) => { const key = keyMap[e.key] || e.key.toLowerCase(); keys[key] = false; e.preventDefault(); });
+        window.addEventListener('blur', () => Object.keys(keys).forEach(k => keys[k] = false));
+        
+        // 3D Math and utilities
+        function transform3D(x, y, z) {
+            let dx = x - ship.x, dy = y - ship.y, dz = z - ship.z;
+            const cosY = Math.cos(-ship.rotY), sinY = Math.sin(-ship.rotY); 
+            let x1 = dx * cosY - dz * sinY, z1 = dx * sinY + dz * cosY;
+            const cosX = Math.cos(-ship.rotX), sinX = Math.sin(-ship.rotX); 
+            let y1 = dy * cosX - z1 * sinX, z2 = dy * sinX + z1 * cosX;
+            const cosZ = Math.cos(-ship.rotZ), sinZ = Math.sin(-ship.rotZ); 
+            let x2 = x1 * cosZ - y1 * sinZ, y2 = x1 * sinZ + y1 * cosZ;
+            return { x: x2, y: y2, z: z2 };
+        }
+        
+        function project(x, y, z) { 
+            if (z <= 0.1) return null; 
+            const scale = 800 / z; 
+            return { x: canvas.width / 2 + x * scale, y: canvas.height / 2 - y * scale, scale: scale }; 
+        }
+        
+        function drawLine3D(x1, y1, z1, x2, y2, z2, strokeStyle = null) { 
+            if (strokeStyle) ctx.strokeStyle = strokeStyle;
+            const p1 = transform3D(x1, y1, z1), p2 = transform3D(x2, y2, z2); 
+            const s1 = project(p1.x, p1.y, p1.z), s2 = project(p2.x, p2.y, p2.z); 
+            if (s1 && s2) { 
+                ctx.beginPath(); 
+                ctx.moveTo(s1.x, s1.y); 
+                ctx.lineTo(s2.x, s2.y); 
+                ctx.stroke(); 
+            } 
+        }
+
+        // Calculate ship's forward direction in world space
+        function getShipForwardDirection() {
+            const cosY = Math.cos(ship.rotY), sinY = Math.sin(ship.rotY);
+            const cosX = Math.cos(ship.rotX), sinX = Math.sin(ship.rotX);
+            
+            const fx = sinY * cosX;
+            const fy = -sinX;
+            const fz = cosY * cosX;
+            
+            return { x: fx, y: fy, z: fz };
+        }
+
+        function screenToWorldDirection(screenX, screenY) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            const dx = screenX - centerX;
+            const dy = centerY - screenY;
+            
+            const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+            const normalizedX = dx / distance;
+            const normalizedY = dy / distance;
+            
+            const targetDistance = 500;
+            const worldX = ship.x + normalizedX * targetDistance;
+            const worldY = ship.y + normalizedY * targetDistance;
+            const worldZ = ship.z + targetDistance;
+            
+            const dirX = worldX - ship.x;
+            const dirY = worldY - ship.y;
+            const dirZ = worldZ - ship.z;
+            
+            const len = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+            return {
+                x: dirX / len,
+                y: dirY / len,
+                z: dirZ / len
+            };
+        }
+        
+        function orientToDirection(targetDir) {
+            const targetYaw = Math.atan2(targetDir.x, targetDir.z);
+            const targetPitch = -Math.asin(targetDir.y);
+            
+            return { yaw: targetYaw, pitch: targetPitch };
+        }
+        
+        function updateAutoOrientation() {
+            if (!isAutoOrienting || !targetDirection) return;
+            
+            const target = orientToDirection(targetDirection);
+            const yawDiff = target.yaw - ship.rotY;
+            const pitchDiff = target.pitch - ship.rotX;
+            
+            let normalizedYawDiff = ((yawDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
+            
+            const rotSpeed = 0.05;
+            const threshold = 0.02;
+            
+            if (Math.abs(normalizedYawDiff) > threshold) {
+                ship.rotY += Math.sign(normalizedYawDiff) * Math.min(rotSpeed, Math.abs(normalizedYawDiff));
+            }
+            
+            if (Math.abs(pitchDiff) > threshold) {
+                ship.rotX += Math.sign(pitchDiff) * Math.min(rotSpeed, Math.abs(pitchDiff));
+            }
+            
+            if (Math.abs(normalizedYawDiff) < threshold && Math.abs(pitchDiff) < threshold) {
+                isAutoOrienting = false;
+                targetDirection = null;
+                showMessage('ORIENTATION COMPLETE', '#0f0', 1000);
+            }
+        }
+
+        // Draw 2D direction indicator (always visible on screen)
+        function draw2DDirectionIndicator() {
+            const forward = getShipForwardDirection();
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            const scale = 100;
+            const screenX = centerX + forward.x * scale;
+            const screenY = centerY - forward.y * scale;
+            
+            let color = '#00ffff';
+            if (ship.thrust !== 0) {
+                if (ship.thrust > 0) {
+                    color = ship.thrust > 4 ? '#ffffff' : '#00ff00';
+                } else {
+                    color = '#ff8800';
+                }
+            }
+            
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 4;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 10;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(screenX, screenY);
+            ctx.stroke();
+            
+            const angle = Math.atan2(screenY - centerY, screenX - centerX);
+            const arrowSize = 15;
+            
+            ctx.beginPath();
+            ctx.moveTo(screenX, screenY);
+            ctx.lineTo(screenX - arrowSize * Math.cos(angle - 0.5), screenY - arrowSize * Math.sin(angle - 0.5));
+            ctx.lineTo(screenX - arrowSize * 0.6 * Math.cos(angle), screenY - arrowSize * 0.6 * Math.sin(angle));
+            ctx.lineTo(screenX - arrowSize * Math.cos(angle + 0.5), screenY - arrowSize * Math.sin(angle + 0.5));
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 10, centerY);
+            ctx.lineTo(centerX + 10, centerY);
+            ctx.moveTo(centerX, centerY - 10);
+            ctx.lineTo(centerX, centerY + 10);
+            ctx.stroke();
+            
+            ctx.font = '16px Courier New';
+            ctx.fillText('THRUST DIRECTION', centerX + 120, centerY - 10);
+            
+            ctx.shadowBlur = 0;
+        }
+        
+        // Drawing functions
+        function drawStation(station) {
+            const size = 100, half = size / 2; 
+            const dist = Math.hypot(ship.x - station.x, ship.y - station.y, ship.z - station.z);
+            ctx.strokeStyle = dist < 100 ? '#ff0' : (dist < 300 ? '#0f0' : '#080'); 
+            ctx.lineWidth = dist < 200 ? 2 : 1;
+            const edges = [[[-half,-half,-half],[half,-half,-half]],[[half,-half,-half],[half,half,-half]],[[half,half,-half],[-half,half,-half]],[[-half,half,-half],[-half,-half,-half]],[[-half,-half,half],[half,-half,half]],[[half,-half,half],[half,half,half]],[[half,half,half],[-half,half,half]],[[-half,half,half],[-half,-half,half]],[[-half,-half,-half],[-half,-half,half]],[[half,-half,-half],[half,-half,half]],[[half,half,-half],[half,half,half]],[[-half,half,-half],[-half,half,half]]];
+            edges.forEach(edge => drawLine3D(station.x + edge[0][0], station.y + edge[0][1], station.z + edge[0][2], station.x + edge[1][0], station.y + edge[1][1], station.z + edge[1][2]));
+            if (dist < 300) { 
+                const size = 40, angle = station.rotation, cos = Math.cos(angle), sin = Math.sin(angle); 
+                const vertices = [[-size*cos - (-size)*sin, -size*sin + (-size)*cos], [size*cos - (-size)*sin, size*sin + (-size)*cos], [size*cos - size*sin, size*sin + size*cos], [-size*cos - size*sin, -size*sin + size*cos]]; 
+                ctx.strokeStyle = dist < 50 ? '#ff0' : (dist < 150 ? '#f80' : '#0ff'); 
+                ctx.lineWidth = dist < 50 ? 3 : 2; 
+                const z = station.z - 50; 
+                for (let i = 0; i < 4; i++) { 
+                    const next = (i + 1) % 4; 
+                    drawLine3D(station.x + vertices[i][0], station.y + vertices[i][1], z, station.x + vertices[next][0], station.y + vertices[next][1], z); 
+                } 
+            }
+            const center = transform3D(station.x, station.y, station.z); 
+            const screenPos = project(center.x, center.y, center.z); 
+            if (screenPos) { 
+                ctx.fillStyle = dist < 100 ? '#ff0' : '#0f0'; 
+                ctx.font = '12px Courier New'; 
+                ctx.fillText(station.name, screenPos.x - 40, screenPos.y - 60); 
+                ctx.fillText(station.type, screenPos.x - 40, screenPos.y - 45); 
+                if (dist < 300) ctx.fillText(`${Math.round(dist)}m`, screenPos.x - 20, screenPos.y + 60); 
+            }
+        }
+        
+        function drawCompass() { 
+            compassCtx.clearRect(0, 0, 100, 100); 
+            
+            compassCtx.strokeStyle = '#0f0'; 
+            compassCtx.lineWidth = 2;
+            compassCtx.beginPath(); 
+            compassCtx.arc(50, 50, 45, 0, Math.PI * 2); 
+            compassCtx.stroke(); 
+            
+            compassCtx.fillStyle = '#0f0';
+            compassCtx.font = '10px Courier New';
+            compassCtx.textAlign = 'center';
+            compassCtx.fillText('N', 50, 15);
+            compassCtx.fillText('S', 50, 92);
+            compassCtx.fillText('E', 85, 55);
+            compassCtx.fillText('W', 15, 55);
+            
+            compassCtx.save(); 
+            compassCtx.translate(50, 50); 
+            compassCtx.rotate(-ship.rotY); 
+            compassCtx.fillStyle = '#ff0';
+            compassCtx.strokeStyle = '#ff0';
+            compassCtx.lineWidth = 2;
+            
+            compassCtx.beginPath(); 
+            compassCtx.moveTo(0, -35); 
+            compassCtx.lineTo(-8, -20); 
+            compassCtx.lineTo(0, -25);
+            compassCtx.lineTo(8, -20); 
+            compassCtx.closePath(); 
+            compassCtx.fill();
+            
+            compassCtx.beginPath();
+            compassCtx.moveTo(0, -20);
+            compassCtx.lineTo(0, 20);
+            compassCtx.stroke();
+            
+            compassCtx.restore(); 
+            
+            const pitchY = 50 - Math.sin(ship.rotX) * 30; 
+            compassCtx.strokeStyle = '#0ff';
+            compassCtx.lineWidth = 2;
+            compassCtx.beginPath(); 
+            compassCtx.moveTo(10, pitchY); 
+            compassCtx.lineTo(90, pitchY); 
+            compassCtx.stroke(); 
+            
+            compassCtx.fillStyle = '#0f0';
+            compassCtx.font = '8px Courier New';
+            compassCtx.textAlign = 'left';
+            compassCtx.fillText('YAW', 5, 10);
+            compassCtx.fillStyle = '#0ff';
+            compassCtx.fillText('PITCH', 55, 10);
+        }
+        
+        // UI
+        function showMessage(text, color = '#0f0', duration = 2000) { 
+            game.message = text; 
+            game.messageColor = color; 
+            game.messageTimer = duration; 
+        }
+        
+        // Physics and Game Logic
+        function updatePhysics() {
+            const rotSpeed = 0.03;
+            
+            updateAutoOrientation();
+            
+            const canRotate = ship.thrust === 0 && !isAutoOrienting;
+            
+            if (canRotate) {
+                if (keys['a']) ship.rotY -= rotSpeed; 
+                if (keys['d']) ship.rotY += rotSpeed;
+                
+                let pitchInput = 0; 
+                if (keys['w']) pitchInput = -rotSpeed; 
+                if (keys['s']) pitchInput = rotSpeed;
+                
+                if (pitchInput !== 0) { 
+                    const cosRoll = Math.cos(ship.rotZ), sinRoll = Math.sin(ship.rotZ); 
+                    ship.rotX += pitchInput * cosRoll; 
+                    ship.rotY -= pitchInput * sinRoll; 
+                }
+                
+                if (keys['q']) ship.rotZ -= rotSpeed; 
+                if (keys['e']) ship.rotZ += rotSpeed;
+                
+                ship.rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, ship.rotX));
+            }
+            
+            if ((keys['space'] || keys['x']) && game.fuel > 0) { 
+                const reverse = keys['x'] ? -1 : 1; 
+                if (keys['shift']) { 
+                    ship.thrust = 0.5 * reverse; 
+                    game.fuel -= 0.03; 
+                } else if (keys['control']) { 
+                    ship.thrust = 5 * reverse; 
+                    game.fuel -= 0.3; 
+                } else { 
+                    ship.thrust = 1.5 * reverse; 
+                    game.fuel -= 0.08; 
+                } 
+                game.fuel = Math.max(0, game.fuel); 
+            } else { 
+                ship.thrust = 0; 
+            }
+            
+            if (ship.thrust !== 0) {
+                const forward = getShipForwardDirection();
+                const thrustForce = ship.thrust * 0.15;
+                
+                ship.vx += forward.x * thrustForce;
+                ship.vy += forward.y * thrustForce;
+                ship.vz += forward.z * thrustForce;
+            }
+            
+            ship.x += ship.vx; ship.y += ship.vy; ship.z += ship.vz;
+            const drag = 0.985; ship.vx *= drag; ship.vy *= drag; ship.vz *= drag;
+            const speed = Math.hypot(ship.vx, ship.vy, ship.vz) * 10;
+            outposts.forEach(o => o.rotation += 0.02);
+            
+            game.docked = false; game.nearestOutpost = null; let minDistance = Infinity;
+            outposts.forEach(outpost => { 
+                const dist = Math.hypot(ship.x - outpost.x, ship.y - outpost.y, ship.z - outpost.z); 
+                if (dist < minDistance) { 
+                    minDistance = dist; 
+                    game.nearestOutpost = outpost; 
+                    game.dockingDistance = dist; 
+                } 
+                if (dist < 50 && speed < 5) { 
+                    game.docked = true; 
+                    game.location = outpost.name; 
+                    ship.vx *= 0.85; 
+                    ship.vy *= 0.85; 
+                    ship.vz *= 0.85; 
+                    if (speed < 0.5) { 
+                        ship.vx = 0; 
+                        ship.vy = 0; 
+                        ship.vz = 0; 
+                    } 
+                    if (game.fuel < 100) game.fuel = Math.min(100, game.fuel + 0.5); 
+                } 
+            });
+
+            if (keys['m'] && game.docked) { showMarket(); }
+            if (keys['escape']) { closeMarket(); }
+            
+            updateHUD(speed, canRotate);
+        }
+        
+        function updateHUD(speed, canRotate) {
+            document.getElementById('credits').textContent = game.credits.toLocaleString();
+            document.getElementById('cargo').textContent = game.cargo.reduce((s, i) => s + i.quantity, 0);
+            document.getElementById('location').textContent = game.location || 'DEEP SPACE';
+            document.getElementById('fuel').textContent = Math.round(game.fuel);
+            document.getElementById('speed').textContent = Math.round(speed);
+            
+            let heading = (ship.rotY * 180 / Math.PI) % 360;
+            if (heading < 0) heading += 360;
+            document.getElementById('heading').textContent = Math.round(heading).toString().padStart(3, '0') + '°';
+            
+            let thrustText = 'OFF', thrustColor = '#0f0'; 
+            if (ship.thrust < -4) { thrustText = 'REV-BOOST'; thrustColor = '#f00'; } 
+            else if (ship.thrust < -1) { thrustText = 'REVERSE'; thrustColor = '#f80'; } 
+            else if (ship.thrust < -0.1) { thrustText = 'REV-FINE'; thrustColor = '#ff0'; } 
+            else if (ship.thrust > 4) { thrustText = 'BOOST'; thrustColor = '#0ff'; } 
+            else if (ship.thrust > 1) { thrustText = 'NORMAL'; thrustColor = '#0f0'; } 
+            else if (ship.thrust > 0) { thrustText = 'FINE'; thrustColor = '#8f0'; }
+            
+            const thrustEl = document.getElementById('thrustLevel'); 
+            thrustEl.textContent = thrustText; 
+            thrustEl.style.color = thrustColor;
+            
+            const dockingStatus = document.getElementById('dockingStatus');
+            if (game.docked) {
+                dockingStatus.innerHTML = `<span style="color: #ff0; font-size: 18px; font-weight: bold; text-shadow: 0 0 10px #ff0;">=== DOCKED ===</span>`;
+            } else if (game.dockingDistance < 300 && game.nearestOutpost) {
+                dockingStatus.innerHTML = `DOCKING: ${Math.round(game.dockingDistance)}m`;
+            } else {
+                dockingStatus.innerHTML = '';
+            }
+            
+            if (!canRotate && ship.thrust !== 0) {
+                dockingStatus.innerHTML += '<br><span style="color: #0ff;">THRUST MODE - Release thrust to aim</span>';
+            } else if (canRotate) {
+                dockingStatus.innerHTML += '<br><span style="color: #ff0;">AIM MODE - WASD to orient</span>';
+            }
+        }
+        
+        function render() {
+            ctx.fillStyle = '#000'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            outposts.forEach(drawStation);
+            
+            draw2DDirectionIndicator();
+            
+            if (game.docked) { 
+                ctx.fillStyle = '#ff0'; 
+                ctx.font = '24px Courier New'; 
+                ctx.textAlign = 'center'; 
+                ctx.fillText("DOCKED - PRESS 'M' FOR MARKET", canvas.width / 2, 60); 
+                ctx.textAlign = 'left'; 
+            }
+            if (game.messageTimer > 0) { 
+                const messages = document.getElementById('messages'); 
+                messages.textContent = game.message; 
+                messages.style.color = game.messageColor; 
+                messages.style.opacity = Math.min(1, game.messageTimer / 1000); 
+                game.messageTimer -= 16; 
+            } else { 
+                document.getElementById('messages').textContent = ''; 
+            }
+            if (document.activeElement !== canvas) { 
+                ctx.fillStyle = '#f00'; 
+                ctx.font = '24px Courier New'; 
+                ctx.textAlign = 'center'; 
+                ctx.shadowColor = '#f00'; 
+                ctx.shadowBlur = 10; 
+                ctx.fillText('>>> CLICK HERE TO ACTIVATE CONTROLS <<<', canvas.width / 2, canvas.height - 50); 
+                ctx.shadowBlur = 0; 
+                ctx.textAlign = 'left'; 
+            }
+            drawCompass();
+        }
+        
+        // Market functions
+        window.showMarket = function() { 
+            if (!game.docked) return; 
+            const market = document.getElementById('market'), content = document.getElementById('marketContent'), title = document.getElementById('marketTitle'); 
+            title.textContent = `${game.location} MARKET`; 
+            content.innerHTML = ''; 
+            currentMarketPrices = {}; 
+            commodities.forEach(c => currentMarketPrices[c.name] = Math.round(c.basePrice * (1 + (Math.random() - 0.5) * c.variance))); 
+            commodities.forEach(c => { 
+                const price = currentMarketPrices[c.name], owned = (game.cargo.find(i => i.name === c.name) || {}).quantity || 0; 
+                const div = document.createElement('div'); 
+                div.className = 'market-item'; 
+                div.innerHTML = `<span>${c.name}</span><span>£${price}</span><span>Own: ${owned}</span><span><button class="market-button" onclick="buyItem('${c.name}', ${price})">B</button><button class="market-button" onclick="sellItem('${c.name}', ${price})">S</button></span>`; 
+                content.appendChild(div); 
+            }); 
+            document.getElementById('marketCredits').textContent = game.credits.toLocaleString(); 
+            document.getElementById('marketCargo').textContent = `${game.cargo.reduce((s, i) => s + i.quantity, 0)}/${game.maxCargo}`; 
+            market.style.display = 'block'; 
+        };
+        
+        window.closeMarket = function() { 
+            document.getElementById('market').style.display = 'none'; 
+        };
+        
+        window.buyItem = function(c, p) { 
+            if (game.cargo.reduce((s, i) => s + i.quantity, 0) >= game.maxCargo) { 
+                showMessage('CARGO HOLD FULL!', '#f00'); 
+                return; 
+            } 
+            if (game.credits < p) { 
+                showMessage('INSUFFICIENT CREDITS!', '#f00'); 
+                return; 
+            } 
+            game.credits -= p; 
+            const e = game.cargo.find(i => i.name === c); 
+            if (e) e.quantity++; 
+            else game.cargo.push({ name: c, quantity: 1 }); 
+            showMessage(`BOUGHT ${c}`, '#0f0'); 
+            showMarket(); 
+        };
+        
+        window.sellItem = function(c, p) { 
+            const i = game.cargo.find(item => item.name === c); 
+            if (!i || i.quantity === 0) { 
+                showMessage(`NO ${c} IN CARGO`, '#f00'); 
+                return; 
+            } 
+            i.quantity--; 
+            if (i.quantity === 0) game.cargo = game.cargo.filter(item => item.quantity > 0); 
+            game.credits += p; 
+            showMessage(`SOLD ${c}`, '#0f0'); 
+            showMarket(); 
+        };
+        
+        window.undockAndClose = function() {
+            closeMarket();
+            if (game.docked) {
+                const forward = getShipForwardDirection();
+                ship.vx -= forward.x * 3;
+                ship.vy -= forward.y * 3;
+                ship.vz -= forward.z * 3;
+                showMessage('Undocking...', '#0ff', 1500);
+            }
+        };
+        
+        // Game Loop
+        function gameLoop() {
+            updatePhysics(); 
+            render(); 
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Touch Controls Setup
+        function setupTouchControls() {
+            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0); 
+            if (!isTouchDevice) return;
+            document.getElementById('touch-controls').style.display = 'flex';
+            document.getElementById('instructions-keyboard').style.display = 'none';
+            document.getElementById('instructions-touch').style.display = 'block';
+            
+            const controlMapping = { 'pitch-up': 'w', 'pitch-down': 's', 'yaw-left': 'a', 'yaw-right': 'd', 'roll-left': 'q', 'roll-right': 'e', 'thrust': 'space', 'reverse': 'x' };
+            
+            function bindTouch(elementId, key) { 
+                const button = document.getElementById(elementId); 
+                if (!button) return; 
+                const press = (e) => { e.preventDefault(); keys[key] = true; button.classList.add('active'); }; 
+                const release = (e) => { e.preventDefault(); keys[key] = false; button.classList.remove('active'); }; 
+                button.addEventListener('touchstart', press, { passive: false }); 
+                button.addEventListener('touchend', release, { passive: false }); 
+                button.addEventListener('touchcancel', release, { passive: false }); 
+            }
+
+            for (const [id, key] of Object.entries(controlMapping)) { 
+                bindTouch(id, key); 
+            }
+
+            const marketButton = document.getElementById('market-btn');
+            if (marketButton) {
+                const press = (e) => {
+                    e.preventDefault();
+                    keys['m'] = true;
+                    marketButton.classList.add('active');
+                    setTimeout(() => {
+                        keys['m'] = false;
+                        marketButton.classList.remove('active');
+                    }, 100);
+                };
+                marketButton.addEventListener('touchstart', press, { passive: false });
+            }
+        }
+        
+        // Start the game
+        ship.x = outposts[0].x; 
+        ship.y = outposts[0].y; 
+        ship.z = outposts[0].z - 300;
+        game.location = outposts[0].name;
+        showMessage('NOW YOU CAN SEE THRUST DIRECTION! Click anywhere to aim there.', '#0ff', 5000);
+        setTimeout(() => canvas.focus(), 100);
+        setupTouchControls();
+        gameLoop();
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+    </script>
+</body>
+</html>

@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Project Services Market Navigator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f1e;
+            color: #e0e0e0;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 40px 0;
+            background: linear-gradient(135deg, #1a1a3e 0%, #0f0f1e 100%);
+            margin-bottom: 40px;
+            border-radius: 10px;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            color: #9ca3af;
+            font-size: 1.2em;
+        }
+        
+        .timeline-container {
+            position: relative;
+            padding: 40px 0;
+            margin-bottom: 40px;
+        }
+        
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            padding: 0 20px;
+            overflow-x: auto;
+            min-height: 100px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #374151;
+            z-index: 1;
+        }
+        
+        .timeline-item {
+            position: relative;
+            z-index: 2;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .timeline-dot {
+            width: 20px;
+            height: 20px;
+            background: #374151;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .timeline-item.active .timeline-dot {
+            width: 30px;
+            height: 30px;
+            background: #7c3aed;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.6);
+        }
+        
+        .timeline-item.milestone .timeline-dot {
+            background: #ef4444;
+        }
+        
+        .timeline-label {
+            font-size: 0.8em;
+            color: #9ca3af;
+            white-space: nowrap;
+        }
+        
+        .timeline-item.active .timeline-label {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .content-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .panel {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid #374151;
+            transition: all 0.3s ease;
+        }
+        
+        .panel:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 0 30px rgba(124, 58, 237, 0.2);
+        }
+        
+        .panel h2 {
+            color: #7c3aed;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        
+        .market-snapshot {
+            grid-column: span 2;
+        }
+        
+        .dynamics-panel {
+            background: #16213e;
+        }
+        
+        .transition-panel {
+            background: #1f2937;
+        }
+        
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .player-category {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .player-category h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .winners h3 { color: #10b981; }
+        .losers h3 { color: #ef4444; }
+        .coalitions h3 { color: #3b82f6; }
+        
+        .player-list {
+            list-style: none;
+        }
+        
+        .player-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.95em;
+        }
+        
+        .player-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .dynamics-content {
+            margin-top: 15px;
+        }
+        
+        .dynamic-item {
+            background: rgba(124, 58, 237, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #7c3aed;
+        }
+        
+        .strategic-questions {
+            background: #1e293b;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            border: 1px solid #374151;
+        }
+        
+        .strategic-questions h3 {
+            color: #fbbf24;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .question-list {
+            list-style: none;
+        }
+        
+        .question-list li {
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid #fbbf24;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .question-list li:hover {
+            background: rgba(251, 191, 36, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .navigation-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .nav-button {
+            padding: 12px 30px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-button:hover {
+            background: #6d28d9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(124, 58, 237, 0.4);
+        }
+        
+        .nav-button:disabled {
+            background: #374151;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .phase-indicator {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 10px;
+            border: 1px solid #7c3aed;
+        }
+        
+        .phase-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #7c3aed;
+            margin-bottom: 10px;
+        }
+        
+        .phase-description {
+            color: #d1d5db;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        .tooltip {
+            position: absolute;
+            background: #1f2937;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+            border: 1px solid #374151;
+        }
+        
+        .tooltip.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>UK Project Services Market Navigator</h1>
+            <p class="subtitle">Navigate the transformation from traditional consulting to post-ASI abundance</p>
+        </header>
+        
+        <div class="timeline-container">
+            <div class="timeline" id="timeline"></div>
+        </div>
+        
+        <div class="phase-indicator" id="phaseIndicator">
+            <div class="phase-name" id="phaseName">The Old Guard</div>
+            <div class="phase-description" id="phaseDescription">Traditional market structures intact</div>
+        </div>
+        
+        <div class="content-area">
+            <div class="panel market-snapshot">
+                <h2>📊 Market Snapshot: <span id="currentQuarter">Q1 2026</span></h2>
+                <div class="players-grid">
+                    <div class="player-category winners">
+                        <h3>🏆 Winners</h3>
+                        <ul class="player-list" id="winnersList"></ul>
+                    </div>
+                    <div class="player-category losers">
+                        <h3>📉 Losers</h3>
+                        <ul class="player-list" id="losersList"></ul>
+                    </div>
+                    <div class="player-category coalitions">
+                        <h3>🤝 Coalitions</h3>
+                        <ul class="player-list" id="coalitionsList"></ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel dynamics-panel">
+                <h2>⚡ Market Dynamics</h2>
+                <div class="dynamics-content" id="dynamicsContent"></div>
+            </div>
+            
+            <div class="panel transition-panel">
+                <h2>🔄 Transition Forces</h2>
+                <div class="dynamics-content" id="transitionContent"></div>
+            </div>
+        </div>
+        
+        <div class="strategic-questions">
+            <h3>💡 Strategic Considerations</h3>
+            <ul class="question-list" id="questionsList"></ul>
+        </div>
+        
+        <div class="navigation-buttons">
+            <button class="nav-button" id="prevButton" onclick="navigateQuarter(-1)">← Previous Quarter</button>
+            <button class="nav-button" id="nextButton" onclick="navigateQuarter(1)">Next Quarter →</button>
+        </div>
+    </div>
+    
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        const marketData = {
+            'Q1 2026': {
+                phase: 'The Old Guard',
+                phaseDescription: 'Traditional market structures intact, linear competition',
+                winners: ['Big 4 consultancies', 'Major engineering firms', 'Established IT services'],
+                losers: ['Mid-tier firms without AI investment', 'Late digital adopters'],
+                coalitions: ['Traditional partnerships intact', 'Industry associations'],
+                dynamics: ['Linear competition dominates', 'Billable hours model prevails', 'Partner-led relationships'],
+                transition: 'Early AI experiments beginning to show results',
+                questions: [
+                    'Is your firm experimenting with AI tools, or still relying on traditional methods?',
+                    'What would happen if a competitor achieved 10x productivity gains?',
+                    'Are you tracking AI adoption rates in your sector?'
+                ]
+            },
+            'Q2 2026': {
+                phase: 'Early Adopters Emerge',
+                phaseDescription: 'AI-native firms demonstrate radical productivity gains',
+                winners: ['AI-native boutiques (20-50 people)', 'Big 4 innovation labs', 'Tech-savvy independents'],
+                losers: ['Traditional mid-market consultancies', 'Manual process dependent firms'],
+                coalitions: ['Big firms acquire AI startups', 'Tech partnerships forming'],
+                dynamics: ['Capability arbitrage emerging', 'Pilot project proliferation', '10x productivity gaps appearing'],
+                transition: 'Clients beginning to demand AI-enhanced delivery',
+                questions: [
+                    'Can your current business model survive if competitors deliver 10x faster?',
+                    'Do you have exclusive access to any AI capabilities?',
+                    'What happens when clients expect AI-speed delivery as standard?'
+                ]
+            },
+            'Q3 2026': {
+                phase: 'The Acceleration',
+                phaseDescription: 'Race for AI partnerships intensifies as AGI approaches',
+                winners: ['Firms with OpenAI/Anthropic partnerships', 'Early AI adopters scaling fast', 'Agile boutiques'],
+                losers: ['Firms dependent on junior analyst models', 'Traditional strategy houses', 'Slow decision makers'],
+                coalitions: ['"AI Alliance" forms among second-tier firms', 'Compute-sharing agreements'],
+                dynamics: ['Exponential productivity gaps', 'Talent exodus to AI firms', 'Price pressure on traditional services'],
+                transition: 'Market sensing AGI arrival - positioning battles intensify',
+                questions: [
+                    'Do you have secured access to frontier AI models?',
+                    'How will you compete when AI eliminates 80% of project work?',
+                    'Is your leadership team preparing for discontinuous change?'
+                ]
+            },
+            'Q4 2026': {
+                phase: 'AGI Arrives',
+                phaseDescription: 'Artificial General Intelligence fundamentally breaks traditional models',
+                winners: ['3 tech giants with AGI', '2 sovereign-backed firms', 'First-mover licensees'],
+                losers: ['70% of traditional consultancies', 'Human-only service providers', 'Mid-tier players'],
+                coalitions: ['Emergency "Human-Centric Delivery" consortium', 'Regulatory lobbying groups'],
+                dynamics: ['Binary market - AGI access or irrelevance', 'Mass redundancies begin', 'Regulatory scramble'],
+                transition: 'Fundamental market restructuring begins',
+                questions: [
+                    'Do you have AGI access, or a path to get it?',
+                    'What unique value can humans provide in an AGI world?',
+                    'Should you pivot, partner, or exit?'
+                ]
+            },
+            'Q1 2027': {
+                phase: 'The Scramble',
+                phaseDescription: 'Desperate repositioning as market restructures around AGI access',
+                winners: ['First-mover AGI licensees', 'Regulatory specialists', 'Trust brokers'],
+                losers: ['Pure-play strategy consultancies', 'Most PM firms', 'Technical specialists'],
+                coalitions: ['"Ethical AI Delivery" partnerships', 'Law firm alliances', 'Government partnerships'],
+                dynamics: ['Access hoarding', 'Regulatory capture attempts', 'Black markets emerging'],
+                transition: 'New business models beginning to crystallize',
+                questions: [
+                    'Is your AGI access secure or dependent on others?',
+                    'What regulatory moats can you build?',
+                    'How do you price services when delivery is near-instant?'
+                ]
+            },
+            'Q2 2027': {
+                phase: 'New Models Emerge',
+                phaseDescription: 'Innovative business models replace traditional consulting',
+                winners: ['"AI-Prime" contractors', 'Governance specialists', 'Outcome guarantors'],
+                losers: ['Traditional systems integrators', 'Time-and-materials firms', 'Process consultants'],
+                coalitions: ['Compute cooperatives', 'Regional alliances', 'Client consortiums'],
+                dynamics: ['Business model innovation', 'Margin compression', 'Value migration to outcomes'],
+                transition: 'Market beginning to find new equilibrium points',
+                questions: [
+                    'Is your business model based on time or outcomes?',
+                    'Can you guarantee results in an AGI world?',
+                    'What happens when clients can verify all claims instantly?'
+                ]
+            },
+            'Q3 2027': {
+                phase: 'The Shakeout',
+                phaseDescription: 'Mass consolidation as unviable models fail',
+                winners: ['Firms with government contracts', 'Trust networks', 'Niche specialists'],
+                losers: ['Mid-tier engineering firms', 'Generalist boutiques', 'Leverage-model firms'],
+                coalitions: ['Industry-specific AI delivery consortiums', 'Survival mergers'],
+                dynamics: ['Mass consolidation', 'Talent exodus', 'Flight to quality'],
+                transition: 'Temporary stability as weak players exit',
+                questions: [
+                    'Will you be a consolidator or consolidated?',
+                    'What irreplaceable assets do you control?',
+                    'Can your culture survive radical downsizing?'
+                ]
+            },
+            'Q4 2027': {
+                phase: 'Temporary Equilibrium',
+                phaseDescription: 'Market stabilizes around platform economics',
+                winners: ['Hybrid human-AI firms', 'Relationship orchestrators', 'Platform owners'],
+                losers: ['Technical specialists', 'Project administrators', 'Traditional partners'],
+                coalitions: ['Cross-industry mega-platforms', 'Government-backed champions'],
+                dynamics: ['Platform economics dominate', 'Winner-take-most dynamics', 'Network effects crucial'],
+                transition: 'Preparing for next wave of disruption',
+                questions: [
+                    'Are you a platform or a participant?',
+                    'What network effects protect your position?',
+                    'How do you stay relevant as AGI improves?'
+                ]
+            },
+            'Q1 2028': {
+                phase: 'The New Competition',
+                phaseDescription: 'Competition shifts to data, trust, and compliance',
+                winners: ['Data-rich incumbents', 'Safety-certified providers', 'Regulatory arbitrageurs'],
+                losers: ['Compute-poor firms', 'Non-compliant operators', 'Commodity providers'],
+                coalitions: ['Government-backed consortiums', 'Data sharing alliances'],
+                dynamics: ['Compliance as competitive advantage', 'Data moats matter', 'Trust premiums'],
+                transition: 'AGI capabilities beginning to commoditize',
+                questions: [
+                    'What data assets do you uniquely control?',
+                    'Is your compliance a cost or a moat?',
+                    'How do you compete when AGI is everywhere?'
+                ]
+            },
+            'Q2 2028': {
+                phase: 'Capability Diffusion',
+                phaseDescription: 'AGI access democratizes, value migrates to experience',
+                winners: ['Niche specialists', 'Experience designers', 'Wisdom curators'],
+                losers: ['Generalist firms', 'Traditional partners', 'Process-focused players'],
+                coalitions: ['Client-owned delivery vehicles', 'Open-source AGI movements'],
+                dynamics: ['Commoditization of AGI', 'Value migration to experience', 'Authenticity premiums'],
+                transition: 'Market sensing approach of ASI',
+                questions: [
+                    'What remains scarce when AGI is abundant?',
+                    'Can you pivot from efficiency to experience?',
+                    'What human elements become more valuable?'
+                ]
+            },
+            'Q3 2028': {
+                phase: 'Pre-ASI Positioning',
+                phaseDescription: 'Firms position for post-scarcity economics',
+                winners: ['ASI-ready platforms', 'Human experience firms', 'Meaning-makers'],
+                losers: ['AGI-dependent models', 'Traditional value chains', 'Scarcity-based businesses'],
+                coalitions: ['"Post-ASI Preparation" alliances', 'Universal service movements'],
+                dynamics: ['Anticipatory restructuring', 'Value redefinition beginning', 'Existential hedging'],
+                transition: 'Fundamental assumptions about value being questioned',
+                questions: [
+                    'What is your purpose in a post-scarcity world?',
+                    'Can your business model survive abundance?',
+                    'What human needs persist beyond material scarcity?'
+                ]
+            },
+            'Q4 2028': {
+                phase: 'The Calm Before',
+                phaseDescription: 'Final preparations for ASI transformation',
+                winners: ['Relationship custodians', 'Creativity houses', 'Transformation guides'],
+                losers: ['Process-dependent firms', 'Efficiency-focused models', 'Traditional hierarchies'],
+                coalitions: ['Human preservation societies', 'Meaning-making collectives'],
+                dynamics: ['Existential hedging', 'Purpose-driven pivots', 'Community building'],
+                transition: 'Collective holding of breath before ASI',
+                questions: [
+                    'Are you optimizing for current reality or future possibility?',
+                    'What relationships will matter post-ASI?',
+                    'How do you help others navigate radical uncertainty?'
+                ]
+            },
+            'Q1 2029': {
+                phase: 'Final Preparations',
+                phaseDescription: 'Last-minute positioning before ASI arrival',
+                winners: ['ASI access brokers', 'Meaning-makers', 'Transition facilitators'],
+                losers: ['Traditional value chains', 'Competition-based models', 'Scarcity mindsets'],
+                coalitions: ['Universal service cooperatives', 'Post-scarcity alliances'],
+                dynamics: ['Pre-abundance positioning', 'Value system shifts', 'Collaborative preparation'],
+                transition: 'Old paradigms crumbling, new ones not yet formed',
+                questions: [
+                    'What assumptions are you still clinging to?',
+                    'How do you create value without scarcity?',
+                    'What role will your firm play in abundance?'
+                ]
+            },
+            'Q2 2029': {
+                phase: 'ASI Arrives',
+                phaseDescription: 'Artificial Superintelligence makes traditional business obsolete',
+                winners: ['ASI orchestrators', 'Human experience curators', 'Meaning facilitators'],
+                losers: ['All traditional business models', 'Competition-based thinking', 'Scarcity economics'],
+                coalitions: ['Post-scarcity transition bodies', 'Abundance networks'],
+                dynamics: ['Paradigm shift complete', 'Value redefinition', 'Post-economic organizing'],
+                transition: 'Reality reorganizing around abundance',
+                questions: [
+                    'What matters when everything is possible?',
+                    'How do humans find purpose in abundance?',
+                    'What new forms of organization emerge?'
+                ]
+            },
+            'Q3 2029': {
+                phase: 'New Foundations',
+                phaseDescription: 'Post-scarcity organizational forms emerge',
+                winners: ['Attention merchants', 'Wisdom keepers', 'Experience architects'],
+                losers: ['Scarcity-based models', 'Traditional hierarchies', 'Control systems'],
+                coalitions: ['Abundance distribution networks', 'Meaning-making guilds'],
+                dynamics: ['Post-economic organization', 'Gift economies emerging', 'Status through contribution'],
+                transition: 'New equilibrium beginning to form',
+                questions: [
+                    'What new forms of value are emerging?',
+                    'How do you organize without scarcity constraints?',
+                    'What human needs become primary?'
+                ]
+            },
+            'Q4 2029': {
+                phase: 'The New Normal',
+                phaseDescription: 'Stable post-scarcity patterns establish',
+                winners: ['Experience creators', 'Relationship facilitators', 'Wisdom sharers'],
+                losers: ['Competition-based thinking', 'Accumulation mindsets', 'Control paradigms'],
+                coalitions: ['Collaborative abundance networks', 'Experience exchanges'],
+                dynamics: ['Post-competitive cooperation', 'Abundance sharing', 'Purpose-driven organization'],
+                transition: 'New paradigm stabilizing',
+                questions: [
+                    'What does success mean now?',
+                    'How do you measure contribution without scarcity?',
+                    'What legacy do you want to create?'
+                ]
+            },
+            'Q1 2030': {
+                phase: 'Abundance Realized',
+                phaseDescription: 'Full post-scarcity society emerges',
+                winners: ['Those who facilitate human flourishing', 'Connection creators', 'Joy amplifiers'],
+                losers: ['Old paradigm thinking', 'Zero-sum mentalities', 'Control mechanisms'],
+                coalitions: ['Human flourishing networks', 'Creative collaboratives'],
+                dynamics: ['Gift economy dominates', 'Status through contribution', 'Radical collaboration'],
+                transition: 'Humanity adapting to abundance',
+                questions: [
+                    'How do you help others flourish?',
+                    'What unique gifts do you offer freely?',
+                    'What new adventures await?'
+                ]
+            },
+            'Q2 2030': {
+                phase: 'Beyond Economics',
+                phaseDescription: 'Human organization transcends traditional economics',
+                winners: ['Those who create meaning', 'Experience innovators', 'Connection weavers'],
+                losers: ['Economic thinking itself', 'Transactional relationships', 'Scarcity mindsets'],
+                coalitions: ['Exploration guilds', 'Creativity networks', 'Wisdom circles'],
+                dynamics: ['Purpose-driven action', 'Intrinsic motivation', 'Collective flourishing'],
+                transition: 'Humanity exploring new frontiers',
+                questions: [
+                    'What does it mean to be human now?',
+                    'What new possibilities excite you?',
+                    'How do we grow together?'
+                ]
+            },
+            'Q3 2030': {
+                phase: 'Human Renaissance',
+                phaseDescription: 'Creativity and connection define human activity',
+                winners: ['Artists and creators', 'Philosophers and guides', 'Community builders'],
+                losers: ['Obsolete concepts of competition', 'Material accumulation drives', 'Power hierarchies'],
+                coalitions: ['Creative collectives', 'Exploration partnerships', 'Learning networks'],
+                dynamics: ['Creativity explosion', 'Deep connection seeking', 'Collective evolution'],
+                transition: 'Humanity finding new purposes',
+                questions: [
+                    'What do you want to create?',
+                    'Who do you want to become?',
+                    'How can we evolve together?'
+                ]
+            },
+            'Q4 2030': {
+                phase: 'New Horizons',
+                phaseDescription: 'Humanity embarks on post-scarcity adventures',
+                winners: ['Adventure creators', 'Wonder facilitators', 'Growth catalysts'],
+                losers: ['Old limitations', 'Fear-based thinking', 'Separation illusions'],
+                coalitions: ['Exploration alliances', 'Wonder networks', 'Growth communities'],
+                dynamics: ['Unlimited exploration', 'Collective adventure', 'Continuous evolution'],
+                transition: 'The beginning of something entirely new',
+                questions: [
+                    'What adventures call to you?',
+                    'What wonders await discovery?',
+                    'What will we become together?'
+                ]
+            }
+        };
+
+        const quarters = Object.keys(marketData);
+        let currentIndex = 0;
+        
+        function initializeTimeline() {
+            const timeline = document.getElementById('timeline');
+            quarters.forEach((quarter, index) => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+                if (quarter === 'Q4 2026' || quarter === 'Q2 2029') {
+                    item.classList.add('milestone');
+                }
+                if (index === 0) item.classList.add('active');
+                
+                const dot = document.createElement('div');
+                dot.className = 'timeline-dot';
+                
+                const label = document.createElement('div');
+                label.className = 'timeline-label';
+                label.textContent = quarter;
+                
+                item.appendChild(dot);
+                item.appendChild(label);
+                
+                item.addEventListener('click', () => {
+                    currentIndex = index;
+                    updateDisplay();
+                });
+                
+                timeline.appendChild(item);
+            });
+        }
+        
+        function updateDisplay() {
+            const quarter = quarters[currentIndex];
+            const data = marketData[quarter];
+            
+            // Update timeline
+            document.querySelectorAll('.timeline-item').forEach((item, index) => {
+                item.classList.toggle('active', index === currentIndex);
+            });
+            
+            // Update phase indicator
+            document.getElementById('phaseName').textContent = data.phase;
+            document.getElementById('phaseDescription').textContent = data.phaseDescription;
+            
+            // Update current quarter
+            document.getElementById('currentQuarter').textContent = quarter;
+            
+            // Update lists
+            updateList('winnersList', data.winners);
+            updateList('losersList', data.losers);
+            updateList('coalitionsList', data.coalitions);
+            
+            // Update dynamics
+            const dynamicsContent = document.getElementById('dynamicsContent');
+            dynamicsContent.innerHTML = '';
+            data.dynamics.forEach(dynamic => {
+                const item = document.createElement('div');
+                item.className = 'dynamic-item';
+                item.textContent = dynamic;
+                dynamicsContent.appendChild(item);
+            });
+            
+            // Update transition
+            const transitionContent = document.getElementById('transitionContent');
+            transitionContent.innerHTML = `<div class="dynamic-item">${data.transition}</div>`;
+            
+            // Update questions
+            const questionsList = document.getElementById('questionsList');
+            questionsList.innerHTML = '';
+            data.questions.forEach(question => {
+                const li = document.createElement('li');
+                li.textContent = question;
+                questionsList.appendChild(li);
+            });
+            
+            // Update navigation buttons
+            document.getElementById('prevButton').disabled = currentIndex === 0;
+            document.getElementById('nextButton').disabled = currentIndex === quarters.length - 1;
+            
+            // Add animation
+            document.querySelector('.phase-indicator').classList.add('pulse');
+            setTimeout(() => {
+                document.querySelector('.phase-indicator').classList.remove('pulse');
+            }, 1000);
+        }
+        
+        function updateList(listId, items) {
+            const list = document.getElementById(listId);
+            list.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                list.appendChild(li);
+            });
+        }
+        
+        function navigateQuarter(direction) {
+            const newIndex = currentIndex + direction;
+            if (newIndex >= 0 && newIndex < quarters.length) {
+                currentIndex = newIndex;
+                updateDisplay();
+                
+                // Scroll timeline if needed
+                const activeItem = document.querySelectorAll('.timeline-item')[currentIndex];
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') navigateQuarter(-1);
+            if (e.key === 'ArrowRight') navigateQuarter(1);
+        });
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTimeline();
+            updateDisplay();
+        });
+    </script>
+</body>
+</html>

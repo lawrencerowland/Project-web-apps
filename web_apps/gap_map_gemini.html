@@ -260,9 +260,9 @@ function addItem(container, obj, type){
   if(!domainMatch(obj) || (searchTerm && !obj.title.toLowerCase().includes(searchTerm) && !(obj.description||"").toLowerCase().includes(searchTerm))) return;
   
   const div = document.createElement('div');
-  div.className = item ${type};
-  div.id = item-${obj.id};
-  div.innerHTML = <h3>${obj.title}</h3><div class="domains">${obj.domains.join(' • ')}</div><p style="font-size:0.85rem;margin-top:0.35rem">${obj.description||''}</p>;
+  div.className = `item ${type}`;
+  div.id = `item-${obj.id}`;
+  div.innerHTML = `<h3>${obj.title}</h3><div class="domains">${obj.domains.join(' • ')}</div><p style="font-size:0.85rem;margin-top:0.35rem">${obj.description||''}</p>`;
   div.onclick = () => highlightItem(obj.id);
 
   const linkedItemsKey = type === 'gap' ? 'linkedCapabilities' : type === 'cap' ? 'linkedResources' : null;
@@ -271,7 +271,7 @@ function addItem(container, obj, type){
       const linkNoun = type === 'gap' ? 'Capabilities' : 'Resources';
       const link = document.createElement('div');
       link.className='linkCount';
-      link.textContent = ${obj[linkedItemsKey].length} ${linkNoun} ▼;
+      link.textContent = `${obj[linkedItemsKey].length} ${linkNoun} ▼`;
       link.onclick = (e) => { e.stopPropagation(); toggleChildList(e.target, obj, linkedItemsKey, linkedDataType, linkNoun); };
       div.appendChild(link);
   }
@@ -285,7 +285,7 @@ function buildDomainFilters(){
   allDomains.forEach(d=>{
     const id = 'dom_'+d.replace(/[^a-z0-9]/gi,'');
     const label = document.createElement('label');
-    label.innerHTML = <input type="checkbox" id="${id}" data-domain="${d}" checked> ${d};
+  label.innerHTML = `<input type="checkbox" id="${id}" data-domain="${d}" checked> ${d}`;
     container.appendChild(label);
   });
   container.addEventListener('change', (e) => {
@@ -307,7 +307,7 @@ function toggleChildList(linkElement, parentObj, linkedItemsKey, linkedDataType,
     const existingChild = itemDiv.querySelector('.childList');
     if (existingChild) {
         existingChild.remove();
-        linkElement.textContent = ${parentObj[linkedItemsKey].length} ${linkNoun} ▼;
+          linkElement.textContent = `${parentObj[linkedItemsKey].length} ${linkNoun} ▼`;
     } else {
         const childDiv = document.createElement('div');
         childDiv.className='childList';
@@ -320,18 +320,18 @@ function toggleChildList(linkElement, parentObj, linkedItemsKey, linkedDataType,
             }
         });
         linkElement.insertAdjacentElement('afterend', childDiv);
-        linkElement.textContent = Hide ${linkNoun} ▲;
+        linkElement.textContent = `Hide ${linkNoun} ▲`;
     }
 }
 
 // --------- INTERACTIVITY ---------
 function highlightItem(itemId) {
     document.querySelectorAll('.item').forEach(el => el.classList.remove('highlighted'));
-    const listItem = document.getElementById(item-${itemId});
+    const listItem = document.getElementById(`item-${itemId}`);
     if (listItem) listItem.classList.add('highlighted');
     if (graphVisible) {
         d3.selectAll('.node').attr('r', 8).style('stroke', 'none');
-        d3.select(#node-${itemId}).attr('r', 12).style('stroke', 'var(--highlight)').style('stroke-width', '3px');
+        d3.select(`#node-${itemId}`).attr('r', 12).style('stroke', 'var(--highlight)').style('stroke-width', '3px');
     }
 }
 
@@ -359,7 +359,7 @@ function setCategory(cat, doRenderGraph = true){
   currentCats = {gap:false,cap:false,res:false};
   currentCats[cat]=true;
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-  document.querySelector([data-cat="${cat}"]).classList.add('active');
+  document.querySelector(`[data-cat="${cat}"]`).classList.add('active');
   renderList();
   if(graphVisible && doRenderGraph) drawGraph();
 }
@@ -398,17 +398,21 @@ function drawGraph(){
       .force("y", d3.forceY(height / 2).strength(0.05));
   const link = svg.append("g").attr("stroke", "#999").attr("stroke-opacity", 0.6).selectAll("line").data(links).join("line").attr("stroke-width", 1.5);
   const node = svg.append("g").selectAll("circle").data(nodes).join("circle")
-      .attr("class", "node").attr("id", d => node-${d.id}).attr("r", 8).attr("fill", d => color[d.type])
+      .attr("class", "node").attr("id", d => `node-${d.id}`).attr("r", 8).attr("fill", d => color[d.type])
       .call(drag(simulation))
       .on("click", (event, d) => { selectItemFromGraph(d); })
       .on("mouseover", (event, d) => {
           tooltip.transition().duration(200).style("opacity", .9);
-          tooltip.html(<strong>${d.type.toUpperCase()}:</strong> ${d.title}).style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+          tooltip.html(`<strong>${d.type.toUpperCase()}:</strong> ${d.title}`)
+                 .style("left", (event.pageX + 10) + "px")
+                 .style("top", (event.pageY - 28) + "px");
           d3.select(event.currentTarget).attr('r', 12);
       })
       .on("mouseout", (event, d) => {
           tooltip.transition().duration(500).style("opacity", 0);
-          if (!document.getElementById(item-${d.id})?.classList.contains('highlighted')) { d3.select(event.currentTarget).attr('r', 8); }
+          if (!document.getElementById(`item-${d.id}`)?.classList.contains('highlighted')) {
+              d3.select(event.currentTarget).attr('r', 8);
+          }
       });
   simulation.on("tick", () => {
     link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);

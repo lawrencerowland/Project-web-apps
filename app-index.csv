@@ -25,3 +25,4 @@
 24,project-services-navigator,"An AI timeline of competition in the project services market, assuming AGI in 2026 and ASI in 2030",Claude,Opus4,"business_model, AI_adoption, AGI, behaviour, social_science",,
 25,intro_risk_matrix,"This interactive tool demonstrates how to create and read a standard 5x5 risk matrix, commonly used in project management to map the likelihood of a risk event to its potential impact.",ChatGPT,o1,"risk, learning",,
 26,gap_map_gemini,Gap between what we need in Project mgt practice and what we have,Gemini,Cant remember,"capabilities, solution, resources, idea_maze, product_management",,
+27,decision-latency,Shows how tracking decision latency helps the schedule,ChatGPT,agent,"decision, schedule, risk, approvals",,

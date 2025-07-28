@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF‑8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Management Insight – Concurrency & Decision Latency</title>
+  <!--
+    This simple web page demonstrates how overlapping tasks (a hallmark of
+    concurrent project phases) can be visualised alongside the time taken to
+    reach key decisions.  The example uses a hypothetical project for
+    building a tag concurrence graph visualiser – a nod to the user’s own
+    work in knowledge graphing – and showcases how Gantt-style bars and
+    latency metrics can reveal hidden structure in delivery workflows.  Both
+    D3.js and Chart.js are loaded from public CDNs so the page runs
+    completely client‑side without any build step.  To extend or customise
+    the data just edit the `tasks` and `decisions` arrays below.
+  -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      line-height: 1.4;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+    p.description {
+      max-width: 750px;
+      margin-bottom: 1.5rem;
+    }
+    /* container for side‑by‑side panels */
+    #charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+    /* panels default to flex:1, but we will override on specific classes */
+    .chart-panel {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    /* dedicate more space to the Gantt panel and less to the latency panel */
+    /* The Gantt panel now takes roughly three times the space of the latency panel */
+    .gantt-panel {
+      flex: 3 1 0;
+    }
+    .latency-panel {
+      flex: 1 1 0;
+    }
+    /* Gantt area styling */
+    #gantt {
+      overflow-x: auto;
+      margin-bottom: 0.5rem;
+    }
+    #legend {
+      margin: 0.5rem 0 1rem;
+    }
+    #legend span {
+      display: inline-block;
+      margin-right: 1rem;
+    }
+    #legend .color-box {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    /* ensure the canvas fills its panel; Chart.js will resize accordingly */
+    #latencyChart {
+      width: 100% !important;
+      height: 280px !important;
+      margin-top: 0.5rem;
+    }
+
+    /* style for the How to Use button and modal */
+    #howToUseBtn {
+      margin: 1rem 0;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: 1px solid #888;
+      border-radius: 4px;
+      background-color: #f5f5f5;
+    }
+    #howToUseModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffffff;
+      border: 1px solid #cccccc;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      padding: 1rem 1.5rem;
+      z-index: 1000;
+      max-width: 600px;
+      width: 80%;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    #howToUseModal h3 {
+      margin-top: 0;
+    }
+    #closeModal {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+  </style>
+  <!-- Load D3 and Chart.js from CDNs -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <h1>Concurrency & Decision Latency in a Knowledge Graph Creation Project</h1>
+  <p class="description">
+    This demo combines a Gantt‑style timeline and a decision latency chart to
+    illustrate how overlapping tasks and approval bottlenecks interact in a
+    complex project.  Our example depicts a <strong>Knowledge Graph creation</strong> project, so that
+    the vocabulary stays close to the user’s interests without relying on a
+    specific real‑world case.  Each bar in the timeline shows a task’s start and
+    end dates, coloured by phase (analysis, design, development, testing or
+    deployment).  The chart below summarises how long it took to close
+    important decisions during the same project, emphasising where lengthy
+    deliberations might impede progress.  Such visualisations echo the
+    integrated controls boards and latency trackers used by PMOs
+    【905198767416981†L37-L69】【905198767416981†L89-L119】.
+  </p>
+
+  <!-- How to use button and modal -->
+  <button id="howToUseBtn">How to use</button>
+  <div id="howToUseModal">
+    <div id="closeModal">×</div>
+    <h3>How to use this demo</h3>
+    <p>
+      Select any task bar in the timeline to see which decision governs it –
+      the corresponding bar in the latency chart will light up, while other bars
+      fade into the background.  Similarly, click a decision in the latency
+      chart and watch the relevant tasks in the timeline acquire a red
+      outline.  The gaps between the coloured bars in the timeline reflect
+      the decision latency; large blank spaces indicate waiting time between
+      tasks when decisions drag on.  Exploring these interactions helps you
+      visualise how concurrency and slow approvals shape the critical path.
+    </p>
+  </div>
+
+  <!-- Wrap charts in a flex container so they sit side by side on wider screens -->
+  <div id="charts-container">
+    <div class="chart-panel gantt-panel">
+      <div id="gantt"></div>
+      <div id="legend"></div>
+    </div>
+    <div class="chart-panel latency-panel">
+      <h2>Decision Latency</h2>
+      <canvas id="latencyChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // --------------------------
+    // Data definitions
+    // --------------------------
+    // Task list for a hypothetical project: building a tag concurrence
+    // visualiser. Each task has a name, start date, end date and category.
+    const tasks = [
+      { name: 'Research concurrency algorithms', start: '2025-06-01', end: '2025-06-05', category: 'Analysis' },
+      { name: 'Design JSON schema',            start: '2025-06-03', end: '2025-06-07', category: 'Design'   },
+      { name: 'Set up React project',           start: '2025-06-08', end: '2025-06-10', category: 'Development' },
+      { name: 'Implement parser',               start: '2025-06-09', end: '2025-06-12', category: 'Development' },
+      { name: 'Build graph layout',             start: '2025-06-13', end: '2025-06-18', category: 'Development' },
+      { name: 'Add interactivity',              start: '2025-06-19', end: '2025-06-22', category: 'Development' },
+      { name: 'Testing & QA',                   start: '2025-06-23', end: '2025-06-26', category: 'Testing' },
+      { name: 'Deployment',                     start: '2025-06-27', end: '2025-06-28', category: 'Deployment' }
+    ];
+
+    // Decision latency data: each object corresponds to a decision and the
+    // number of days it took from initial signal to closure. These could be
+    // approvals for budget, security or quality gates in the project.
+    const decisions = [
+      { name: 'Approve data model', days: 4 },
+      { name: 'Select JS library', days: 2 },
+      { name: 'Security review',   days: 5 },
+      { name: 'QA sign‑off',       days: 3 },
+      { name: 'Go‑live approval',   days: 1 }
+    ];
+
+    // Mapping between tasks and their associated decision. This allows us to
+    // highlight the relevant latency bar when a task is clicked, and vice versa.
+    const taskToDecision = {
+      'Research concurrency algorithms': 'Approve data model',
+      'Design JSON schema':            'Approve data model',
+      'Set up React project':           'Select JS library',
+      'Implement parser':               'Select JS library',
+      'Build graph layout':             'Security review',
+      'Add interactivity':              'QA sign‑off',
+      'Testing & QA':                   'QA sign‑off',
+      'Deployment':                     'Go‑live approval'
+    };
+    // Build reverse mapping from decision to the tasks that feed into it
+    const decisionToTasks = {};
+    Object.entries(taskToDecision).forEach(([task, decision]) => {
+      if (!decisionToTasks[decision]) decisionToTasks[decision] = [];
+      decisionToTasks[decision].push(task);
+    });
+
+    // Assign colours to categories for the Gantt chart. Feel free to
+    // customise these values to suit your own palette.
+    const categoryColours = {
+      'Analysis':    '#8dd3c7',
+      'Design':      '#fb8072',
+      'Development': '#80b1d3',
+      'Testing':     '#fdb462',
+      'Deployment':  '#b3de69'
+    };
+
+    // Parse date strings into JavaScript Date objects.
+    const parseDate = d3.timeParse('%Y-%m-%d');
+    tasks.forEach(t => {
+      t.startDate = parseDate(t.start);
+      t.endDate   = parseDate(t.end);
+    });
+
+    // Determine the overall date range across all tasks.
+    const minDate = d3.min(tasks, d => d.startDate);
+    const maxDate = d3.max(tasks, d => d.endDate);
+
+    // Create scales for the Gantt chart: x for time, y for task positions.
+    const margin = { top: 20, right: 40, bottom: 20, left: 180 };
+    const rowHeight = 24;
+    // Increase the timeline width to improve axis readability.  Doubling
+    // the previous value allows the x‑axis to stretch out horizontally,
+    // giving more space for date labels and bar lengths.
+    const chartWidth  = 900;
+    const chartHeight = tasks.length * rowHeight + margin.top + margin.bottom;
+    const xScale = d3.scaleTime()
+                     .domain([minDate, d3.timeDay.offset(maxDate, 1)])
+                     .range([margin.left, chartWidth - margin.right]);
+    const yScale = d3.scaleBand()
+                     .domain(tasks.map(d => d.name))
+                     .range([margin.top, margin.top + tasks.length * rowHeight])
+                     .padding(0.1);
+
+    // Create SVG container
+    const svg = d3.select('#gantt')
+                  .append('svg')
+                  .attr('width', chartWidth)
+                  .attr('height', chartHeight);
+
+    // Draw horizontal axis with dates
+    const xAxis = d3.axisBottom(xScale)
+                   .ticks(d3.timeDay.every(2))
+                   .tickFormat(d3.timeFormat('%b %d'));
+    svg.append('g')
+       .attr('transform', `translate(0, ${margin.top + tasks.length * rowHeight})`)
+       .call(xAxis)
+       .selectAll('text')
+       .style('font-size', '10px')
+       .attr('transform', 'rotate(-45)')
+       .attr('dx', '-0.6em')
+       .attr('dy', '0.4em');
+
+    // Draw task bars and attach click handlers for cross‑highlighting.
+    const taskRects = svg.selectAll('rect.task')
+       .data(tasks)
+       .enter()
+       .append('rect')
+       .attr('class', 'task')
+       .attr('x', d => xScale(d.startDate))
+       .attr('y', d => yScale(d.name))
+       .attr('width', d => xScale(d.endDate) - xScale(d.startDate))
+       .attr('height', yScale.bandwidth())
+       .attr('fill', d => categoryColours[d.category])
+       // handle clicks: when a task is clicked, highlight its corresponding decision
+       .on('click', (event, d) => {
+         selectTask(d.name);
+       });
+    // Attach tooltip titles separately so the click handler remains on the rect
+    taskRects.append('title')
+            .text(d => `${d.name}\n${d.category}\n${d.start} → ${d.end}`);
+
+    // Draw task labels on the left
+    svg.selectAll('text.label')
+       .data(tasks)
+       .enter()
+       .append('text')
+       .attr('class', 'label')
+       .attr('x', margin.left - 6)
+       .attr('y', d => yScale(d.name) + yScale.bandwidth() / 2)
+       .attr('dy', '0.35em')
+       .attr('text-anchor', 'end')
+       .style('font-size', '12px')
+       .text(d => d.name);
+
+    // Build legend for categories
+    const legend = d3.select('#legend');
+    Object.keys(categoryColours).forEach(key => {
+      const entry = legend.append('span');
+      entry.append('span')
+           .attr('class', 'color-box')
+           .style('background-color', categoryColours[key]);
+      entry.append('span').text(key);
+    });
+
+    // --------------------------
+    // Decision latency bar chart
+    // --------------------------
+    const ctx = document.getElementById('latencyChart').getContext('2d');
+    const defaultBarColor  = '#80b1d3';
+    const highlightBarColor = '#e41a1c';
+    // Initialise the bar chart and keep a reference for later updates
+    const latencyChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: decisions.map(d => d.name),
+        datasets: [{
+          label: 'Days to decision',
+          data: decisions.map(d => d.days),
+          // each bar starts with the default colour; this array will be
+          // mutated when highlighting
+          backgroundColor: decisions.map(() => defaultBarColor)
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        scales: {
+          y: {
+            ticks: { color: '#333', font: { size: 12 } }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Days',
+              font: { size: 12 }
+            },
+            ticks: { color: '#333', font: { size: 12 } }
+          }
+        },
+        plugins: {
+          title: {
+            display: false
+          },
+          legend: {
+            display: false
+          }
+        },
+        // When a bar is clicked, select the corresponding decision
+        onClick: (event, elements) => {
+          if (elements.length > 0) {
+            const index = elements[0].index;
+            const decisionName = decisions[index].name;
+            selectDecision(decisionName);
+          }
+        }
+      }
+    });
+
+    // --------------------------
+    // Cross‑highlighting functions
+    // --------------------------
+    /**
+     * Reset all bars in the latency chart to the default colour.  Call this
+     * before applying a new highlight.  The default colour matches the
+     * specification used when instantiating the chart.
+     */
+    function resetBarColors() {
+      const colours = decisions.map(() => '#80b1d3');
+      latencyChart.data.datasets[0].backgroundColor = colours;
+      latencyChart.update();
+    }
+
+    /**
+     * Highlight a single decision bar by changing its colour.  All other
+     * bars revert to the default.  If the decision does not exist, the
+     * chart is simply reset.
+     * @param {string} decisionName - the label of the decision to highlight
+     */
+    function highlightDecision(decisionName) {
+      const index = decisions.findIndex(d => d.name === decisionName);
+      if (index < 0) {
+        resetBarColors();
+        return;
+      }
+      const colours = decisions.map(() => '#80b1d3');
+      colours[index] = '#e41a1c';
+      latencyChart.data.datasets[0].backgroundColor = colours;
+      latencyChart.update();
+    }
+
+    /**
+     * Reset the styling of Gantt bars to their default appearance.  Selected
+     * tasks have a stroke and others are semi‑transparent during highlighting.
+     */
+    function resetTaskHighlights() {
+      taskRects.attr('opacity', 1)
+              .attr('stroke', null)
+              .attr('stroke-width', null);
+    }
+
+    /**
+     * Highlight the tasks associated with a decision name by drawing a
+     * coloured border around them and dimming all others.
+     * @param {string} decisionName
+     */
+    function highlightTasks(decisionName) {
+      // Determine which tasks correspond to this decision
+      const tasksToHighlight = decisionToTasks[decisionName] || [];
+      resetTaskHighlights();
+      taskRects.each(function(d) {
+        const rect = d3.select(this);
+        if (tasksToHighlight.includes(d.name)) {
+          rect.attr('stroke', '#e41a1c')
+              .attr('stroke-width', 2);
+        } else {
+          rect.attr('opacity', 0.3);
+        }
+      });
+    }
+
+    /**
+     * Select a decision by name: update both the bar chart and the Gantt
+     * chart.  The order is important: call highlightDecision first so the
+     * bar colours update before the tasks are dimmed.
+     * @param {string} decisionName
+     */
+    function selectDecision(decisionName) {
+      highlightDecision(decisionName);
+      highlightTasks(decisionName);
+    }
+
+    /**
+     * Select a task by name: look up its corresponding decision and apply
+     * highlighting.  If the task is not linked to a decision, both charts
+     * are reset.
+     * @param {string} taskName
+     */
+    function selectTask(taskName) {
+      const decisionName = taskToDecision[taskName];
+      if (decisionName) {
+        selectDecision(decisionName);
+      } else {
+        // No decision associated – reset both charts
+        resetBarColors();
+        resetTaskHighlights();
+      }
+    }
+
+    // --------------------------
+    // Modal behaviour for How to Use
+    // --------------------------
+    const howBtn   = document.getElementById('howToUseBtn');
+    const modal    = document.getElementById('howToUseModal');
+    const closeBtn = document.getElementById('closeModal');
+    howBtn.addEventListener('click', () => {
+      modal.style.display = 'block';
+    });
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+    // Close the modal when clicking outside of it
+    window.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Improved interactive morphospace for nuclear decommissioning projects.
+
+  This page uses a simple flex‑box layout to separate the 4‑D hazard plot from
+  the accompanying dashboard.  A time slider and an inspection cadence
+  control let the user explore how radiological, chemical and structural
+  hazards evolve through time.  The example is based on the Magnox Swarf
+  Storage Silo at Sellafield, one of the most hazardous facilities in the UK.
+
+  The left hand pane hosts the Plotly 3‑D scatter plot; the right pane
+  contains descriptive text, a legend for work packages and waste categories,
+  and instructions.  The JavaScript at the end of the file defines the
+  degradation model and updates the plot whenever the sliders change.
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hazard‑Evolution Morphospace – Improved Layout</title>
+  <!-- Load Plotly from CDN -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+    }
+    .main-container {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      width: 100vw;
+    }
+    .left-pane {
+      flex: 2;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+    .right-pane {
+      flex: 1;
+      padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      background-color: #f7f8fa;
+      border-left: 1px solid #e1e4e8;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .controls label {
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .controls input[type="range"] {
+      flex: 1;
+      min-width: 120px;
+    }
+    .controls span {
+      font-size: 14px;
+      min-width: 40px;
+      text-align: right;
+    }
+    #chart {
+      flex: 1;
+    }
+    h2 {
+      margin-top: 0;
+    }
+    .legend {
+      margin-bottom: 20px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    .color-box {
+      width: 14px;
+      height: 14px;
+      border: 1px solid #ccc;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .info {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-container">
+    <!-- Left pane: controls and chart -->
+    <div class="left-pane">
+      <div class="controls">
+        <label for="time-slider">Time (weeks):</label>
+        <input id="time-slider" type="range" min="0" max="50" step="1" value="0">
+        <span id="time-value">0</span>
+        <label for="inspection-slider">Inspection cadence:</label>
+        <input id="inspection-slider" type="range" min="0.5" max="2.0" step="0.1" value="1.0">
+        <span id="inspection-value">1.0</span>
+      </div>
+      <div id="chart"></div>
+    </div>
+    <!-- Right pane: dashboard with description and legend -->
+    <div class="right-pane">
+      <h2>Magnox Swarf Storage Silo Dashboard</h2>
+      <p class="info">
+        The Magnox Swarf Storage Silo (MSSS) at Sellafield is considered the most
+        hazardous building on site – removing the waste and putting it into
+        modern containment is the top priority【900030202107385†L105-L107】.  The facility was
+        originally built for the underwater storage of magnesium cladding
+        removed from used fuel rods.  It now holds around 10,000&#8239;m³ of
+        historic waste and some 60,000 items of miscellaneous beta–gamma waste
+        that must be retrieved【900030202107385†L113-L116】.  Because magnox cladding burns easily,
+        the material is kept underwater, generating hydrogen and creating a
+        radioactive liquor that has leaked in the past【900030202107385†L151-L173】.  Reducing the
+        radiological and chemical hazards while preserving structural integrity
+        requires careful sequencing of work packages and timely inspection.
+      </p>
+      <div class="legend">
+        <h3 style="margin-bottom: 6px;">Work Packages & Waste Categories</h3>
+        <div class="legend-item"><div class="color-box" style="background-color:#1f77b4;"></div>WP1&nbsp;– Waste Retrieval</div>
+        <div class="legend-item"><div class="color-box" style="background-color:#ff7f0e;"></div>WP2&nbsp;– Sludge Removal</div>
+        <div class="legend-item"><div class="color-box" style="background-color:#2ca02c;"></div>WP3&nbsp;– Stabilisation</div>
+        <div class="legend-item"><div class="color-box" style="background-color:#d62728;"></div>WP4&nbsp;– Packaging &amp; Disposal</div>
+        <div class="legend-item"><div class="color-box" style="background-color:#9467bd;"></div>WP5&nbsp;– Final Decommissioning</div>
+        <div class="legend-item"><div class="color-box" style="background-color:#000000;"></div>HLW&nbsp;(UK Inventory)</div>
+        <div class="legend-item"><div class="color-box" style="background-color:#333333;"></div>ILW&nbsp;(UK Inventory)</div>
+        <div class="legend-item"><div class="color-box" style="background-color:#666666;"></div>LLW&nbsp;(UK Inventory)</div>
+        <div class="legend-item"><div class="color-box" style="background-color:#999999;"></div>VLLW&nbsp;(UK Inventory)</div>
+      </div>
+      <p class="info">
+        Use the sliders above the chart to explore how each work package
+        influences the chemical hazard index (x‑axis), radiological intensity
+        (y‑axis), and structural integrity (z‑axis).  Increasing the inspection
+        cadence accelerates degradation of the chemical and radiological
+        hazards while building structural strength.  The constant markers
+        illustrate where reference waste categories sit in the hazard space.
+      </p>
+    </div>
+  </div>
+  <script>
+    // Define work packages with initial and final hazard states.
+    const maxTime = 50; // weeks of simulation
+    const wps = [
+      {
+        name: 'WP1: Waste Retrieval',
+        color: '#1f77b4',
+        init: { x: 8.0, y: 9.0, z: 0.3 },
+        final: { x: 4.0, y: 5.0, z: 0.5 },
+        size: 12
+      },
+      {
+        name: 'WP2: Sludge Removal',
+        color: '#ff7f0e',
+        init: { x: 6.0, y: 7.0, z: 0.4 },
+        final: { x: 3.0, y: 3.0, z: 0.7 },
+        size: 10
+      },
+      {
+        name: 'WP3: Stabilisation',
+        color: '#2ca02c',
+        init: { x: 5.0, y: 6.0, z: 0.5 },
+        final: { x: 2.0, y: 2.0, z: 0.8 },
+        size: 10
+      },
+      {
+        name: 'WP4: Packaging & Disposal',
+        color: '#d62728',
+        init: { x: 4.0, y: 5.0, z: 0.6 },
+        final: { x: 1.0, y: 1.0, z: 0.9 },
+        size: 8
+      },
+      {
+        name: 'WP5: Final Decommissioning',
+        color: '#9467bd',
+        init: { x: 3.0, y: 4.0, z: 0.7 },
+        final: { x: 0.5, y: 0.5, z: 1.0 },
+        size: 8
+      }
+    ];
+
+    // Reference waste categories (static points)
+    const categories = [
+      { name: 'HLW (UK Inventory)', x: 8.0, y: 7.913813852383717, z: 0.2, color: '#000000', size: 8, symbol: 'diamond' },
+      { name: 'ILW (UK Inventory)', x: 6.0, y: 6.57978359661681, z: 0.4, color: '#333333', size: 8, symbol: 'diamond' },
+      { name: 'LLW (UK Inventory)', x: 2.0, y: 1.5440680443502757, z: 0.8, color: '#666666', size: 8, symbol: 'diamond' },
+      { name: 'VLLW (UK Inventory)', x: 1.0, y: 0.0, z: 0.9, color: '#999999', size: 8, symbol: 'diamond' }
+    ];
+
+    // Compute position of a work package at time t given inspection factor f.
+    function computePosition(init, final, t, f) {
+      const fraction = Math.min(1, (t * f) / maxTime);
+      const x = init.x - (init.x - final.x) * fraction;
+      const y = init.y - (init.y - final.y) * fraction;
+      const z = init.z + (final.z - init.z) * fraction;
+      return { x, y, z };
+    }
+
+    // Build plot traces for the current time and inspection factor.
+    function buildTraces(time, factor) {
+      const traces = [];
+      // Work package markers
+      for (let i = 0; i < wps.length; i++) {
+        const wp = wps[i];
+        const pos = computePosition(wp.init, wp.final, time, factor);
+        traces.push({
+          x: [pos.x],
+          y: [pos.y],
+          z: [pos.z],
+          name: wp.name,
+          mode: 'markers',
+          type: 'scatter3d',
+          marker: { color: wp.color, size: wp.size, opacity: 0.8 },
+          showlegend: false
+        });
+      }
+      // Waste category markers
+      for (let i = 0; i < categories.length; i++) {
+        const cat = categories[i];
+        traces.push({
+          x: [cat.x],
+          y: [cat.y],
+          z: [cat.z],
+          name: cat.name,
+          mode: 'markers',
+          type: 'scatter3d',
+          marker: { color: cat.color, size: cat.size, symbol: cat.symbol },
+          showlegend: false
+        });
+      }
+      return traces;
+    }
+
+    // Initial state
+    let currentTime = 0;
+    let currentFactor = 1.0;
+
+    // Plot layout
+    const layout = {
+      margin: { l: 0, r: 0, b: 0, t: 0 },
+      scene: {
+        camera: {
+          eye: { x: 1.2, y: 1.2, z: 0.8 }
+        },
+        xaxis: { title: { text: 'Chemical Hazard Index' }, range: [0, 9] },
+        yaxis: { title: { text: 'Radiological Intensity (log₁₀ TBq)' }, range: [0, 10] },
+        zaxis: { title: { text: 'Structural Integrity' }, range: [0, 1.1] }
+      },
+      showlegend: false,
+      autosize: true
+    };
+
+    // Render the initial chart
+    Plotly.newPlot('chart', buildTraces(currentTime, currentFactor), layout);
+
+    // Update the plot when sliders change
+    const timeSlider = document.getElementById('time-slider');
+    const inspectionSlider = document.getElementById('inspection-slider');
+    const timeValueSpan = document.getElementById('time-value');
+    const inspectionValueSpan = document.getElementById('inspection-value');
+
+    function updatePlot() {
+      currentTime = parseInt(timeSlider.value);
+      currentFactor = parseFloat(inspectionSlider.value);
+      // Update displayed values
+      timeValueSpan.textContent = currentTime;
+      inspectionValueSpan.textContent = currentFactor.toFixed(1);
+      // Compute new traces and update chart
+      const newTraces = buildTraces(currentTime, currentFactor);
+      Plotly.react('chart', newTraces, layout);
+    }
+
+    // Attach event listeners
+    timeSlider.addEventListener('input', updatePlot);
+    inspectionSlider.addEventListener('input', updatePlot);
+  </script>
+</body>
+</html>

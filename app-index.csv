@@ -26,3 +26,6 @@
 25,intro_risk_matrix,"This interactive tool demonstrates how to create and read a standard 5x5 risk matrix, commonly used in project management to map the likelihood of a risk event to its potential impact.",ChatGPT,o1,"risk, learning",,
 26,gap_map_gemini,Gap between what we need in Project mgt practice and what we have,Gemini,Cant remember,"capabilities, solution, resources, idea_maze, product_management",,
 27,decision-latency,Shows how tracking decision latency helps the schedule,ChatGPT,agent,"decision, schedule, risk, approvals",,
+28,stakeholder-mapper,,ChatGPT,agent,stakeholder,,
+29,eisenhower-matrix,,ChatGPT,agent,prioritisation,,
+30,weighted-decision-matrix,,ChatGPT,agent,decision,,

@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eisenhower Matrix Prioritizer</title>
+  <!--
+    This single‑page application provides a lightweight tool for project managers to
+    prioritise their tasks using the Eisenhower matrix.  The Eisenhower matrix
+    separates tasks into four quadrants based on their urgency and importance.  By
+    sorting your backlog into these quadrants you can decide which tasks to do
+    immediately, which to schedule for later, which to delegate and which to
+    discard.  The concept was introduced by President Dwight D. Eisenhower and later
+    popularised by Stephen Covey as a way of improving time management and
+    decision‑making【839835970805380†L74-L100】【648150982007448†L348-L365】.
+
+    To use this tool, enter a task description along with its urgency and
+    importance on a scale of 1–5.  The tool will plot the task on a scatter chart
+    and list the recommended action for each task.  The chart’s background is
+    coloured by quadrant to make it easy to see which tasks fall into which
+    category.  At the bottom of the page there’s a discretionary tip jar – if you
+    find this helpful and want to support its development, feel free to leave a
+    small tip via the link provided.  No data is stored remotely; everything runs
+    locally in your browser.
+  -->
+  <!-- Load Chart.js from a CDN.  Chart.js is used to render the scatter plot. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    /* Basic reset and typography */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f5f7fa;
+      color: #333;
+    }
+    h1, h2, h3 {
+      margin-top: 0;
+      color: #1f4e79;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    /* Input form styling */
+    .input-form {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .input-form label {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+    .input-form input[type="text"],
+    .input-form select {
+      flex: 1;
+      min-width: 120px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .input-form button {
+      background-color: #1f4e79;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .input-form button:hover {
+      background-color: #163b59;
+    }
+    /* Task list styling */
+    .task-list {
+      margin-top: 30px;
+    }
+    .task-list ul {
+      list-style: none;
+      padding: 0;
+    }
+    .task-list li {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-left: 4px solid #1f4e79;
+      margin-bottom: 8px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .task-list li .action {
+      font-style: italic;
+      color: #555;
+    }
+    /* Chart container */
+    .chart-container {
+      margin-top: 40px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+    /* Tip jar styling */
+    .tip-jar {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #ffd966;
+      color: #5a3e0f;
+      border-radius: 50px;
+      padding: 12px 16px;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+    }
+    .tip-popup {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 300px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      padding: 16px;
+      display: none;
+      z-index: 101;
+    }
+    .tip-popup p {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+    .tip-popup button {
+      background-color: #1f4e79;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      cursor: pointer;
+      margin-right: 6px;
+      transition: background-color 0.2s ease;
+    }
+    .tip-popup button:hover {
+      background-color: #163b59;
+    }
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .input-form {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .input-form input[type="text"],
+      .input-form select {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Eisenhower Matrix Prioritizer</h1>
+    <p>
+      This tool helps you sort your tasks into the classic Eisenhower quadrants.  It’s
+      particularly useful for project managers juggling multiple deadlines and
+      responsibilities.  The matrix framework encourages you to distinguish
+      between tasks that are truly urgent and important and those that can be
+      delegated or dropped entirely.  Add your tasks below to visualise where
+      they belong and decide your next action.
+    </p>
+    <!-- Input Form for tasks -->
+    <div class="input-form">
+      <label for="taskDescription">Task</label>
+      <input type="text" id="taskDescription" placeholder="Brief description">
+      <label for="taskUrgency">Urgency (1–5)</label>
+      <select id="taskUrgency">
+        <option value="1">1 – Not urgent</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5 – Very urgent</option>
+      </select>
+      <label for="taskImportance">Importance (1–5)</label>
+      <select id="taskImportance">
+        <option value="1">1 – Not important</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5 – Very important</option>
+      </select>
+      <button id="addTaskButton">Add Task</button>
+    </div>
+    <!-- Task list display -->
+    <div class="task-list" id="taskListContainer">
+      <h2>Tasks &amp; Recommended Actions</h2>
+      <ul id="taskList"></ul>
+    </div>
+    <!-- Chart container for the matrix -->
+    <div class="chart-container">
+      <canvas id="matrixChart" aria-label="Eisenhower matrix chart" role="img"></canvas>
+    </div>
+  </div>
+  <!-- Tip jar button -->
+  <div class="tip-jar" id="tipJar">
+    <span>&#x1F4B3;</span> Tip Jar
+  </div>
+  <!-- Tip jar popup -->
+  <div class="tip-popup" id="tipPopup">
+    <h3>Support this Tool</h3>
+    <p>
+      If this prioritiser saved you time or helped you focus on what really matters,
+      consider leaving a small tip.  Even a few pence helps to justify further
+      improvements and hosting costs.  Thank you!
+    </p>
+    <button id="donateButton">Donate</button>
+    <button id="closeTipButton">Close</button>
+  </div>
+  <script>
+    (function() {
+      /*
+        Data structures and helper functions
+
+        Each task is represented as an object with the following fields:
+          - description: string
+          - urgency: integer (1–5)
+          - importance: integer (1–5)
+          - action: string (derived: Do / Schedule / Delegate / Delete)
+      */
+      const tasks = [];
+
+      // Determine recommended action based on urgency and importance thresholds
+      function getRecommendedAction(urgency, importance) {
+        if (urgency >= 3 && importance >= 3) {
+          return 'Do immediately';
+        } else if (urgency < 3 && importance >= 3) {
+          return 'Schedule (Decide)';
+        } else if (urgency >= 3 && importance < 3) {
+          return 'Delegate';
+        } else {
+          return 'Delete / Defer';
+        }
+      }
+
+      // Initialise Chart.js chart
+      const ctx = document.getElementById('matrixChart').getContext('2d');
+      // Create custom plugin to draw quadrant backgrounds
+      const quadrantBackground = {
+        id: 'quadrantBackground',
+        beforeDraw(chart, args, options) {
+          const { ctx, chartArea: {left, right, top, bottom}, scales } = chart;
+          const xMidValue = 3; // threshold between urgent/not urgent
+          const yMidValue = 3; // threshold between important/not important
+          const xMid = scales.x.getPixelForValue(xMidValue);
+          const yMid = scales.y.getPixelForValue(yMidValue);
+
+          ctx.save();
+          // Top-left quadrant (not urgent, important) – pale blue
+          ctx.fillStyle = 'rgba(173, 216, 230, 0.2)';
+          ctx.fillRect(left, top, xMid - left, yMid - top);
+          // Top-right quadrant (urgent, important) – pale red
+          ctx.fillStyle = 'rgba(255, 192, 203, 0.3)';
+          ctx.fillRect(xMid, top, right - xMid, yMid - top);
+          // Bottom-left quadrant (not urgent, not important) – pale grey
+          ctx.fillStyle = 'rgba(220, 220, 220, 0.3)';
+          ctx.fillRect(left, yMid, xMid - left, bottom - yMid);
+          // Bottom-right quadrant (urgent, not important) – pale yellow
+          ctx.fillStyle = 'rgba(255, 255, 224, 0.3)';
+          ctx.fillRect(xMid, yMid, right - xMid, bottom - yMid);
+          ctx.restore();
+        }
+      };
+
+      // Initialise scatter chart with empty data
+      const matrixChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: []
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const idx = context.dataIndex;
+                  const task = tasks[idx];
+                  return `${task.description} (U:${task.urgency}, I:${task.importance}) → ${task.action}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 0,
+              max: 6,
+              ticks: {
+                stepSize: 1,
+                callback: function(value) {
+                  if (value === 0 || value === 6) return '';
+                  return value;
+                }
+              },
+              title: {
+                display: true,
+                text: 'Urgency',
+                color: '#1f4e79',
+                font: { weight: 'bold' }
+              },
+              grid: { lineWidth: 1, color: '#ccc' }
+            },
+            y: {
+              min: 0,
+              max: 6,
+              ticks: {
+                stepSize: 1,
+                callback: function(value) {
+                  if (value === 0 || value === 6) return '';
+                  return value;
+                }
+              },
+              title: {
+                display: true,
+                text: 'Importance',
+                color: '#1f4e79',
+                font: { weight: 'bold' }
+              },
+              grid: { lineWidth: 1, color: '#ccc' }
+            }
+          },
+          plugins: [quadrantBackground]
+        }
+      });
+
+      // Function to update chart data from tasks array
+      function refreshChart() {
+        // Build dataset: each task becomes a single data point
+        const points = tasks.map((task, idx) => ({
+          x: task.urgency,
+          y: task.importance,
+          // Provide a radius to improve readability
+          r: 6,
+        }));
+        // Assign colours based on action for each point
+        const pointColours = tasks.map(task => {
+          switch (task.action) {
+            case 'Do immediately': return '#e74c3c'; // red
+            case 'Schedule (Decide)': return '#3498db'; // blue
+            case 'Delegate': return '#f1c40f'; // yellow
+            default: return '#95a5a6'; // grey
+          }
+        });
+        if (matrixChart.data.datasets.length === 0) {
+          matrixChart.data.datasets.push({
+            label: 'Tasks',
+            data: points,
+            backgroundColor: pointColours,
+            pointRadius: tasks.map(() => 6),
+          });
+        } else {
+          matrixChart.data.datasets[0].data = points;
+          matrixChart.data.datasets[0].backgroundColor = pointColours;
+          matrixChart.data.datasets[0].pointRadius = tasks.map(() => 6);
+        }
+        matrixChart.update();
+      }
+
+      // Function to refresh task list
+      function refreshTaskList() {
+        const ul = document.getElementById('taskList');
+        ul.innerHTML = '';
+        tasks.forEach(task => {
+          const li = document.createElement('li');
+          const descSpan = document.createElement('span');
+          descSpan.textContent = `${task.description} (U:${task.urgency}, I:${task.importance})`;
+          const actionSpan = document.createElement('span');
+          actionSpan.textContent = task.action;
+          actionSpan.classList.add('action');
+          li.appendChild(descSpan);
+          li.appendChild(actionSpan);
+          ul.appendChild(li);
+        });
+      }
+
+      // Add task button event listener
+      document.getElementById('addTaskButton').addEventListener('click', function() {
+        const descInput = document.getElementById('taskDescription');
+        const urgencySelect = document.getElementById('taskUrgency');
+        const importanceSelect = document.getElementById('taskImportance');
+        const description = descInput.value.trim();
+        const urgency = parseInt(urgencySelect.value, 10);
+        const importance = parseInt(importanceSelect.value, 10);
+        if (!description) {
+          alert('Please provide a brief description for your task.');
+          return;
+        }
+        const action = getRecommendedAction(urgency, importance);
+        tasks.push({ description, urgency, importance, action });
+        descInput.value = '';
+        urgencySelect.value = '1';
+        importanceSelect.value = '1';
+        refreshTaskList();
+        refreshChart();
+      });
+
+      // Tip jar interactions
+      const tipJarButton = document.getElementById('tipJar');
+      const tipPopup = document.getElementById('tipPopup');
+      const donateButton = document.getElementById('donateButton');
+      const closeTipButton = document.getElementById('closeTipButton');
+      tipJarButton.addEventListener('click', () => {
+        tipPopup.style.display = tipPopup.style.display === 'none' || tipPopup.style.display === '' ? 'block' : 'none';
+      });
+      closeTipButton.addEventListener('click', () => {
+        tipPopup.style.display = 'none';
+      });
+      donateButton.addEventListener('click', () => {
+        // Replace the URL below with your own donation or tip link
+        const url = 'https://buymeacoffee.com/lawrencerowland';
+        window.open(url, '_blank');
+      });
+    })();
+  </script>
+</body>
+</html>

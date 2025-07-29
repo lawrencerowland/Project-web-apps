@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weighted Decision Matrix for Project Managers</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+      background-color: #fafafa;
+      color: #333;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+    .description {
+      font-size: 16px;
+      margin-bottom: 20px;
+      max-width: 800px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-bottom: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 4px;
+      text-align: right;
+    }
+    input[type="text"] {
+      width: 140px;
+      padding: 4px;
+    }
+    .buttons {
+      margin-top: 10px;
+    }
+    .buttons button {
+      padding: 6px 12px;
+      margin-right: 10px;
+      font-size: 14px;
+      background-color: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .buttons button:hover {
+      background-color: #2980b9;
+    }
+    .best {
+      background-color: #d4f7d6 !important;
+    }
+    .total {
+      font-weight: bold;
+    }
+    .notice {
+      color: #555;
+      font-size: 14px;
+      margin-bottom: 10px;
+      max-width: 800px;
+    }
+    #matrix-container {
+      overflow-x: auto;
+    }
+    button.remove {
+      margin-left: 5px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: #c0392b;
+      font-size: 16px;
+      line-height: 1;
+    }
+    button.remove:hover {
+      color: #e74c3c;
+    }
+  </style>
+</head>
+<body>
+  <h1>Weighted Decision Matrix</h1>
+  <div class="description">
+    This interactive tool is crafted for <strong>cross‑functional project managers</strong> who must choose between competing proposals, vendors or feature sets.  It employs a weighted decision matrix to help you quantify subjective choices.  Simply add criteria with weights (importance), add your options, and rate each option against every criterion.  Scores update automatically and the best option is highlighted.
+  </div>
+
+  <div id="matrix-container">
+    <table id="matrix">
+      <thead>
+        <tr id="header-row">
+          <th>Option / Criteria</th>
+        </tr>
+        <tr id="weight-row">
+          <th>Weight</th>
+        </tr>
+      </thead>
+      <tbody id="body">
+      </tbody>
+    </table>
+  </div>
+
+  <div class="buttons">
+    <button id="add-criteria-btn">Add Criterion</button>
+    <button id="add-option-btn">Add Option</button>
+  </div>
+  <div class="notice">
+    Tip: Weights can be any positive numbers (they need not add to 1, though normalising them might help).  Rate options from 1 (poor) to 5 (excellent).  Remove items by clicking the × button next to their names.
+  </div>
+
+  <script>
+  // Data structures for criteria and options
+  let criteria = [];
+  let options = [];
+
+  /**
+   * Helper to create a DOM element with attributes and children.
+   * @param {string} tag HTML tag name
+   * @param {Object} attributes Attributes and properties to assign
+   * @param {...(string|Node)} children Child nodes or strings
+   * @returns {HTMLElement}
+   */
+  function createElement(tag, attributes = {}, ...children) {
+    const el = document.createElement(tag);
+    for (const [key, value] of Object.entries(attributes)) {
+      if (key === 'dataset') {
+        for (const [dKey, dVal] of Object.entries(value)) {
+          el.dataset[dKey] = dVal;
+        }
+      } else if (key === 'style') {
+        Object.assign(el.style, value);
+      } else if (key.startsWith('on') && typeof value === 'function') {
+        el.addEventListener(key.substring(2), value);
+      } else {
+        el[key] = value;
+      }
+    }
+    for (const child of children) {
+      if (typeof child === 'string') {
+        el.appendChild(document.createTextNode(child));
+      } else if (child instanceof Node) {
+        el.appendChild(child);
+      }
+    }
+    return el;
+  }
+
+  /**
+   * Render the matrix table based on current criteria and options.
+   */
+  function updateMatrix() {
+    const headerRow = document.getElementById('header-row');
+    const weightRow = document.getElementById('weight-row');
+    const body = document.getElementById('body');
+    // Reset header rows
+    headerRow.innerHTML = '';
+    weightRow.innerHTML = '';
+    headerRow.appendChild(createElement('th', {}, 'Option / Criteria'));
+    weightRow.appendChild(createElement('th', {}, 'Weight'));
+    
+    // Build header cells for criteria with remove buttons
+    criteria.forEach((criterion, index) => {
+      const titleSpan = createElement('span', {}, criterion.name);
+      const removeBtn = createElement('button', { className: 'remove', title: 'Remove criterion', onclick: () => removeCriterion(index) }, '\u00D7');
+      const th = createElement('th');
+      th.appendChild(createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center' } }, titleSpan, removeBtn));
+      headerRow.appendChild(th);
+    });
+    headerRow.appendChild(createElement('th', {}, 'Total'));
+    
+    // Build weight row
+    criteria.forEach((criterion, index) => {
+      const input = createElement('input', {
+        type: 'number',
+        value: criterion.weight,
+        min: '0',
+        step: '0.01',
+        onchange: (e) => {
+          criterion.weight = parseFloat(e.target.value) || 0;
+          calculateTotals();
+        }
+      });
+      weightRow.appendChild(createElement('th', {}, input));
+    });
+    weightRow.appendChild(createElement('th', {}, ''));
+    
+    // Build body rows for options
+    body.innerHTML = '';
+    options.forEach((option, optIndex) => {
+      const tr = createElement('tr');
+      // Option name cell with remove button
+      const nameInput = createElement('input', {
+        type: 'text',
+        value: option.name,
+        onchange: (e) => {
+          option.name = e.target.value;
+        }
+      });
+      const removeOptBtn = createElement('button', { className: 'remove', title: 'Remove option', onclick: () => removeOption(optIndex) }, '\u00D7');
+      const nameCell = createElement('td');
+      nameCell.appendChild(createElement('div', { style: { display: 'flex', alignItems: 'center' } }, nameInput, removeOptBtn));
+      tr.appendChild(nameCell);
+      
+      // Rating cells
+      criteria.forEach((criterion, critIndex) => {
+        const ratingInput = createElement('input', {
+          type: 'number',
+          value: option.ratings[critIndex] != null ? option.ratings[critIndex] : 0,
+          min: '0',
+          max: '5',
+          step: '0.1',
+          onchange: (e) => {
+            option.ratings[critIndex] = parseFloat(e.target.value) || 0;
+            calculateTotals();
+          }
+        });
+        tr.appendChild(createElement('td', {}, ratingInput));
+      });
+      // Total cell
+      const totalCell = createElement('td', { className: 'total' }, '0');
+      tr.appendChild(totalCell);
+      body.appendChild(tr);
+    });
+    
+    calculateTotals();
+  }
+
+  /**
+   * Compute totals for each option and highlight the best row.
+   */
+  function calculateTotals() {
+    const body = document.getElementById('body');
+    let maxScore = -Infinity;
+    let bestIndex = null;
+    options.forEach((option, optIndex) => {
+      let total = 0;
+      criteria.forEach((criterion, critIndex) => {
+        const rating = option.ratings[critIndex] || 0;
+        total += rating * criterion.weight;
+      });
+      option.total = total;
+      if (total > maxScore) {
+        maxScore = total;
+        bestIndex = optIndex;
+      }
+    });
+    
+    // Update table totals and highlight
+    Array.from(body.rows).forEach((row, index) => {
+      const totalCell = row.cells[row.cells.length - 1];
+      const score = options[index].total || 0;
+      totalCell.textContent = score.toFixed(3);
+      if (index === bestIndex && criteria.length > 0) {
+        row.classList.add('best');
+      } else {
+        row.classList.remove('best');
+      }
+    });
+  }
+
+  /**
+   * Prompt for a new criterion and add it to the matrix.
+   */
+  function addCriterion() {
+    const name = prompt('Enter criterion name (e.g., Cost, Quality):');
+    if (!name) return;
+    let weightInput = prompt('Enter weight (e.g., 0.3). Weights can be any positive number:');
+    if (weightInput === null) return;
+    let weight = parseFloat(weightInput);
+    if (isNaN(weight) || weight < 0) weight = 0;
+    criteria.push({ name: name.trim(), weight: weight });
+    // Add placeholder ratings for existing options
+    options.forEach(opt => {
+      opt.ratings.push(0);
+    });
+    updateMatrix();
+  }
+
+  /**
+   * Remove criterion at index after confirmation.
+   * @param {number} index
+   */
+  function removeCriterion(index) {
+    if (!confirm('Remove this criterion?')) return;
+    criteria.splice(index, 1);
+    options.forEach(opt => {
+      opt.ratings.splice(index, 1);
+    });
+    updateMatrix();
+  }
+
+  /**
+   * Prompt for a new option and add it to the matrix.
+   */
+  function addOption() {
+    const name = prompt('Enter option name (e.g., Vendor A):');
+    if (!name) return;
+    const ratings = criteria.map(() => 0);
+    options.push({ name: name.trim(), ratings: ratings, total: 0 });
+    updateMatrix();
+  }
+
+  /**
+   * Remove option at index after confirmation.
+   * @param {number} index
+   */
+  function removeOption(index) {
+    if (!confirm('Remove this option?')) return;
+    options.splice(index, 1);
+    updateMatrix();
+  }
+
+  // Attach event listeners
+  document.getElementById('add-criteria-btn').addEventListener('click', addCriterion);
+  document.getElementById('add-option-btn').addEventListener('click', addOption);
+
+  // Initialise with sample data to demonstrate usage
+  criteria = [
+    { name: 'Cost', weight: 0.3 },
+    { name: 'Quality', weight: 0.4 },
+    { name: 'Support', weight: 0.3 }
+  ];
+  options = [
+    { name: 'Vendor A', ratings: [3, 4, 5], total: 0 },
+    { name: 'Vendor B', ratings: [4, 3, 4], total: 0 },
+    { name: 'Vendor C', ratings: [5, 2, 3], total: 0 }
+  ];
+  updateMatrix();
+  </script>
+</body>
+</html>

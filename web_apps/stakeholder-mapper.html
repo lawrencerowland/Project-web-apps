@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<!--
+  Stakeholder Influence Mapper
+
+  This single‑file application implements a simple interactive tool for project
+  managers to identify and visualise stakeholders based on their relative power
+  and interest in a project. Users can enter stakeholders with a name and
+  numerical scores for power and interest on a 0–100 scale. The system plots
+  each stakeholder on a two‑dimensional grid (power on the vertical axis, interest
+  on the horizontal axis) and automatically assigns them to one of four
+  engagement strategies: Manage Closely, Keep Satisfied, Keep Informed and
+  Monitor. This tool is intended to highlight the often overlooked practice of
+  stakeholder classification and to encourage deeper reflection on influence
+  dynamics within projects.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stakeholder Influence Mapper</title>
+    <style>
+      :root {
+        --grid-size: 500px;
+        --axis-color: #555;
+        --bg-color: #fafafa;
+        --circle-color: #0066cc;
+        --circle-hover: #ff6600;
+        --text-color: #333;
+        --quadrant-color-1: rgba(220, 244, 244, 0.3);
+        --quadrant-color-2: rgba(244, 232, 220, 0.3);
+        --quadrant-color-3: rgba(232, 244, 220, 0.3);
+        --quadrant-color-4: rgba(244, 220, 232, 0.3);
+        --category-bg: #f4f4f8;
+      }
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+      }
+      header {
+        text-align: center;
+        padding: 1rem;
+      }
+      h1 {
+        margin: 0.5rem 0;
+        font-size: 1.8rem;
+      }
+      p.description {
+        max-width: 650px;
+        margin: 0 auto;
+        font-size: 0.9rem;
+        line-height: 1.4;
+      }
+      .container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 2rem;
+        width: 100%;
+        padding: 1rem;
+        box-sizing: border-box;
+      }
+      .form-section {
+        min-width: 280px;
+        background-color: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .form-section h2 {
+        font-size: 1.2rem;
+        margin-top: 0;
+      }
+      .form-group {
+        margin-bottom: 0.8rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.2rem;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 0.4rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      button {
+        background-color: #0066cc;
+        color: white;
+        border: none;
+        padding: 0.6rem 1rem;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+      button:hover {
+        background-color: #004c99;
+      }
+      #grid-container {
+        position: relative;
+        width: var(--grid-size);
+        height: var(--grid-size);
+        background-color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      #grid-svg {
+        width: 100%;
+        height: 100%;
+      }
+      .quadrant-label {
+        font-size: 0.7rem;
+        fill: #444;
+        font-weight: bold;
+        pointer-events: none;
+      }
+      .stakeholder-dot {
+        cursor: pointer;
+        transition: fill 0.2s;
+      }
+      .stakeholder-dot:hover {
+        fill: var(--circle-hover);
+      }
+      .list-section {
+        min-width: 280px;
+        max-width: 350px;
+        background-color: white;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .list-section h2 {
+        font-size: 1.2rem;
+        margin-top: 0;
+      }
+      .stakeholder-list {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 0.2rem;
+      }
+      .stakeholder-item {
+        background-color: var(--category-bg);
+        margin-bottom: 0.5rem;
+        border-radius: 4px;
+        padding: 0.4rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+      .category-tag {
+        font-weight: bold;
+        padding: 0.1rem 0.3rem;
+        border-radius: 2px;
+      }
+      .cat-closely {
+        background-color: #ffd966;
+      }
+      .cat-satisfied {
+        background-color: #a4c2f4;
+      }
+      .cat-informed {
+        background-color: #b6d7a8;
+      }
+      .cat-monitor {
+        background-color: #e6b8af;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Stakeholder Influence Mapper</h1>
+      <p class="description">
+        This tool allows you to catalogue stakeholders, assess their relative
+        power and interest in your project, and visualise them on a two‑dimensional
+        map. Inspired by project management scholarship on power–interest
+        grids, the map helps identify who should be managed closely, who should
+        simply be kept satisfied or informed, and who requires only light
+        monitoring【376880805968363†L309-L365】. By exploring subtle differences in
+        influence and engagement, you may uncover overlooked dynamics within
+        your project ecosystem.
+      </p>
+    </header>
+    <div class="container">
+      <section class="form-section">
+        <h2>Add Stakeholder</h2>
+        <div class="form-group">
+          <label for="name-input">Name</label>
+          <input type="text" id="name-input" placeholder="Stakeholder name" />
+        </div>
+        <div class="form-group">
+          <label for="power-input">Power (0–100)</label>
+          <input type="number" id="power-input" min="0" max="100" value="50" />
+        </div>
+        <div class="form-group">
+          <label for="interest-input">Interest (0–100)</label>
+          <input type="number" id="interest-input" min="0" max="100" value="50" />
+        </div>
+        <button id="add-btn">Add to Map</button>
+      </section>
+      <section id="grid-container">
+        <svg id="grid-svg"></svg>
+      </section>
+      <section class="list-section">
+        <h2>Stakeholder List</h2>
+        <div id="stakeholder-list" class="stakeholder-list"></div>
+      </section>
+    </div>
+    <script>
+      // Data model for stakeholders
+      const stakeholders = [];
+      const svg = document.getElementById('grid-svg');
+      const gridSize = 500;
+      svg.setAttribute('viewBox', `0 0 ${gridSize} ${gridSize}`);
+
+      // Draw base grid with quadrants and labels
+      function drawBaseGrid() {
+        // Clear existing content
+        while (svg.firstChild) {
+          svg.removeChild(svg.firstChild);
+        }
+        const NS = 'http://www.w3.org/2000/svg';
+        // Draw quadrants
+        const quads = [
+          { x: 0, y: 0, w: gridSize / 2, h: gridSize / 2, color: getComputedStyle(document.documentElement).getPropertyValue('--quadrant-color-1') },
+          { x: gridSize / 2, y: 0, w: gridSize / 2, h: gridSize / 2, color: getComputedStyle(document.documentElement).getPropertyValue('--quadrant-color-2') },
+          { x: 0, y: gridSize / 2, w: gridSize / 2, h: gridSize / 2, color: getComputedStyle(document.documentElement).getPropertyValue('--quadrant-color-3') },
+          { x: gridSize / 2, y: gridSize / 2, w: gridSize / 2, h: gridSize / 2, color: getComputedStyle(document.documentElement).getPropertyValue('--quadrant-color-4') },
+        ];
+        quads.forEach((q) => {
+          const rect = document.createElementNS(NS, 'rect');
+          rect.setAttribute('x', q.x);
+          rect.setAttribute('y', q.y);
+          rect.setAttribute('width', q.w);
+          rect.setAttribute('height', q.h);
+          rect.setAttribute('fill', q.color);
+          svg.appendChild(rect);
+        });
+        // Draw axes
+        const axisColor = getComputedStyle(document.documentElement).getPropertyValue('--axis-color');
+        const xAxis = document.createElementNS(NS, 'line');
+        xAxis.setAttribute('x1', 0);
+        xAxis.setAttribute('y1', gridSize / 2);
+        xAxis.setAttribute('x2', gridSize);
+        xAxis.setAttribute('y2', gridSize / 2);
+        xAxis.setAttribute('stroke', axisColor);
+        xAxis.setAttribute('stroke-width', 1);
+        svg.appendChild(xAxis);
+        const yAxis = document.createElementNS(NS, 'line');
+        yAxis.setAttribute('x1', gridSize / 2);
+        yAxis.setAttribute('y1', 0);
+        yAxis.setAttribute('x2', gridSize / 2);
+        yAxis.setAttribute('y2', gridSize);
+        yAxis.setAttribute('stroke', axisColor);
+        yAxis.setAttribute('stroke-width', 1);
+        svg.appendChild(yAxis);
+        // Add axis labels
+        const labels = [
+          { text: 'Power ↓', x: gridSize / 2 + 4, y: 16, anchor: 'start' },
+          { text: 'Power ↑', x: gridSize / 2 + 4, y: gridSize - 4, anchor: 'start', rotate: 180 },
+          { text: 'Interest →', x: gridSize - 4, y: gridSize / 2 - 4, anchor: 'end' },
+          { text: 'Interest ←', x: 4, y: gridSize / 2 - 4, anchor: 'start' },
+        ];
+        labels.forEach((lab) => {
+          const text = document.createElementNS(NS, 'text');
+          text.setAttribute('x', lab.x);
+          text.setAttribute('y', lab.y);
+          text.setAttribute('class', 'axis-label');
+          text.setAttribute('fill', axisColor);
+          if (lab.rotate) {
+            text.setAttribute('transform', `rotate(${lab.rotate} ${lab.x} ${lab.y})`);
+          }
+          text.setAttribute('font-size', '10');
+          text.setAttribute('text-anchor', lab.anchor);
+          text.textContent = lab.text;
+          svg.appendChild(text);
+        });
+        // Add quadrant strategy labels
+        const qLabels = [
+          { text: 'Manage Closely', x: gridSize * 0.75, y: gridSize * 0.25 },
+          { text: 'Keep Satisfied', x: gridSize * 0.25, y: gridSize * 0.25 },
+          { text: 'Keep Informed', x: gridSize * 0.75, y: gridSize * 0.75 },
+          { text: 'Monitor', x: gridSize * 0.25, y: gridSize * 0.75 },
+        ];
+        qLabels.forEach((lab) => {
+          const text = document.createElementNS(NS, 'text');
+          text.setAttribute('x', lab.x);
+          text.setAttribute('y', lab.y);
+          text.setAttribute('class', 'quadrant-label');
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dy', '-0.4em');
+          text.textContent = lab.text;
+          svg.appendChild(text);
+        });
+      }
+
+      // Convert stakeholder power/interest (0–100) to grid coordinates
+      function toGridCoords(power, interest) {
+        // x axis: interest left to right; y axis: power bottom to top
+        const x = (interest / 100) * gridSize;
+        // invert power for y coordinate (0 at top is high power, bottom is low)
+        const y = gridSize - (power / 100) * gridSize;
+        return { x, y };
+      }
+
+      // Categorise stakeholder based on power and interest
+      function categorise(power, interest) {
+        const highPower = power >= 50;
+        const highInterest = interest >= 50;
+        if (highPower && highInterest) return 'Manage Closely';
+        if (highPower && !highInterest) return 'Keep Satisfied';
+        if (!highPower && highInterest) return 'Keep Informed';
+        return 'Monitor';
+      }
+
+      // Draw stakeholders on the grid
+      function drawStakeholders() {
+        // Remove any existing stakeholder elements
+        const existing = svg.querySelectorAll('.stakeholder-dot, .stakeholder-label');
+        existing.forEach((el) => el.remove());
+        const NS = 'http://www.w3.org/2000/svg';
+        stakeholders.forEach((st, index) => {
+          const { x, y } = toGridCoords(st.power, st.interest);
+          // Draw circle
+          const circle = document.createElementNS(NS, 'circle');
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('r', 6);
+          circle.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--circle-color'));
+          circle.setAttribute('class', 'stakeholder-dot');
+          circle.setAttribute('data-index', index);
+          circle.setAttribute('title', `${st.name} (${st.power}, ${st.interest})`);
+          svg.appendChild(circle);
+          // Draw label
+          const text = document.createElementNS(NS, 'text');
+          text.setAttribute('x', x + 8);
+          text.setAttribute('y', y + 3);
+          text.setAttribute('class', 'stakeholder-label');
+          text.setAttribute('font-size', '9');
+          text.setAttribute('fill', '#000');
+          text.textContent = st.name;
+          svg.appendChild(text);
+        });
+      }
+
+      // Update stakeholder list in the side panel
+      function updateStakeholderList() {
+        const listContainer = document.getElementById('stakeholder-list');
+        listContainer.innerHTML = '';
+        stakeholders.forEach((st, idx) => {
+          const item = document.createElement('div');
+          item.className = 'stakeholder-item';
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = `${st.name} (${st.power}, ${st.interest})`;
+          const category = categorise(st.power, st.interest);
+          const catSpan = document.createElement('span');
+          catSpan.textContent = category;
+          let catClass = '';
+          switch (category) {
+            case 'Manage Closely':
+              catClass = 'cat-closely';
+              break;
+            case 'Keep Satisfied':
+              catClass = 'cat-satisfied';
+              break;
+            case 'Keep Informed':
+              catClass = 'cat-informed';
+              break;
+            default:
+              catClass = 'cat-monitor';
+          }
+          catSpan.className = `category-tag ${catClass}`;
+          item.appendChild(nameSpan);
+          item.appendChild(catSpan);
+          listContainer.appendChild(item);
+        });
+      }
+
+      // Add stakeholder event
+      document.getElementById('add-btn').addEventListener('click', () => {
+        const name = document.getElementById('name-input').value.trim();
+        const power = parseFloat(document.getElementById('power-input').value);
+        const interest = parseFloat(document.getElementById('interest-input').value);
+        if (!name) {
+          alert('Please enter a stakeholder name.');
+          return;
+        }
+        if (isNaN(power) || power < 0 || power > 100 || isNaN(interest) || interest < 0 || interest > 100) {
+          alert('Power and interest must be numbers between 0 and 100.');
+          return;
+        }
+        // Add to list
+        stakeholders.push({ name, power, interest });
+        // Clear inputs for next entry
+        document.getElementById('name-input').value = '';
+        document.getElementById('power-input').value = 50;
+        document.getElementById('interest-input').value = 50;
+        // Redraw grid and update list
+        drawBaseGrid();
+        drawStakeholders();
+        updateStakeholderList();
+      });
+
+      // Initialise grid when page loads
+      window.addEventListener('load', () => {
+        drawBaseGrid();
+      });
+    </script>
+  </body>
+</html>

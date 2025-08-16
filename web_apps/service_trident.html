@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service Trident — Need → Lead → Leverage</title>
+<style>
+:root { --bg:#0f172a; --panel:#111827; --ink:#e5e7eb; --muted:#9ca3af; --accent:#60a5fa; --accent2:#34d399; --line:#374151; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Noto Sans,Arial,"Apple Color Emoji","Segoe UI Emoji";
+       background:var(--bg); color:var(--ink); line-height:1.45; }
+header { padding:24px; border-bottom:1px solid var(--line); }
+h1 { margin:0 0 6px 0; font-size:20px; }
+p.desc { margin:0; color:var(--muted); font-size:14px; }
+main { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; padding:16px; }
+.section { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+.section h2 { font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 8px; }
+.list { display:grid; gap:8px; }
+.card { padding:12px; background:#0b1220; border:1px solid var(--line); border-radius:10px; display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer; }
+.card:hover { border-color:var(--ink); }
+.card.active { outline:2px solid var(--accent); outline-offset:0; }
+.lead .card.active { outline-color:var(--accent2); }
+.tag { font-size:12px; padding:3px 8px; border-radius:999px; background:#0a0f1c; border:1px solid var(--line); color:var(--muted); }
+.help { font-size:12px; color:var(--muted); margin-top:8px; }
+.controls { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+button { background:#111827; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px 10px; cursor:pointer; }
+button:hover { border-color:var(--ink); }
+.small { font-size:12px; color:var(--muted); }
+.summary { margin:16px; padding:16px; border:1px dashed var(--line); border-radius:12px; background:#0b1220; }
+hr { border:none; border-top:1px solid var(--line); margin:16px 0; }
+@media (max-width: 920px) { main { grid-template-columns:1fr; } }
+.kbd { font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace; font-size:11px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Service Trident — Need → Lead → Leverage</h1>
+  <p class="desc">Deterministic lead (f: A→B), plural leverage (R ⊆ A×C). Click a Need; its canonical Lead is highlighted. Choose where you will intervene.</p>
+</header>
+
+<main>
+  <section class="section need" aria-labelledby="need-heading">
+    <h2 id="need-heading">Primary Perceived Need (A)</h2>
+    <div class="list" id="needs"></div>
+    <p class="help">Anchor the conversation in the <em>perceived</em> problem signal; avoid solutioneering.</p>
+  </section>
+
+  <section class="section lead" aria-labelledby="lead-heading">
+    <h2 id="lead-heading">Lead Service Offering (B)</h2>
+    <div class="list" id="leads"></div>
+    <p class="help">Exactly one canonical lead per need; this is the front door to the engagement.</p>
+  </section>
+
+  <section class="section leverage" aria-labelledby="lev-heading">
+    <h2 id="lev-heading">Points of Leverage (C)</h2>
+    <div class="list" id="leverage"></div>
+    <div class="controls">
+      <button id="recommend" type="button" title="Select recommended leverage for the chosen need">Apply recommended</button>
+      <button id="clear" type="button" title="Clear leverage">Clear</button>
+      <span class="small">Many‑to‑many: pick all that bite.</span>
+    </div>
+  </section>
+</main>
+
+<section class="summary" id="summary" aria-labelledby="syn-heading">
+  <strong id="syn-heading">Synopsis</strong>
+  <div id="syn" class="kbd" style="margin-top:8px;"></div>
+  <div class="controls">
+    <button id="copy" type="button">Copy summary</button>
+  </div>
+  <p class="small">Heuristic mapping below is editable; keep B deterministic, keep C plural.</p>
+  <hr>
+  <p class="small kbd">Formalism: f: A→B where A = {Capability, Maturity, Performance}, B = {Capability Planning, P3M3 Assessment, Programme Assurance &amp; Recovery}. R ⊆ A×C with C = {Portfolio, Programme, Project}.</p>
+</section>
+
+<script>
+// Domain sets
+const needs = ["Capability","Maturity","Performance"];
+const leads = ["Capability Planning","P3M3 Assessment","Programme Assurance & Recovery"];
+const leverageUniverse = ["Portfolio","Programme","Project"];
+
+// 1-1 mapping f: A→B (canonical lead)
+const leadMap = {
+  "Capability": "Capability Planning",
+  "Maturity": "P3M3 Assessment",
+  "Performance": "Programme Assurance & Recovery"
+};
+
+// Optional recommended leverage by need (edit to your practice)
+const leverageRecommendations = {
+  "Capability": ["Portfolio","Programme"],
+  "Maturity": ["Portfolio","Programme"],
+  "Performance": ["Programme","Project"]
+};
+
+// State
+let state = { need: null, leverage: new Set() };
+
+// Utility
+function el(tag, attrs={}, children=[]) {
+  const e = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("data-")) e.setAttribute(k, v);
+    else e[k] = v;
+  }
+  for (const c of children) e.appendChild(c);
+  return e;
+}
+
+// Renderers
+function renderNeeds() {
+  const wrap = document.getElementById("needs");
+  wrap.innerHTML = "";
+  needs.forEach(n => {
+    const active = state.need === n;
+    const card = el("div", {class: "card" + (active ? " active" : ""), role:"button", tabindex:0, "aria-pressed": String(active), "data-need": n});
+    card.appendChild(el("div", {html: n}));
+    card.appendChild(el("span", {class:"tag", html:"Need"}));
+    card.addEventListener("click", ()=> { state.need = n; updateLeadHighlight(); updateSynopsis(); renderNeeds(); });
+    card.addEventListener("keydown", (ev)=>{ if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); card.click(); }});
+    wrap.appendChild(card);
+  });
+}
+
+function renderLeads() {
+  const wrap = document.getElementById("leads");
+  wrap.innerHTML = "";
+  leads.forEach(L => {
+    const isActive = state.need && leadMap[state.need] === L;
+    const card = el("div", {class: "card" + (isActive ? " active" : ""), "aria-pressed": String(isActive)});
+    card.appendChild(el("div", {html: L}));
+    card.appendChild(el("span", {class:"tag", html:"Lead"}));
+    wrap.appendChild(card);
+  });
+}
+
+function renderLeverage() {
+  const wrap = document.getElementById("leverage");
+  wrap.innerHTML = "";
+  leverageUniverse.forEach(c => {
+    const isOn = state.leverage.has(c);
+    const card = el("div", {class:"card" + (isOn ? " active" : ""), role:"button", tabindex:0, "aria-pressed": String(isOn), "data-c": c});
+    card.appendChild(el("div", {html: c}));
+    card.appendChild(el("span", {class:"tag", html:"Leverage"}));
+    card.addEventListener("click", ()=>{
+      if (state.leverage.has(c)) state.leverage.delete(c); else state.leverage.add(c);
+      renderLeverage(); updateSynopsis();
+    });
+    card.addEventListener("keydown", (ev)=>{ if (ev.key==="Enter" || ev.key===" ") { ev.preventDefault(); card.click(); }});
+    wrap.appendChild(card);
+  });
+}
+
+function updateLeadHighlight() { renderLeads(); }
+
+function updateSynopsis() {
+  const syn = document.getElementById("syn");
+  const need = state.need ? state.need : "—";
+  const lead = state.need ? leadMap[state.need] : "—";
+  const levs = Array.from(state.leverage);
+  syn.innerHTML =
+`Need (A): ${need}
+Lead (B): ${lead}
+Leverage (C): ${levs.length ? levs.join(", ") : "—"}`;
+}
+
+// Actions
+function applyRecommendations() {
+  if (!state.need) return;
+  state.leverage = new Set(leverageRecommendations[state.need] || []);
+  renderLeverage(); updateSynopsis();
+}
+
+function clearLeverage() {
+  state.leverage.clear();
+  renderLeverage(); updateSynopsis();
+}
+
+function copySummary() {
+  const need = state.need ? state.need : "";
+  const lead = state.need ? leadMap[state.need] : "";
+  const levs = Array.from(state.leverage);
+  const text = `Need→Lead→Leverage:
+- Need (A): ${need}
+- Lead (B): ${lead}
+- Leverage (C): ${levs.join(", ")}`;
+  navigator.clipboard.writeText(text).then(()=> alert("Copied to clipboard."))
+  .catch(()=> {
+    const ta = el("textarea", {value:text});
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    alert("Copied to clipboard.");
+  });
+}
+
+// Wire up
+document.getElementById("recommend").addEventListener("click", applyRecommendations);
+document.getElementById("clear").addEventListener("click", clearLeverage);
+document.getElementById("copy").addEventListener("click", copySummary);
+
+// Initial render
+renderNeeds(); renderLeads(); renderLeverage(); updateSynopsis();
+</script>
+</body>
+</html>

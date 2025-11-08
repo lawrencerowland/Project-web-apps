@@ -123,6 +123,14 @@
     <span class="sep"></span>
     <button id="exportJson" class="ghost">Export</button>
     <label class="btn">Import <input type="file" id="importJson" accept="application/json" style="display:none"></label>
+    <!-- ▼ Add these explainer buttons inside the existing <div class="toolbar"> in your <header> -->
+    <span class="sep"></span>
+    <button id="helpWhat" class="ghost" aria-label="What this is">What?</button>
+    <button id="helpHow" class="ghost" aria-label="How to use">How</button>
+    <button id="helpShortcuts" class="ghost" aria-label="Shortcuts and gestures">Shortcuts</button>
+    <button id="helpData" class="ghost" aria-label="Data model">Model</button>
+    <button id="helpTips" class="ghost" aria-label="Pro tips">Tips</button>
+    <!-- ▲ End explainer buttons -->
   </div>
 </header>
 
@@ -970,6 +978,46 @@ const explainText = {
     </ul>
     <p>Every rule re-checks: acyclicity, CPM, resource leveling, duplicates, and shows “Why Not?” when blocked.</p>
   `,
+  what: `
+    <p><b>WBS Graph Rewriter</b> is a sandbox for experimenting with work-breakdown structures.</p>
+    <p>It combines a <b>precedence network</b>, <b>resource-aware Gantt</b>, and <b>rewrite rules</b> so you can explore how local edits ripple through the plan.</p>
+    <p>Use it to compare alternatives, spot overloads, and document why certain changes were applied.</p>
+  `,
+  how: `
+    <ol>
+      <li>Start with the sample network or import your own JSON snapshot.</li>
+      <li>Use <b>+ Task/Gate/Buffer</b> to add work, then <b>Add Dependency</b> to connect the graph.</li>
+      <li>Select a node or edge to edit properties in the <b>Inspector</b> and review eligibility hints.</li>
+      <li>Apply the rewrite rules (R1–R4) to restructure safely and let validation flag any issues.</li>
+      <li>Capture scenarios with <b>Save Scenario</b> and compare them side-by-side.</li>
+    </ol>
+  `,
+  shortcuts: `
+    <ul>
+      <li><b>Drag nodes</b> directly in the network to re-layout the graph.</li>
+      <li>While in <b>Add Dependency</b> mode, click a source then <span class="kbd">Shift</span> click the target for faster wiring.</li>
+      <li><b>Scroll</b> or <b>pinch zoom</b> inside the network and Gantt panes to inspect details.</li>
+      <li>Use the toolbar <b>Undo/Redo</b> buttons to walk back mistakes.</li>
+    </ul>
+  `,
+  model: `
+    <p>The data model mirrors a project WBS/CPM hybrid:</p>
+    <ul>
+      <li><b>Nodes</b>: task, gate, buffer, or milestone with duration, variance, owner, notes, and resource demand.</li>
+      <li><b>Edges</b>: finish-to-start dependencies that must keep the graph acyclic.</li>
+      <li><b>Resources</b>: named pools with integer capacities used for leveling.</li>
+      <li><b>Options</b>: leveling mode and buffer factor that influence scheduling.</li>
+      <li><b>Scenarios</b>: saved snapshots for compare/restore.</li>
+    </ul>
+  `,
+  tips: `
+    <ul>
+      <li>Watch the <b>Overloads</b> badge after edits—switch leveling modes to test mitigation ideas.</li>
+      <li>Keep IDs short and meaningful; the auto-ID helpers (T1, G1…) avoid duplicates.</li>
+      <li>Buffers don’t consume resources: use them to protect critical chains when risk is high.</li>
+      <li>Log entries capture each change—export them with the plan to document decision rationale.</li>
+    </ul>
+  `,
   cpm: `
     <p><b>CPM</b> computes Earliest/Latest times and <b>slack</b> from precedence only. Critical nodes have zero slack. The <b>Gantt</b> shows <span class="badge">Earliest</span> bars, and optionally a <span class="badge">Leveled</span> schedule when resources are constrained.</p>
     <p>Leveling is heuristic (RCPSP is NP‑hard). Use it to <i>visualize</i> effects—not to claim optimality.</p>
@@ -1014,6 +1062,11 @@ function showExplain(topic, customHtml){
   const body=document.getElementById('modalBody');
   title.textContent = ({
     rewrites:"Rewrite Rules",
+    what:"What this is",
+    how:"How to use",
+    shortcuts:"Shortcuts & Gestures",
+    model:"Data Model",
+    tips:"Pro Tips",
     cpm:"CPM & Critical Path",
     invariants:"Plan Invariants",
     rules:"Rule Preconditions",
@@ -1027,6 +1080,16 @@ function showExplain(topic, customHtml){
 }
 document.getElementById('modalClose').onclick=()=>{ document.getElementById('modal').style.display='none'; }
 document.querySelectorAll('.explain').forEach(el=> el.addEventListener('click', ()=> showExplain(el.dataset.topic)));
+[
+  ['helpWhat','what'],
+  ['helpHow','how'],
+  ['helpShortcuts','shortcuts'],
+  ['helpData','model'],
+  ['helpTips','tips']
+].forEach(([id, topic])=>{
+  const btn=document.getElementById(id);
+  if(btn) btn.addEventListener('click', ()=> showExplain(topic));
+});
 
 /* ----------------------- Export / Import ----------------------- */
 function exportJson(){

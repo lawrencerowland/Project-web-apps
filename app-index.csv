@@ -31,3 +31,4 @@
 30,weighted-decision-matrix,,ChatGPT,agent,decision,,
 31,hazard_morphospace,a dashboard for the Magnox Swarf Storage Silo,ChatGPT,agent,"reporting, controls, trade_offs",,
 32,service_trident,"Distinguishing between capability, maturity and performance in project consulting",ChatGPT,GPT5,"consulting, use_cases, project_management, classification_tree ",,
+33,WBS_rewrite,"Interactive demo for rewriting WBS dependency graphs with CPM and resource leveling",ChatGPT,agent,"project_management, scheduling, graph",,

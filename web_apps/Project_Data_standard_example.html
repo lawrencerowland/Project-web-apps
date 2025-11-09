@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PDS Explainer & Interactive Playground</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0f1218; --panel:#151a22; --ink:#eaeef5; --muted:#b7c0cf; --accent:#6ea8fe;
+      --ok:#2fb36a; --warn:#f0ad4e; --err:#e55353; --chip:#1b2230; --line:#2a3242;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      color:var(--ink); background:linear-gradient(180deg,#0c1016,#0f1218 20%,#0f1218);
+    }
+    header{padding:24px 20px 12px; border-bottom:1px solid var(--line);}
+    header h1{margin:0; font-size:22px; letter-spacing:.3px}
+    header p{margin:6px 0 0; color:var(--muted); font-size:14px}
+    .wrap{display:grid; grid-template-columns:280px 1fr; gap:16px; padding:16px}
+    nav{
+      background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; position:sticky; top:12px; height:max-content;
+    }
+    nav a{display:block; padding:10px 10px; margin:4px 0; border-radius:8px; color:var(--ink); text-decoration:none; font-size:14px}
+    nav a:hover{background:var(--chip)}
+    .section{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px}
+    .grid{display:grid; gap:12px}
+    .grid.cols-2{grid-template-columns:1fr 1fr}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    .card{background:var(--chip); border:1px solid var(--line); border-radius:10px; padding:12px}
+    h2{margin:2px 0 12px; font-size:18px}
+    h3{margin:4px 0 8px; font-size:15px; color:var(--muted); font-weight:600}
+    .btn{
+      appearance:none; border:1px solid var(--line); background:#192234; color:var(--ink);
+      padding:8px 12px; border-radius:8px; font-size:14px; cursor:pointer;
+    }
+    .btn:hover{background:#1d2740}
+    .btn.ghost{background:transparent}
+    .btn.inline{padding:4px 8px; font-size:12px; border-radius:6px}
+    .controls{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+    textarea, input, select{
+      width:100%; background:#0e1420; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:13px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    }
+    textarea{min-height:200px; resize:vertical}
+    .pill{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--line); background:var(--chip)}
+    .pill.ok{border-color:#1f6b45; background:#123025}
+    .pill.warn{border-color:#7a5a1b; background:#2a220f}
+    .pill.err{border-color:#7a1b1b; background:#301212}
+    .kv{display:grid; grid-template-columns:140px 1fr; gap:8px; font-size:13px}
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace,Consolas,monaco,monospace}
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th,td{border-bottom:1px solid var(--line); padding:8px 6px; text-align:left; vertical-align:top}
+    tr:last-child td{border-bottom:none}
+    code.inline{background:#0d1320; padding:2px 6px; border-radius:6px; border:1px solid var(--line)}
+    .chips{display:flex; flex-wrap:wrap; gap:6px}
+    .chip{background:#0c141f; border:1px solid var(--line); border-radius:999px; padding:4px 8px; font-size:12px}
+    .badge{padding:2px 6px; border-radius:6px; border:1px solid var(--line); background:#0e1522; font-size:11px}
+    .canvas-wrap{background:#0c1320; border:1px solid var(--line); border-radius:10px; padding:10px}
+    .hl{white-space:pre-wrap; line-height:1.35; background:#0a0f1a; border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto}
+    .slim{font-size:12px}
+    .bar{height:8px; background:#0b1422; border:1px solid var(--line); border-radius:6px; overflow:hidden}
+    .bar > span{display:block; height:100%; background:linear-gradient(90deg,#4e9af1,#70d6ff)}
+    .note{font-size:12px; color:var(--muted)}
+    .foot{padding:10px 16px; color:var(--muted); font-size:12px; text-align:center}
+    .link{color:var(--accent); text-decoration:none}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .right{margin-left:auto}
+    .small{font-size:12px}
+    .danger{color:#ff7b7b}
+    .success{color:#7bffb9}
+    .svgwrap{background:#0b1220; border:1px solid var(--line); border-radius:10px; padding:8px; overflow:auto}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Project Data Standard — Explainer & Playground</h1>
+    <p>Paste a PDS payload, validate against core rules, and see DQ, timeline, funding coherence, codelists, and provenance update live. 100% client-side.</p>
+  </header>
+
+  <div class="wrap">
+    <nav>
+      <a href="#primer">Primer</a>
+      <a href="#playground">Playground</a>
+      <a href="#visuals">Visuals</a>
+      <a href="#codelists">Codelists</a>
+      <a href="#provenance">Provenance</a>
+      <a href="#report">Report</a>
+    </nav>
+
+    <main>
+      <!-- Primer -->
+      <section id="primer" class="section">
+        <h2>Primer</h2>
+        <div class="grid cols-3">
+          <div class="card">
+            <h3>Why a core?</h3>
+            <p class="slim">A compact, stable “project core” enables consistent controls, comparable dashboards, and credible forecasting. Extensions carry local nuance without breaking interoperability.</p>
+          </div>
+          <div class="card">
+            <h3>What’s validated?</h3>
+            <p class="slim">ID shape, Tier‑1 mandatory fields, cost coherence (<code class="inline">actual ≥ forecast ≥ baseline</code>), milestone date logic, funding conservation, provenance timeliness, and within‑project uniqueness.</p>
+          </div>
+          <div class="card">
+            <h3>How to use</h3>
+            <p class="slim">Load the example, tweak values, press <em>Validate</em>, and inspect the rule table. Tune tolerance/SLA, then export a JSON conformance report for your gate pack.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Playground -->
+      <section id="playground" class="section">
+        <div class="row">
+          <h2 class="row">Playground</h2>
+          <div class="right row small">
+            <label>SLA (days): <input id="slaDays" type="number" min="1" value="30" style="width:80px"/></label>
+            <label>Tolerance (sum vs baseline): <input id="tolerance" type="number" min="0" max="0.2" step="0.005" value="0.02" style="width:100px"/></label>
+            <button class="btn inline" id="btnLoad">Load example</button>
+            <button class="btn inline" id="btnValidate">Validate</button>
+          </div>
+        </div>
+        <div class="grid cols-2">
+          <div>
+            <h3>Payload (JSON)</h3>
+            <textarea id="payload" spellcheck="false" aria-label="PDS JSON payload"></textarea>
+            <div class="note">Nothing is sent anywhere; validation happens entirely in your browser.</div>
+          </div>
+          <div>
+            <h3>Validation Results</h3>
+            <div class="grid">
+              <div class="card">
+                <div class="row">
+                  <div class="pill" id="statusPill"><strong>Ready</strong></div>
+                  <div class="right small muted">Last run: <span id="lastRun">—</span></div>
+                </div>
+                <div class="grid cols-3" style="margin-top:8px">
+                  <div>
+                    <div class="muted small">DQ Overall</div>
+                    <div style="font-size:24px" id="scoreOverall">—</div>
+                    <div class="bar"><span id="barOverall" style="width:0%"></span></div>
+                  </div>
+                  <div>
+                    <div class="muted small">Completeness</div>
+                    <div id="scoreCompl">—</div>
+                  </div>
+                  <div>
+                    <div class="muted small">Validity</div>
+                    <div id="scoreValid">—</div>
+                  </div>
+                  <div>
+                    <div class="muted small">Consistency</div>
+                    <div id="scoreCons">—</div>
+                  </div>
+                  <div>
+                    <div class="muted small">Timeliness</div>
+                    <div id="scoreTime">—</div>
+                  </div>
+                  <div>
+                    <div class="muted small">Uniqueness</div>
+                    <div id="scoreUnique">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3>Rule violations</h3>
+                <table id="violationsTable">
+                  <thead>
+                    <tr><th>Rule</th><th>Severity</th><th>Message</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+
+              <div class="card">
+                <h3>Parsed header</h3>
+                <div class="kv">
+                  <div class="muted">Project ID</div><div class="mono" id="outId">—</div>
+                  <div class="muted">Name</div><div class="mono" id="outName">—</div>
+                  <div class="muted">Phase</div><div class="mono" id="outPhase">—</div>
+                  <div class="muted">Owner</div><div class="mono" id="outOwner">—</div>
+                  <div class="muted">RAG</div><div class="mono" id="outRag">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Visuals -->
+      <section id="visuals" class="section">
+        <div class="row">
+          <h2>Visuals</h2>
+          <div class="small muted right">These update after you press <em>Validate</em>.</div>
+        </div>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3>Milestone timeline</h3>
+            <div class="canvas-wrap"><svg id="timeline" width="100%" height="220" role="img" aria-label="Milestone timeline"></svg></div>
+            <div class="chips" style="margin-top:6px">
+              <span class="chip">Planned ●</span>
+              <span class="chip">Forecast ◆</span>
+              <span class="chip">Actual ▲</span>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Funding vs Baseline/Forecast/Actual</h3>
+            <div class="canvas-wrap"><canvas id="fundingChart" width="560" height="240"></canvas></div>
+            <div class="small muted">Compares baseline capex, forecast capex, actual capex, and the sum of FY budgeted lines; flags tolerance breaches.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Codelists -->
+      <section id="codelists" class="section">
+        <h2>Codelists</h2>
+        <div class="row small">
+          <label>Filter: <input id="codeFilter" placeholder="type to filter…" class="small" style="width:220px"/></label>
+        </div>
+        <div class="grid cols-3" style="margin-top:10px">
+          <div class="card">
+            <h3>DeliveryPhase</h3>
+            <div id="listPhase" class="chips"></div>
+          </div>
+          <div class="card">
+            <h3>ApprovalStage</h3>
+            <div id="listStage" class="chips"></div>
+          </div>
+          <div class="card">
+            <h3>RAG</h3>
+            <div id="listRag" class="chips"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Provenance -->
+      <section id="provenance" class="section">
+        <h2>Provenance (SVG)</h2>
+        <div class="svgwrap">
+          <svg id="provGraph" width="100%" height="260" role="img" aria-label="Provenance graph"></svg>
+        </div>
+        <div class="note">Shows actors and systems declared in <code class="inline">project.provenance</code> and the <code class="inline">was_derived_from</code> link.</div>
+      </section>
+
+      <!-- Report -->
+      <section id="report" class="section">
+        <div class="row">
+          <h2>Export report</h2>
+          <button class="btn" id="btnExport">Download JSON report</button>
+          <div class="small muted right" id="exportStatus">—</div>
+        </div>
+        <pre class="hl slim" id="reportPreview" aria-label="Report preview">(validate to populate)</pre>
+      </section>
+
+      <div class="foot">Built for live demos: single HTML file, no dependencies, tweakable rules. © You.</div>
+    </main>
+  </div>
+
+  <script>
+    /***********************
+     * Sample payload (generic PDS) — edit to taste
+     ***********************/
+    const SAMPLE = {
+      "pds_version": "0.1.0",
+      "project": {
+        "id": "urn:pds:project:123e4567-e89b-12d3-a456-426614174000",
+        "external_ids": [{ "scheme": "GMPP", "id": "MP-0421" }],
+        "name": "Northern Spine Corridor Upgrade",
+        "description": "Multi-year upgrade of the Northern Spine arterial route, improving resilience and journey time reliability.",
+        "security_classification": "OFFICIAL",
+        "sponsor_department": "Department for Transport",
+        "owner_org": "National Highways",
+        "programme_id": "urn:pds:programme:9f1e2d7a-4b0b-4a12-bc17-2a5e3a6bc111",
+        "sector": "Transport",
+        "sub_sector": "Highways",
+        "wbs_code": "1.0",
+        "delivery_phase": "Delivery",
+        "approvals": [
+          {"stage": "SOC", "status": "Approved", "decision_date": "2023-02-14"},
+          {"stage": "OBC", "status": "Approved", "decision_date": "2024-11-21"}
+        ],
+        "dates": {"start_planned": "2024-10-01","finish_planned": "2028-03-31","start_actual":"2024-10-15"},
+        "baseline": {"cost": {"capex": {"amount": 1250000000, "currency": "GBP"}, "opex": {"amount": 15000000, "currency": "GBP"}}},
+        "forecast": {"cost": {"capex": {"amount": 1295000000, "currency": "GBP"}, "opex": {"amount": 16000000, "currency": "GBP"}}},
+        "actuals": {"cost": {"capex": {"amount": 175000000, "currency": "GBP"}, "opex": {"amount": 3000000, "currency": "GBP"}}},
+        "rag_overall": "AMBER",
+        "rag_cost": "AMBER_GREEN",
+        "rag_schedule": "AMBER_RED",
+        "risk_exposure": {"p50": 65000000, "p80": 120000000},
+        "milestones": [
+          {"id":"MS-001","name":"OJEU Notice","is_gate":false,"planned_date":"2025-01-10","forecast_date":"2025-01-31","status":"Forecast"},
+          {"id":"MS-002","name":"Section A Substantial Completion","is_gate":false,"planned_date":"2026-12-01"}
+        ],
+        "funding_lines": [
+          {"id":"FL-2025-CAPEX","category":"CAPEX","funding_source":"HMT","fiscal_year":"2025/26","budgeted":{"amount":320000000,"currency":"GBP"},"forecast":{"amount":340000000,"currency":"GBP"},"actual":{"amount":150000000,"currency":"GBP"}},
+          {"id":"FL-2026-CAPEX","category":"CAPEX","funding_source":"HMT","fiscal_year":"2026/27","budgeted":{"amount":410000000,"currency":"GBP"}}
+        ],
+        "contracts": [{"id":"CON-1","ocds_ocid":"ocds-0c46vo-0001-000001","uri":"https://contracts.example/ocds/ocds-0c46vo-0001-000001","supplier_name":"ABC Infrastructure JV"}],
+        "locations": [{"name":"Section A","gss_code":"E08000003","geometry":{"type":"Point","coordinates":[-2.24,53.48]}}],
+        "documents": [{"uri":"https://docs.example/soc.pdf","title":"SOC","category":"BusinessCase"}],
+        "provenance": {
+          "created_at": "2025-01-20T10:45:00Z",
+          "created_by": "pm@owner-org.example",
+          "last_modified_at": "2025-10-15T08:10:00Z",
+          "last_modified_by": "pmo@central-data-office.example",
+          "source_system": "Primavera P6",
+          "was_derived_from": "https://primavera.example/projects/NSCU",
+          "method": "Automated ETL + PMO review"
+        }
+      }
+    };
+
+    /***********************
+     * Codelists (keep in step with your spec)
+     ***********************/
+    const CODELISTS = {
+      DeliveryPhase: ["Identification","Definition","Procurement","Delivery","Handover","Closeout"],
+      ApprovalStage: ["SOC","OBC","FBC","Gate0_StrategicAssessment","Gate1_BusinessJustification","Gate2_ProcurementStrategy","Gate3_InvestmentDecision","Gate4_ReadinessForService","Gate5_OperationsReview"],
+      RAG: ["GREEN","AMBER_GREEN","AMBER","AMBER_RED","RED","UNCLEAR"]
+    };
+
+    /***********************
+     * Helpers
+     ***********************/
+    const $ = sel => document.querySelector(sel);
+    const nowISO = () => new Date().toISOString();
+    function safeParse(jsonText){
+      try{ return [JSON.parse(jsonText), null]; }catch(e){ return [null, e.message]; }
+    }
+    function get(obj, path){
+      return path.split('.').reduce((o,k)=> (o && (k.endsWith(']') ? o[k.slice(0,k.indexOf('['))] : o[k])) , obj);
+    }
+    function exists(obj, path){
+      const parts = path.split('.');
+      let o=obj;
+      for(const p of parts){
+        if(!o || !(p in o)) return false;
+        o=o[p];
+      }
+      if (Array.isArray(o)) return o.length>0;
+      return o!==undefined && o!==null && (typeof o!=="string" || o.length>0);
+    }
+    function sum(arr, f){ let s=0; for(const x of arr||[]) s+=f(x)||0; return s; }
+    function fmt(n){ if(n==null || isNaN(n)) return "—"; return new Intl.NumberFormat('en-GB',{maximumFractionDigits:0}).format(n); }
+    function fmtMoney(obj){ return obj && obj.amount!=null ? `£${fmt(obj.amount)}` : "—"; }
+    function parseDate(d){ if(!d) return null; const t=Date.parse(d); return isNaN(t)? null : new Date(t); }
+    function daysBetween(a,b){ return Math.round((a-b)/(1000*60*60*24)); }
+    function setPill(ok,warn,msg){
+      const pill=$("#statusPill"); pill.className="pill "+(ok? "ok" : warn? "warn":"err");
+      pill.innerHTML = `<strong>${msg}</strong>`;
+    }
+
+    /***********************
+     * Validation rules (engine-lite)
+     * - Mirrors the draft you’re piloting, without a full JSON Schema engine.
+     ***********************/
+    function validatePDS(payload, opts){
+      const vios=[]; // {rule,severity,message}
+      const p = payload?.project || {};
+      const phase = p.delivery_phase;
+
+      // PDS-UNI-001: ID pattern
+      if(!/^urn:pds:project:[0-9a-fA-F-]{36}$/.test(p.id||"")){
+        vios.push({rule:"PDS-UNI-001",severity:"error",message:"project.id must match ^urn:pds:project:[uuid]$"});
+      }
+
+      // PDS-REQ-010: Core required
+      const required = [
+        "name","security_classification","owner_org","delivery_phase",
+        "approvals","dates.start_planned","dates.finish_planned",
+        "baseline.cost.capex","forecast","rag_overall","funding_lines","provenance"
+      ];
+      for(const rp of required){
+        if(!exists(p, rp)){
+          vios.push({rule:"PDS-REQ-010",severity:"error",message:`Missing required: ${rp}`});
+        }
+      }
+
+      // PDS-CONS-020: Cost coherence if Delivery/Handover/Closeout
+      if(["Delivery","Handover","Closeout"].includes(phase)){
+        const a = p.actuals?.cost?.capex?.amount;
+        const f = p.forecast?.cost?.capex?.amount;
+        const b = p.baseline?.cost?.capex?.amount;
+        if([a,f,b].every(x=> typeof x==="number")){
+          if(!(a>=f && f>=b)){
+            vios.push({rule:"PDS-CONS-020",severity:"warning",message:`Cost coherence violated: actual(${fmt(a)}) ≥ forecast(${fmt(f)}) ≥ baseline(${fmt(b)})`});
+          }
+        }
+      }
+
+      // PDS-TIME-030: Milestone date coherence
+      for(const m of p.milestones||[]){
+        const ad=parseDate(m.actual_date), pd=parseDate(m.planned_date);
+        if(ad && pd && ad < pd){
+          vios.push({rule:"PDS-TIME-030",severity:"error",message:`Milestone ${m.id||m.name||"?"}: actual < planned`});
+        }
+      }
+
+      // PDS-SUM-040: Funding sums near baseline within tolerance
+      const tol = +opts.tolerance || 0.02;
+      const baselineCapex = p.baseline?.cost?.capex?.amount;
+      const sumBudgeted = sum(p.funding_lines, fl => fl?.budgeted?.amount);
+      if(typeof baselineCapex==="number" && sumBudgeted>0){
+        const diff = Math.abs(sumBudgeted - baselineCapex) / baselineCapex;
+        if(diff > tol){
+          vios.push({rule:"PDS-SUM-040",severity:"warning",message:`FY budgeted sum (£${fmt(sumBudgeted)}) differs from baseline (£${fmt(baselineCapex)}) by ${(diff*100).toFixed(1)}% > ${(tol*100).toFixed(1)}% tolerance`});
+        }
+      }
+
+      // PDS-PROV-050: Provenance presence + SLA timeliness
+      const prov = p.provenance||{};
+      for(const key of ["created_at","created_by","source_system"]){
+        if(!prov[key]) vios.push({rule:"PDS-PROV-050",severity:"error",message:`Provenance missing ${key}`});
+      }
+      if(["Delivery","Handover","Closeout"].includes(phase)){
+        const last=parseDate(prov.last_modified_at||prov.created_at);
+        if(last){
+          const age = daysBetween(new Date(), last);
+          if(age > (+opts.slaDays||30)){
+            vios.push({rule:"PDS-PROV-050",severity:"warning",message:`Record stale (${age} days > SLA ${opts.slaDays} days)`});
+          }
+        }
+      }
+
+      // Uniqueness of IDs within arrays
+      function uniqueCheck(arr, field, label){
+        const seen=new Set(); for(const x of arr||[]){
+          const id=x?.[field]; if(!id) continue;
+          if(seen.has(id)) vios.push({rule:"PDS-UNI-IDS",severity:"error",message:`Duplicate ${label} id: ${id}`});
+          seen.add(id);
+        }
+      }
+      uniqueCheck(p.funding_lines,"id","funding_line");
+      uniqueCheck(p.milestones,"id","milestone");
+
+      // Scores (very lightweight rubric)
+      const completenessDen = required.length;
+      const completenessNum = required.filter(rp=> exists(p,rp)).length;
+      const completeness = Math.round(100* (completenessNum/completenessDen));
+
+      const validityDen = 1 /* id */ + (p.milestones?.length||0);
+      let validityPass = 0;
+      if(/^urn:pds:project:[0-9a-fA-F-]{36}$/.test(p.id||"")) validityPass++;
+      for(const m of p.milestones||[]){
+        const ad=parseDate(m.actual_date), pd=parseDate(m.planned_date);
+        if(!(ad && pd && ad < pd)) validityPass++;
+      }
+      const validity = Math.round(100*(validityDen? validityPass/validityDen : 1));
+
+      const consistencyDen = 2; // cost coherence + funding near baseline
+      let consistencyPass = 0;
+      const a = p.actuals?.cost?.capex?.amount, f = p.forecast?.cost?.capex?.amount, b = p.baseline?.cost?.capex?.amount;
+      if([a,f,b].every(x=> typeof x==="number") ? (a>=f && f>=b) : true) consistencyPass++;
+      const diff = (typeof baselineCapex==="number" && sumBudgeted>0) ? Math.abs(sumBudgeted - baselineCapex)/baselineCapex : 0;
+      if(diff <= tol) consistencyPass++;
+      const consistency = Math.round(100*(consistencyDen? consistencyPass/consistencyDen : 1));
+
+      let timeliness = 100;
+      if(["Delivery","Handover","Closeout"].includes(phase)){
+        const last=parseDate(prov.last_modified_at||prov.created_at);
+        if(last){
+          const age=daysBetween(new Date(), last);
+          timeliness = Math.max(0, Math.round(100 * Math.exp(-Math.max(0,age-opts.slaDays)/opts.slaDays)));
+        }
+      }
+
+      // Uniqueness dimension
+      const dupMilestones = (()=>{ const s=new Set(); let d=0; for(const m of p.milestones||[]){ if(s.has(m.id)) d++; s.add(m.id);} return d; })();
+      const dupFund = (()=>{ const s=new Set(); let d=0; for(const x of p.funding_lines||[]){ if(s.has(x.id)) d++; s.add(x.id);} return d; })();
+      const uniqueness = Math.max(0, 100 - (dupMilestones+dupFund)*20);
+
+      // Weighted overall
+      const weights = {completeness:.25, validity:.25, consistency:.20, timeliness:.20, uniqueness:.10};
+      const overall = Math.round(
+        completeness*weights.completeness +
+        validity*weights.validity +
+        consistency*weights.consistency +
+        timeliness*weights.timeliness +
+        uniqueness*weights.uniqueness
+      );
+
+      return { violations:vios, scores:{overall, completeness, validity, consistency, timeliness, uniqueness} };
+    }
+
+    /***********************
+     * UI Wiring
+     ***********************/
+    function populateCodelists(filter=""){
+      function fill(id, arr){
+        const el = $(id); el.innerHTML="";
+        for(const item of arr){
+          if(filter && !item.toLowerCase().includes(filter.toLowerCase())) continue;
+          const span=document.createElement("span"); span.className="chip"; span.textContent=item; el.appendChild(span);
+        }
+      }
+      fill("#listPhase", CODELISTS.DeliveryPhase);
+      fill("#listStage", CODELISTS.ApprovalStage);
+      fill("#listRag", CODELISTS.RAG);
+    }
+
+    function drawTimeline(project){
+      const svg=$("#timeline"); svg.innerHTML="";
+      if(!project?.dates?.start_planned || !project?.dates?.finish_planned) return;
+      const width=svg.clientWidth||600, height=200, pad=40;
+      const start=parseDate(project.dates.start_planned), end=parseDate(project.dates.finish_planned);
+      const span=end - start || (1000*60*60*24);
+      // axis
+      const axis=document.createElementNS("http://www.w3.org/2000/svg","line");
+      axis.setAttribute("x1", pad); axis.setAttribute("x2", width-pad);
+      axis.setAttribute("y1", height-40); axis.setAttribute("y2", height-40);
+      axis.setAttribute("stroke","#3a4356"); axis.setAttribute("stroke-width","2");
+      svg.appendChild(axis);
+      // ticks
+      function tickAt(dt,label){
+        const x=pad + ( (dt-start)/span ) * (width-2*pad);
+        const g=document.createElementNS(svg.namespaceURI,"g");
+        const l=document.createElementNS(svg.namespaceURI,"line");
+        l.setAttribute("x1",x); l.setAttribute("x2",x);
+        l.setAttribute("y1",height-40); l.setAttribute("y2",height-34);
+        l.setAttribute("stroke","#3a4356");
+        const t=document.createElementNS(svg.namespaceURI,"text");
+        t.setAttribute("x",x); t.setAttribute("y",height-16);
+        t.setAttribute("fill","#b7c0cf"); t.setAttribute("font-size","11"); t.setAttribute("text-anchor","middle");
+        t.textContent=label; g.appendChild(l); g.appendChild(t); svg.appendChild(g);
+      }
+      tickAt(start, project.dates.start_planned); tickAt(end, project.dates.finish_planned);
+
+      // milestones
+      let y=40;
+      for(const m of project.milestones||[]){
+        const rowY=y; y+=24;
+        const pd=parseDate(m.planned_date), fd=parseDate(m.forecast_date), ad=parseDate(m.actual_date);
+        const name=document.createElementNS(svg.namespaceURI,"text");
+        name.setAttribute("x", 10); name.setAttribute("y", rowY+4);
+        name.setAttribute("fill","#eaeef5"); name.setAttribute("font-size","12"); name.textContent=(m.id? m.id+": ":"")+m.name;
+        svg.appendChild(name);
+        function mark(dt, shape, fill){
+          if(!dt) return;
+          const x=pad + ((dt-start)/span)*(width-2*pad);
+          if(shape==="circle"){
+            const c=document.createElementNS(svg.namespaceURI,"circle");
+            c.setAttribute("cx",x); c.setAttribute("cy", rowY);
+            c.setAttribute("r","4"); c.setAttribute("fill",fill);
+            svg.appendChild(c);
+          }else if(shape==="diamond"){
+            const d=document.createElementNS(svg.namespaceURI,"rect");
+            d.setAttribute("x",x-4); d.setAttribute("y",rowY-4);
+            d.setAttribute("width","8"); d.setAttribute("height","8");
+            d.setAttribute("fill",fill); d.setAttribute("transform",`rotate(45 ${x} ${rowY})`);
+            svg.appendChild(d);
+          }else if(shape==="triangle"){
+            const tri=document.createElementNS(svg.namespaceURI,"polygon");
+            const pts=`${x},${rowY-5} ${x-5},${rowY+5} ${x+5},${rowY+5}`;
+            tri.setAttribute("points",pts); tri.setAttribute("fill",fill); svg.appendChild(tri);
+          }
+        }
+        mark(pd,"circle","#6ea8fe");   // planned ●
+        mark(fd,"diamond","#70ffc3");  // forecast ◆
+        mark(ad,"triangle","#ffd166"); // actual ▲
+      }
+    }
+
+    function drawFundingChart(project, tol, violations){
+      const c=$("#fundingChart"), ctx=c.getContext("2d");
+      ctx.clearRect(0,0,c.width,c.height);
+      const b = project?.baseline?.cost?.capex?.amount || 0;
+      const f = project?.forecast?.cost?.capex?.amount || 0;
+      const a = project?.actuals?.cost?.capex?.amount || 0;
+      const s = sum(project?.funding_lines, fl=> fl?.budgeted?.amount) || 0;
+      const labels=["Baseline","Forecast","Actual","Sum FY Budgeted"];
+      const vals=[b,f,a,s];
+      const max = Math.max(...vals, 1);
+      const pad=28, barw=60, gap=40, baseY=c.height - pad;
+      // axes
+      ctx.strokeStyle="#3a4356"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(pad, baseY); ctx.lineTo(c.width-pad, baseY); ctx.stroke();
+      // bars
+      for(let i=0;i<vals.length;i++){
+        const h = (vals[i]/max)*(c.height-2*pad);
+        const x = pad + i*(barw+gap);
+        ctx.fillStyle="#6ea8fe"; ctx.fillRect(x, baseY-h, barw, h);
+        ctx.fillStyle="#b7c0cf"; ctx.font="12px system-ui";
+        ctx.fillText(labels[i], x-4, baseY+14);
+        ctx.fillText("£"+fmt(vals[i]), x-4, baseY-h-6);
+      }
+      // tolerance flag
+      if(b>0){
+        const diff = Math.abs(s-b)/b;
+        if(diff > tol){
+          ctx.fillStyle="#e55353";
+          ctx.fillText(`Tolerance breach: ${(diff*100).toFixed(1)}% > ${(tol*100).toFixed(1)}%`, pad, 16);
+        } else {
+          ctx.fillStyle="#2fb36a";
+          ctx.fillText(`Within tolerance (${(diff*100).toFixed(1)}%)`, pad, 16);
+        }
+      }
+    }
+
+    function drawProvenance(project){
+      const svg=$("#provGraph"); svg.innerHTML="";
+      const ns="http://www.w3.org/2000/svg";
+      const W=svg.clientWidth||820, H=240;
+      function box(x,y,w,h,text,sub,fill="#142033"){
+        const g=document.createElementNS(ns,"g");
+        const r=document.createElementNS(ns,"rect");
+        r.setAttribute("x",x); r.setAttribute("y",y); r.setAttribute("width",w); r.setAttribute("height",h);
+        r.setAttribute("rx","8"); r.setAttribute("fill",fill); r.setAttribute("stroke","#2a3242");
+        const t=document.createElementNS(ns,"text");
+        t.setAttribute("x",x+10); t.setAttribute("y",y+20); t.setAttribute("fill","#eaeef5"); t.setAttribute("font-size","12");
+        t.textContent=text;
+        const s=document.createElementNS(ns,"text");
+        s.setAttribute("x",x+10); s.setAttribute("y",y+38); s.setAttribute("fill","#b7c0cf"); s.setAttribute("font-size","11");
+        s.textContent=sub||"";
+        g.appendChild(r); g.appendChild(t); g.appendChild(s); svg.appendChild(g);
+        return {x,y,w,h};
+      }
+      function arrow(x1,y1,x2,y2,label){
+        const l=document.createElementNS(ns,"line");
+        l.setAttribute("x1",x1); l.setAttribute("y1",y1); l.setAttribute("x2",x2); l.setAttribute("y2",y2);
+        l.setAttribute("stroke","#3a4356"); l.setAttribute("marker-end","url(#arrow)");
+        svg.appendChild(l);
+        if(label){
+          const t=document.createElementNS(ns,"text");
+          t.setAttribute("x",(x1+x2)/2); t.setAttribute("y",(y1+y2)/2 - 6);
+          t.setAttribute("fill","#b7c0cf"); t.setAttribute("font-size","11"); t.setAttribute("text-anchor","middle");
+          t.textContent=label; svg.appendChild(t);
+        }
+      }
+      // marker
+      const defs=document.createElementNS(ns,"defs");
+      const marker=document.createElementNS(ns,"marker");
+      marker.setAttribute("id","arrow"); marker.setAttribute("viewBox","0 0 10 10");
+      marker.setAttribute("refX","6"); marker.setAttribute("refY","5"); marker.setAttribute("markerWidth","6");
+      marker.setAttribute("markerHeight","6"); marker.setAttribute("orient","auto-start-reverse");
+      const tri=document.createElementNS(ns,"path"); tri.setAttribute("d","M 0 0 L 10 5 L 0 10 z"); tri.setAttribute("fill","#3a4356");
+      marker.appendChild(tri); defs.appendChild(marker); svg.appendChild(defs);
+
+      const proj = box(24, 20, 260, 60, "Project", (project?.name||"—")+"  ("+(project?.id||"—")+")", "#18243a");
+      const src  = box(24, 120, 260, 60, "Source system", project?.provenance?.source_system || "—");
+      const creator = box(320, 20, 220, 60, "Created by", project?.provenance?.created_by || "—");
+      const editor  = box(320, 120, 220, 60, "Last modified by", project?.provenance?.last_modified_by || "—");
+      const derived = box(570, 70, 230, 60, "Derived from", project?.provenance?.was_derived_from || "—");
+
+      arrow(proj.x+130, proj.y+60, src.x+130, src.y, "prov:wasGeneratedBy");
+      arrow(proj.x+260, proj.y+30, creator.x, creator.y+30, "prov:wasAttributedTo");
+      arrow(proj.x+260, proj.y+50, editor.x, editor.y+30, "prov:lastModifiedBy");
+      arrow(proj.x+260, proj.y+40, derived.x, derived.y+30, "prov:wasDerivedFrom");
+    }
+
+    function applyResults(payload, res){
+      // Status pill
+      const hasErr = res.violations.some(v=>v.severity==="error");
+      const hasWarn = res.violations.some(v=>v.severity==="warning");
+      setPill(!hasErr && !hasWarn, hasWarn && !hasErr, hasErr? "Issues found" : hasWarn? "Warnings" : "Pass");
+      $("#lastRun").textContent = new Date().toLocaleString();
+
+      // Scores
+      $("#scoreOverall").textContent = res.scores.overall;
+      $("#scoreCompl").textContent = res.scores.completeness;
+      $("#scoreValid").textContent = res.scores.validity;
+      $("#scoreCons").textContent  = res.scores.consistency;
+      $("#scoreTime").textContent  = res.scores.timeliness;
+      $("#scoreUnique").textContent= res.scores.uniqueness;
+      $("#barOverall").style.width = res.scores.overall+"%";
+
+      // Header
+      const p = payload.project || {};
+      $("#outId").textContent = p.id || "—";
+      $("#outName").textContent = p.name || "—";
+      $("#outPhase").textContent = p.delivery_phase || "—";
+      $("#outOwner").textContent = p.owner_org || "—";
+      $("#outRag").textContent = p.rag_overall || "—";
+
+      // Violations table
+      const tbody=$("#violationsTable tbody"); tbody.innerHTML="";
+      if(res.violations.length===0){
+        const tr=document.createElement("tr");
+        tr.innerHTML="<td colspan='3' class='muted'>No violations</td>"; tbody.appendChild(tr);
+      } else {
+        for(const v of res.violations){
+          const tr=document.createElement("tr");
+          const sevClass = v.severity==="error" ? "danger" : (v.severity==="warning" ? "muted" : "");
+          tr.innerHTML = `<td class="mono">${v.rule}</td><td class="${sevClass}">${v.severity}</td><td>${v.message}</td>`;
+          tbody.appendChild(tr);
+        }
+      }
+
+      // Visuals
+      drawTimeline(p);
+      drawFundingChart(p, +$("#tolerance").value || 0.02, res.violations);
+      drawProvenance(p);
+
+      // Report preview
+      const report = {
+        generated_at: nowISO(),
+        pds_version: payload.pds_version || "unknown",
+        project_id: p.id || null,
+        name: p.name || null,
+        owner_org: p.owner_org || null,
+        delivery_phase: p.delivery_phase || null,
+        rag_overall: p.rag_overall || null,
+        scores: res.scores,
+        violations: res.violations
+      };
+      $("#reportPreview").textContent = JSON.stringify(report, null, 2);
+      return report;
+    }
+
+    /***********************
+     * Events
+     ***********************/
+    $("#btnLoad").addEventListener("click", () =>{
+      $("#payload").value = JSON.stringify(SAMPLE, null, 2);
+    });
+
+    $("#btnValidate").addEventListener("click", () =>{
+      const [obj, err] = safeParse($("#payload").value);
+      if(err){ setPill(false,false,"Invalid JSON"); $("#violationsTable tbody").innerHTML = `<tr><td colspan="3" class="danger">JSON parse error: ${err}</td></tr>`; return; }
+      const res = validatePDS(obj, {slaDays:+$("#slaDays").value || 30, tolerance:+$("#tolerance").value || 0.02});
+      const report = applyResults(obj, res);
+      // Hold latest report for export
+      window._latestReport = report;
+      window._latestPayload = obj;
+    });
+
+    $("#codeFilter").addEventListener("input", (e)=> populateCodelists(e.target.value||""));
+
+    $("#btnExport").addEventListener("click", () =>{
+      const report = window._latestReport || {note:"Run validation first"};
+      const blob = new Blob([JSON.stringify(report,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a=document.createElement("a"); a.href=url; a.download=(report.project_id||"pds")+"_conformance.json";
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      $("#exportStatus").textContent = "Exported at "+ new Date().toLocaleTimeString();
+    });
+
+    // Initial render
+    populateCodelists();
+    $("#payload").value = JSON.stringify(SAMPLE, null, 2);
+  </script>
+</body>
+</html>

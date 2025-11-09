@@ -1,0 +1,1159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>WBS Graph Rewriter — Interactive Demo</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<style>
+  :root{
+    --bg:#fbfbfd; --panel:#ffffff; --ink:#222; --muted:#6b7280;
+    --primary:#3b82f6; --primary-ink:#0b3d91; --ok:#10b981; --warn:#f59e0b; --err:#ef4444;
+    --critical:#dc2626; --link:#6b7280; --chip:#eef2ff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #eee;background:var(--panel);position:sticky;top:0;z-index:5}
+  h1{font-size:16px;margin:0 12px 0 0}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+  button, .btn{
+    border:1px solid #dfe3ea;background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;
+    transition:.15s; font-weight:500;
+  }
+  button:hover{background:#f7f9fc}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  button.ghost{background:transparent;border-color:#e5e7eb}
+  button.danger{border-color:var(--err);color:var(--err);background:#fff5f5}
+  .sep{width:1px;height:28px;background:#e5e7eb;margin:0 6px}
+  #app{display:grid;grid-template-columns:1fr 400px;grid-template-rows:auto 1fr;gap:8px;height:calc(100% - 58px);padding:8px}
+  #main{grid-column:1 / span 1;grid-row:1 / span 1;display:flex;gap:8px}
+  #left{flex:2;background:var(--panel);border:1px solid #eee;border-radius:10px;display:flex;flex-direction:column;min-height:420px}
+  #right{flex:1.6;background:var(--panel);border:1px solid #eee;border-radius:10px;display:flex;flex-direction:column}
+  #side{grid-column:2;grid-row:1 / span 2;background:var(--panel);border:1px solid #eee;border-radius:10px;display:flex;flex-direction:column;min-width:320px}
+  .pane-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #eee}
+  .pane-body{flex:1;position:relative;overflow:auto}
+  .badge{display:inline-block;padding:2px 6px;border-radius:999px;background:#eef2ff;border:1px solid #dbe2ff;color:#374151;font-size:12px}
+  .stat{display:inline-flex;align-items:center;gap:6px;margin-right:8px}
+  .stat .dot{width:8px;height:8px;border-radius:50%}
+  .stat .ok{background:var(--ok)} .stat .warn{background:var(--warn)} .stat .err{background:var(--err)}
+  .pill{display:inline-flex;gap:6px;align-items:center;background:#f8fafc;border:1px solid #e5e7eb;padding:4px 8px;border-radius:999px;font-size:12px}
+  #net{flex:1}
+  svg{display:block;width:100%;height:100%}
+  .link{stroke:#9aa3b2;stroke-width:1.8;marker-end:url(#arrow)}
+  .link.critical{stroke:var(--critical);stroke-width:2.4}
+  .link.selected{stroke:var(--primary);stroke-width:3}
+  .node{cursor:grab}
+  .node circle{fill:#fff;stroke:#334155;stroke-width:1.6}
+  .node.task circle{fill:#fff}
+  .node.gate rect{fill:#fff;stroke:#334155;stroke-width:1.6}
+  .node.buffer rect{fill:#fef3c7;stroke:#d97706}
+  .node.milestone rect{fill:#eff6ff;stroke:#2563eb}
+  .node.selected circle, .node.selected rect{stroke:var(--primary);stroke-width:2.4}
+  .node.critical circle, .node.critical rect{fill:#fff0f0}
+  .label{font-size:12px;text-anchor:middle;pointer-events:none}
+  .sub{font-size:11px;fill:#555;pointer-events:none}
+  .legend{display:flex;gap:8px;flex-wrap:wrap;padding:8px;border-top:1px solid #eee;background:#fafafa}
+  .legend .key{display:flex;align-items:center;gap:6px;font-size:12px}
+  .legend .sw{width:20px;height:10px;background:#e5e7eb;border:1px solid #cbd5e1}
+  .legend .cp{background:#fecaca;border-color:#ef4444}
+  .legend .lev{background:#dbeafe;border-color:#93c5fd}
+  .legend .ear{background:#e5e7eb;border-color:#cbd5e1}
+  .hint{color:var(--muted);font-size:12px}
+  #gantt{height:100%}
+  .axis{font-size:11px;fill:#6b7280}
+  .grid line{stroke:#eee}
+  .bar{stroke:#334155;stroke-width:1;fill:#e5e7eb}
+  .bar.leveled{fill:#dbeafe;stroke:#60a5fa}
+  .bar.critical{stroke:var(--critical)}
+  .row-label{font-size:12px}
+  /* Side */
+  .section{padding:10px 12px;border-bottom:1px solid #eee}
+  .section h3{margin:0 0 8px;font-size:13px;color:#111827}
+  .kv{display:grid;grid-template-columns:90px 1fr;gap:6px 8px;align-items:center}
+  input[type="text"], input[type="number"], select, textarea{
+    width:100%;padding:6px 8px;border:1px solid #d1d5db;border-radius:8px;background:#fff;font:inherit
+  }
+  textarea{min-height:70px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:var(--chip);border:1px solid #dbe2ff;border-radius:999px;padding:2px 6px;font-size:12px}
+  .muted{color:var(--muted)}
+  #log{height:180px;overflow:auto;background:#fafafa;border-top:1px solid #eee;padding:8px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+  .logline{margin:2px 0}
+  .explain{cursor:pointer;margin-left:6px;border:1px solid #e5e7eb;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:#fff}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+  .modal .card{background:#fff;max-width:860px;width:100%;border-radius:12px;border:1px solid #e5e7eb;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+  .modal .head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eee}
+  .modal .body{padding:14px}
+  .close{border:none;background:transparent;font-size:18px;cursor:pointer}
+  .warning{color:var(--warn)}
+  .danger-text{color:var(--err)}
+  .success-text{color:var(--ok)}
+  .inline-help{font-size:12px;color:#6b7280;margin-top:6px}
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#f3f4f6;border:1px solid #e5e7eb;border-bottom-color:#d1d5db;border-radius:6px;padding:1px 4px}
+</style>
+</head>
+<body>
+<p><a href="../index.html">Back to Card Index</a></p>
+<header>
+  <h1>WBS Graph Rewriter</h1>
+  <div class="toolbar">
+    <button id="addTask">+ Task</button>
+    <button id="addGate">+ Gate</button>
+    <button id="addBuffer">+ Buffer</button>
+    <button id="deleteSel" class="danger">Delete Selected</button>
+    <span class="sep"></span>
+    <button id="addDep" class="ghost">Add Dependency</button>
+    <button id="removeDep" class="ghost">Remove Dependency</button>
+    <span class="sep"></span>
+    <button id="rCollapse">R1: Collapse Serial</button>
+    <button id="rBuffer">R2: Insert Buffer</button>
+    <button id="rThin">R3: Thin Gate</button>
+    <button id="rParallel">R4: Parallelize Safe</button>
+    <span class="sep"></span>
+    <button id="validate" class="ghost">Validate</button>
+    <button id="recalc" class="ghost">Recalc</button>
+    <span class="sep"></span>
+    <button id="undo" class="ghost">Undo</button>
+    <button id="redo" class="ghost">Redo</button>
+    <span class="sep"></span>
+    <button id="saveScenario" class="ghost">Save Scenario</button>
+    <button id="compareScenario" class="ghost">Compare</button>
+    <span class="sep"></span>
+    <button id="exportJson" class="ghost">Export</button>
+    <label class="btn">Import <input type="file" id="importJson" accept="application/json" style="display:none"></label>
+    <!-- ▼ Add these explainer buttons inside the existing <div class="toolbar"> in your <header> -->
+    <span class="sep"></span>
+    <button id="helpWhat" class="ghost" aria-label="What this is">What?</button>
+    <button id="helpHow" class="ghost" aria-label="How to use">How</button>
+    <button id="helpShortcuts" class="ghost" aria-label="Shortcuts and gestures">Shortcuts</button>
+    <button id="helpData" class="ghost" aria-label="Data model">Model</button>
+    <button id="helpTips" class="ghost" aria-label="Pro tips">Tips</button>
+    <!-- ▲ End explainer buttons -->
+  </div>
+</header>
+
+<div id="app">
+  <div id="main">
+    <div id="left">
+      <div class="pane-header">
+        <div>
+          <strong>Network</strong>
+          <span class="explain" data-topic="rewrites">?</span>
+        </div>
+        <div>
+          <span class="pill" id="makespan">Makespan: –</span>
+          <span class="pill" id="levMode"></span>
+        </div>
+      </div>
+      <div class="pane-body" id="net">
+        <svg id="netSvg">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#9aa3b2"></path>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+      <div class="legend">
+        <div class="key"><div class="sw cp"></div>Critical path</div>
+        <div class="key"><div class="sw lev"></div>Leveled</div>
+        <div class="key"><div class="sw ear"></div>Earliest</div>
+        <span class="hint">Tip: drag nodes; <span class="kbd">Shift</span> click second node in “Add Dependency” mode</span>
+      </div>
+    </div>
+    <div id="right">
+      <div class="pane-header">
+        <div>
+          <strong>Gantt (Earliest vs Leveled)</strong>
+          <span class="explain" data-topic="cpm">?</span>
+        </div>
+        <div>
+          <select id="levelMode">
+            <option value="none">Leveling: None (ES)</option>
+            <option value="earliest">Leveling: Greedy Earliest‑First</option>
+            <option value="critical">Leveling: Greedy Critical‑First</option>
+          </select>
+          <button id="resourcesBtn" class="ghost">Resources</button>
+          <span id="overloadBadge" class="badge">Overloads: –</span>
+        </div>
+      </div>
+      <div class="pane-body">
+        <svg id="gantt"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div id="side">
+    <div class="pane-header">
+      <div>
+        <strong>Inspector</strong>
+        <span class="explain" data-topic="invariants">?</span>
+      </div>
+      <div>
+        <button id="riskBtn" class="ghost">Risk Sim</button>
+      </div>
+    </div>
+    <div class="pane-body">
+      <div class="section">
+        <h3>Selection</h3>
+        <div id="selNone" class="muted">Nothing selected. Click a node or edge.</div>
+        <div id="selNode" style="display:none">
+          <div class="kv">
+            <label>ID</label><input id="nId" type="text" disabled>
+            <label>Label</label><input id="nLabel" type="text">
+            <label>Type</label>
+            <select id="nType">
+              <option value="task">task</option>
+              <option value="gate">gate</option>
+              <option value="buffer">buffer</option>
+              <option value="milestone">milestone</option>
+            </select>
+            <label>Duration</label><input id="nDur" type="number" min="0" step="1">
+            <label>Variance</label><input id="nVar" type="number" min="0" step="0.01">
+            <label>Owner</label><input id="nOwner" type="text">
+            <label>Resources</label><input id="nRes" type="text" placeholder="CrewA:1, CrewB:2">
+            <label>Notes</label><textarea id="nNotes"></textarea>
+          </div>
+          <div class="inline-help">Resources are comma‑separated <code>Name:units</code>. Zero‑duration is allowed for gates/milestones.</div>
+        </div>
+        <div id="selEdge" style="display:none">
+          <div class="kv">
+            <label>From</label><input id="eFrom" type="text" disabled>
+            <label>To</label><input id="eTo" type="text" disabled>
+            <label>Type</label><input type="text" value="FS" disabled>
+          </div>
+          <div class="inline-help">Only Finish‑to‑Start edges are supported in this demo.</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Rule Preconditions <span class="explain" data-topic="rules">?</span></h3>
+        <div id="ruleHints" class="muted">Select nodes/edges to see rule eligibility.</div>
+      </div>
+
+      <div class="section">
+        <h3>Scenario</h3>
+        <div class="kv">
+          <label>Name</label><input id="scName" type="text" placeholder="e.g. 'Parallelized pipes'">
+          <label>Compare to</label><select id="scSelect"></select>
+        </div>
+        <div class="inline-help">Use <b>Save Scenario</b> to snapshot current plan, then <b>Compare</b>.</div>
+      </div>
+
+      <div class="section">
+        <h3>Diagnostics <span class="explain" data-topic="why">Why Not?</span></h3>
+        <div id="diag"></div>
+      </div>
+    </div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<!-- Explain / Modal -->
+<div id="modal" class="modal" role="dialog" aria-modal="true">
+  <div class="card">
+    <div class="head">
+      <strong id="modalTitle">Explain</strong>
+      <button class="close" id="modalClose" aria-label="Close">×</button>
+    </div>
+    <div class="body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+/* ----------------------- Model & Utilities ----------------------- */
+const deepCopy = o => JSON.parse(JSON.stringify(o));
+const asInt = v => Math.max(0, Math.round(Number(v)||0));
+const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+const now = ()=>new Date().toLocaleTimeString();
+
+let state = {
+  nodes: [
+    {id:"A", label:"Excavate", type:"task", dur:3, variance:0.5, owner:"Civils", res:{"CrewA":1}},
+    {id:"B", label:"Lay Pipe", type:"task", dur:4, variance:0.8, owner:"Civils", res:{"CrewA":1,"Excavator":1}},
+    {id:"C", label:"Backfill", type:"task", dur:2, variance:0.4, owner:"Civils", res:{"CrewA":1}},
+    {id:"D", label:"Inspect", type:"gate", dur:0, variance:0, owner:"QA", res:{}},
+    {id:"E", label:"Tie-in", type:"task", dur:2, variance:0.3, owner:"Mech", res:{"CrewB":1}},
+    {id:"M1", label:"Milestone", type:"milestone", dur:0, variance:0, owner:"PMO", res:{}}
+  ],
+  edges: [
+    {id:"e1", source:"A", target:"B"},
+    {id:"e2", source:"B", target:"C"},
+    {id:"e3", source:"C", target:"D"},
+    {id:"e4", source:"D", target:"E"},
+    {id:"e5", source:"E", target:"M1"}
+  ],
+  resources: {
+    "CrewA": {cap:1},
+    "CrewB": {cap:1},
+    "Excavator": {cap:1}
+  },
+  options: {
+    levelMode: "critical", // none | earliest | critical
+    bufferK: 1.0
+  },
+  selection: {nodeId:null, edgeId:null},
+  history: [], future: [],
+  scenarios: [] // {name, snapshot}
+};
+
+// Logging
+function log(msg){ const el=document.getElementById('log'); const p=document.createElement('div'); p.className='logline'; p.textContent = `${now()}  ${msg}`; el.prepend(p); }
+
+// Helpers
+function nodeById(id){ return state.nodes.find(n=>n.id===id); }
+function edgeBetween(u,v){ return state.edges.find(e=>e.source===u && e.target===v); }
+function indegree(id){ return state.edges.filter(e=>e.target===id).length; }
+function outdegree(id){ return state.edges.filter(e=>e.source===id).length; }
+function nextId(prefix){
+  let k=1; while(state.nodes.some(n=>n.id===prefix+k)) k++; return prefix+k;
+}
+function parseRes(text){
+  const r={}; if(!text) return r;
+  text.split(',').map(s=>s.trim()).filter(Boolean).forEach(pair=>{
+    const [n,u]=pair.split(':').map(x=>x.trim()); if(n) r[n]=asInt(u??1);
+  });
+  return r;
+}
+function resToText(obj){ return Object.entries(obj||{}).map(([k,v])=>`${k}:${v}`).join(', '); }
+
+/* ----------------------- DAG / CPM / Leveling ----------------------- */
+function topoOrder(nodes=state.nodes, edges=state.edges){
+  const indeg = new Map(nodes.map(n=>[n.id,0]));
+  edges.forEach(e=> indeg.set(e.target, (indeg.get(e.target)||0)+1));
+  const q = nodes.filter(n=>indeg.get(n.id)===0).map(n=>n.id);
+  const order=[]; const visited=new Set();
+  while(q.length){
+    const u=q.shift(); order.push(u); visited.add(u);
+    edges.filter(e=>e.source===u).forEach(e=>{
+      indeg.set(e.target, indeg.get(e.target)-1);
+      if(indeg.get(e.target)===0) q.push(e.target);
+    });
+  }
+  if(order.length!==nodes.length) throw new Error("Cycle detected");
+  return order;
+}
+function hasPath(src,tgt){
+  // DFS from src to see if tgt reachable
+  const g=new Map(); state.edges.forEach(e=>{ if(!g.has(e.source)) g.set(e.source,[]); g.get(e.source).push(e.target); });
+  const seen=new Set(); const st=[src];
+  while(st.length){ const u=st.pop(); if(u===tgt) return true; (g.get(u)||[]).forEach(v=>{ if(!seen.has(v)){seen.add(v); st.push(v);} }); }
+  return false;
+}
+function wouldCreateCycle(u,v){ // adding edge u->v
+  // if there's already a path v -> u, then adding u->v creates a cycle
+  return hasPath(v,u) || u===v;
+}
+function computeCPM(){
+  // Forward pass (ES/EF)
+  state.nodes.forEach(n=>{ n.ES=0; n.EF=n.dur; });
+  const order = topoOrder().map(id=>nodeById(id));
+  order.forEach(n=>{
+    const preds = state.edges.filter(e=>e.target===n.id).map(e=>nodeById(e.source));
+    n.ES = preds.length? Math.max(...preds.map(p=>p.EF)) : 0;
+    n.EF = n.ES + n.dur;
+  });
+  // Backward pass (LS/LF)
+  const makespan = Math.max(...state.nodes.map(n=>n.EF));
+  state.nodes.forEach(n=>{ n.LF=makespan; n.LS=makespan - n.dur; });
+  [...order].reverse().forEach(n=>{
+    const succs = state.edges.filter(e=>e.source===n.id).map(e=>nodeById(e.target));
+    if(succs.length){
+      n.LF = Math.min(...succs.map(s=>s.LS));
+      n.LS = n.LF - n.dur;
+    }
+    n.slack = n.LS - n.ES;
+    n.isCritical = (n.slack===0);
+  });
+  // Critical links
+  state.edges.forEach(e=>{
+    const u=nodeById(e.source), v=nodeById(e.target);
+    e.critical = (u.isCritical && v.isCritical && u.EF===v.ES);
+  });
+  state.makespan = makespan;
+}
+function resNames(){ return Object.keys(state.resources); }
+function resCap(name){ return (state.resources[name]||{}).cap||0; }
+
+// Greedy leveling (discrete time units)
+function levelSchedule(mode=state.options.levelMode){
+  computeCPM(); // ensure ES available
+  const orderIds = topoOrder();
+  // priority list
+  let list = orderIds.map(id=>nodeById(id));
+  if(mode==="critical"){
+    list.sort((a,b)=> (a.slack-b.slack) || (b.ES-a.ES)); // critical first, later ES first
+  }else if(mode==="earliest"){
+    list.sort((a,b)=> (a.ES-b.ES) || (b.dur-a.dur));
+  }
+  // Build usage arrays
+  const horizon = Math.max(200, state.makespan*2+50);
+  const usage = {}; resNames().forEach(r=> usage[r] = new Array(horizon).fill(0));
+  // Predecessor map
+  const preds = new Map(state.nodes.map(n=>[n.id, state.edges.filter(e=>e.target===n.id).map(e=>e.source)]));
+  // Start times
+  state.nodes.forEach(n=>{ n.startLev = undefined; n.finishLev = undefined; });
+
+  let overloads=0;
+  for(const n of list){
+    if(n.dur===0){ n.startLev = Math.max(0, ...(preds.get(n.id)||[]).map(pid=>nodeById(pid).finishLev ?? nodeById(pid).EF)); n.finishLev = n.startLev; continue; }
+    const es = Math.max(n.ES, ...(preds.get(n.id)||[]).map(pid=>nodeById(pid).finishLev ?? 0));
+    const req = n.res||{};
+    let t = es;
+    outer: for(; t<horizon-n.dur-1; t++){
+      for(let d=0; d<n.dur; d++){
+        for(const [r,u] of Object.entries(req)){
+          if((usage[r]||[])[t+d] + (u||0) > resCap(r)) continue outer;
+        }
+      }
+      break; // found fit
+    }
+    if(t>=horizon-n.dur-1){ // couldn't fit within horizon
+      t = es;
+      overloads++; // we will place anyway (unleveled fallback)
+    }
+    // allocate
+    for(let d=0; d<n.dur; d++){
+      for(const [r,u] of Object.entries(req)){
+        if(!usage[r]) usage[r] = new Array(horizon).fill(0);
+        usage[r][t+d] += (u||0);
+      }
+    }
+    n.startLev = t; n.finishLev = t + n.dur;
+  }
+  state.overloads = overloads;
+  return {usage, horizon, overloads};
+}
+
+
+/* ----------------------- Rewrite Rules ----------------------- */
+// R1: Collapse serial A→B (pre: indegree(B)=1). Works on selected edge or first eligible.
+function ruleCollapseSerial(edgeId){
+  const e = state.edges.find(x=>x.id===edgeId) || state.edges.find(x=> indegree(x.target)===1);
+  if(!e){ diag("R1: No eligible A→B (needs indegree(B)=1)."); return false; }
+  const A = nodeById(e.source), B = nodeById(e.target);
+  // Build new node
+  const id = (A.id+'_'+B.id).slice(0,20);
+  const label = `${A.label} + ${B.label}`;
+  const dur = asInt(A.dur) + asInt(B.dur);
+  const variance = (A.variance||0) + (B.variance||0);
+  const owner = (A.owner===B.owner) ? (A.owner||B.owner) : (A.owner||'') + '/' + (B.owner||'');
+  const res = {};
+  // Serial merge: keep peak demand as sum (since combined task is still serial inside)
+  for(const k of new Set([...Object.keys(A.res||{}), ...Object.keys(B.res||{})])){
+    res[k] = (A.res?.[k]||0) + (B.res?.[k]||0);
+  }
+  const newNode = {id, label, type: (A.type==='task' && B.type==='task')?'task':'task', dur, variance, owner, res};
+  // Rewire: preds(A) -> id ; id -> succs(B)
+  const predsA = state.edges.filter(x=>x.target===A.id).map(x=>x.source);
+  const succsB = state.edges.filter(x=>x.source===B.id).map(x=>x.target);
+  // Remove A,B and incident edges
+  state.nodes = state.nodes.filter(n=>n.id!==A.id && n.id!==B.id);
+  state.edges = state.edges.filter(x=>x.source!==A.id && x.target!==A.id && x.source!==B.id && x.target!==B.id);
+  // Insert new node
+  state.nodes.push(newNode);
+  // Re-add edges avoiding duplicates and self-loops
+  for(const p of predsA){ if(p!==id && !edgeBetween(p,id)) state.edges.push({id:crypto.randomUUID(), source:p, target:id}); }
+  for(const s of succsB){ if(s!==id && !edgeBetween(id,s)) state.edges.push({id:crypto.randomUUID(), source:id, target:s}); }
+  log(`R1: Collapsed ${A.id}→${B.id} into ${id} (dur=${dur})`);
+  return true;
+}
+
+// R2: Insert buffer on critical chain end (project buffer)
+function ruleInsertBuffer(k=state.options.bufferK){
+  computeCPM();
+  const crit = state.nodes.filter(n=>n.isCritical);
+  if(crit.length===0){ diag("R2: No critical path found."); return false; }
+  // Sum variance on critical nodes with variance field
+  const v = crit.reduce((a,n)=>a+(n.variance||0),0);
+  const dur = Math.round(k*Math.sqrt(v||0));
+  if(dur<=0){ diag("R2: Chain variance too small; buffer would be zero. Increase k or set variances."); return false; }
+  const endNodes = state.nodes.filter(n=> outdegree(n.id)===0);
+  // Attach buffer after each critical end that is also critical
+  const ends = endNodes.filter(n=>n.isCritical);
+  if(ends.length===0){ diag("R2: No critical end to attach buffer."); return false; }
+  const id = nextId('Bf');
+  const buf = {id, label:`Buffer k=${k}`, type:"buffer", dur, variance:0, owner:"PMO", res:{}};
+  state.nodes.push(buf);
+  for(const end of ends){ state.edges.push({id:crypto.randomUUID(), source:end.id, target:id}); }
+  log(`R2: Inserted buffer ${id} dur=${dur} on critical end(s).`);
+  return true;
+}
+
+// R3: Thin Gate (set approvals metadata smaller) for selected gate
+function ruleThinGate(nodeId){
+  const n = nodeById(nodeId);
+  if(!n || n.type!=="gate"){ diag("R3: Select a gate node."); return false; }
+  if(n.dur!==0){ diag("R3: Gate should be zero‑duration."); return false; }
+  if(outdegree(n.id)!==1){ diag("R3: Gate should have exactly one outgoing edge in this approximation."); return false; }
+  n.notes = (n.notes||'') + `
+[Gate thinned] Approvals reduced to accountable only on ${new Date().toISOString().slice(0,10)}.`;
+  log(`R3: Thinned gate ${n.id} (metadata).`);
+  return true;
+}
+
+// R4: Parallelize Safe: remove selected edge A→B if no shared resources and neither is flagged noOverlap
+function ruleParallelize(edgeId){
+  const e = state.edges.find(x=>x.id===edgeId);
+  if(!e){ diag("R4: Select an edge A→B to consider for parallelization."); return false; }
+  const A=nodeById(e.source), B=nodeById(e.target);
+  // Check resource overlap
+  const resA = new Set(Object.keys(A.res||{})), resB = new Set(Object.keys(B.res||{}));
+  const overlap = [...resA].some(r=>resB.has(r) && (A.res[r]||0)>0 && (B.res[r]||0)>0);
+  if(overlap){ diag(`R4: Unsafe – A and B share resources.`); return false; }
+  if(A.noOverlap || B.noOverlap){ diag(`R4: Unsafe – node marked noOverlap.`); return false; }
+  // Removing edge cannot create cycle. Do it.
+  state.edges = state.edges.filter(x=>x.id!==edgeId);
+  log(`R4: Removed precedence ${A.id}→${B.id}; tasks may run in parallel if predecessors allow.`);
+  return true;
+}
+
+/* ----------------------- Validation ----------------------- */
+function validateAll(){
+  const msgs=[];
+  // DAG
+  try{ topoOrder(); }catch(e){ msgs.push(`Cycle detected: ${e.message}`); }
+  // Duplicates
+  const key = e=>`${e.source}→${e.target}`;
+  const dup = new Set(); for(const e of state.edges){ const k=key(e); if(dup.has(k)) msgs.push(`Duplicate edge ${k}`); dup.add(k); }
+  // Durations
+  for(const n of state.nodes){ if(n.dur<0) msgs.push(`Negative duration: ${n.id}`); }
+  // Resource names unknown
+  for(const n of state.nodes){
+    for(const r of Object.keys(n.res||{})){ if(!state.resources[r]) msgs.push(`Unknown resource '${r}' used by ${n.id}`); }
+  }
+  // Leveling feasibility quick check
+  computeCPM();
+  const {overloads} = (state.options.levelMode==="none")? {overloads:0}: levelSchedule(state.options.levelMode);
+  if(overloads>0) msgs.push(`Leveling caused ${overloads} forced placements (capacity probably too tight).`);
+  document.getElementById('diag').innerHTML = msgs.length? msgs.map(m=>`<div class="danger-text">• ${m}</div>`).join('') : '<div class="success-text">No issues found.</div>';
+  log(`Validate: ${msgs.length? msgs.length+' issue(s)':'OK'}`);
+  return msgs;
+}
+function diag(msg){ document.getElementById('diag').innerHTML = `<div class="warning">• ${msg}</div>`; }
+
+/* ----------------------- History ----------------------- */
+function pushHistory(){
+  state.future.length=0;
+  state.history.push(JSON.stringify({nodes:state.nodes, edges:state.edges, resources:state.resources, options:state.options}));
+  if(state.history.length>60) state.history.shift();
+}
+function undo(){
+  const snap = state.history.pop(); if(!snap){ log("Undo: nothing."); return; }
+  state.future.push(JSON.stringify({nodes:state.nodes, edges:state.edges, resources:state.resources, options:state.options}));
+  const s=JSON.parse(snap);
+  state.nodes = deepCopy(s.nodes); state.edges=deepCopy(s.edges); state.resources=deepCopy(s.resources); state.options=deepCopy(s.options);
+  state.selection={nodeId:null,edgeId:null};
+  log("Undo.");
+  renderAll();
+}
+function redo(){
+  const snap = state.future.pop(); if(!snap){ log("Redo: nothing."); return; }
+  pushHistory();
+  const s=JSON.parse(snap);
+  state.nodes = deepCopy(s.nodes); state.edges=deepCopy(s.edges); state.resources=deepCopy(s.resources); state.options=deepCopy(s.options);
+  state.selection={nodeId:null,edgeId:null};
+  log("Redo.");
+  renderAll();
+}
+
+/* ----------------------- Scenarios ----------------------- */
+function saveScenario(){
+  const name = document.getElementById('scName').value || `Scenario ${state.scenarios.length+1}`;
+  state.scenarios.push({name, snapshot: JSON.stringify({nodes:state.nodes, edges:state.edges, resources:state.resources, options:state.options})});
+  refreshScenarioList();
+  log(`Scenario saved: ${name}`);
+}
+function refreshScenarioList(){
+  const sel=document.getElementById('scSelect'); sel.innerHTML='';
+  const opt=document.createElement('option'); opt.value=''; opt.text='(none)'; sel.appendChild(opt);
+  state.scenarios.forEach((s,i)=>{ const o=document.createElement('option'); o.value=i; o.text=s.name; sel.appendChild(o); });
+}
+function compareScenario(){
+  const idx = document.getElementById('scSelect').value;
+  if(idx===''){ diag('Compare: choose a scenario in the dropdown.'); return; }
+  const base = JSON.parse(state.scenarios[idx].snapshot);
+  computeCPM(); const msNow=state.makespan;
+  const nodes0=base.nodes.length, edges0=base.edges.length;
+  // compute makespan of base
+  const tmp={nodes:deepCopy(base.nodes), edges:deepCopy(base.edges)};
+  const ord=(()=>{
+    const indeg=new Map(tmp.nodes.map(n=>[n.id,0]));
+    tmp.edges.forEach(e=> indeg.set(e.target,(indeg.get(e.target)||0)+1));
+    const q=tmp.nodes.filter(n=>indeg.get(n.id)===0).map(n=>n.id);
+    const order=[]; while(q.length){ const u=q.shift(); order.push(u); tmp.edges.filter(e=>e.source===u).forEach(e=>{ indeg.set(e.target,indeg.get(e.target)-1); if(indeg.get(e.target)===0) q.push(e.target); }); }
+    return order;
+  })();
+  const map=new Map(tmp.nodes.map(n=>[n.id,n]));
+  tmp.nodes.forEach(n=>{n.ES=0;n.EF=n.dur;});
+  ord.map(id=>map.get(id)).forEach(n=>{
+    const preds=tmp.edges.filter(e=>e.target===n.id).map(e=>map.get(e.source));
+    n.ES = preds.length? Math.max(...preds.map(p=>p.EF)) : 0;
+    n.EF = n.ES + n.dur;
+  });
+  const ms0=Math.max(...tmp.nodes.map(n=>n.EF));
+  const delta = msNow - ms0;
+  const body = `
+    <p><b>${state.scenarios[idx].name}</b> → <b>Current</b></p>
+    <ul>
+      <li>Makespan: <b>${ms0}</b> → <b>${msNow}</b> (${delta>=0?'+':''}${delta})</li>
+      <li>Nodes: ${nodes0} → ${state.nodes.length}</li>
+      <li>Edges: ${edges0} → ${state.edges.length}</li>
+    </ul>`;
+  showExplain('scenario', body);
+}
+
+/* ----------------------- Rendering: Network ----------------------- */
+const svg = d3.select("#netSvg");
+const g = svg.append("g");
+svg.call(d3.zoom().on("zoom", (ev)=> g.attr("transform", ev.transform)));
+
+let sim;
+function renderNetwork(){
+  computeCPM();
+  const makespan = state.makespan;
+  document.getElementById('makespan').textContent = `Makespan: ${makespan}`;
+  document.getElementById('levMode').textContent = `Lev: ${state.options.levelMode}`;
+
+  if(sim) sim.stop();
+  // Map nodes to sim nodes
+  const nodes = state.nodes.map(n=>Object.assign({}, n));
+  const links = state.edges.map(e=>Object.assign({}, e));
+
+  sim = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(d=>d.id).distance(90).strength(0.35))
+    .force("charge", d3.forceManyBody().strength(-300))
+    .force("collide", d3.forceCollide().radius(36))
+    .force("center", d3.forceCenter(400, 250));
+
+  // LINKS
+  const link = g.selectAll(".link").data(links, d=>d.id);
+  link.exit().remove();
+  link.enter().append("line").attr("class","link")
+      .on("click",(event,d)=>{ event.stopPropagation(); state.selection={nodeId:null, edgeId:d.id}; renderInspector(); renderNetwork(); })
+    .merge(link)
+      .classed("selected", d=>state.selection.edgeId===d.id)
+      .classed("critical", d=>d.critical===true);
+
+  // NODES
+  const node = g.selectAll(".node").data(nodes, d=>d.id);
+  node.exit().remove();
+
+  const enter = node.enter().append("g").attr("class","node").call(
+    d3.drag()
+      .on("start",(ev,d)=>{ if(!ev.active) sim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on("drag", (ev,d)=>{ d.fx=ev.x; d.fy=ev.y; })
+      .on("end",  (ev,d)=>{ if(!ev.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
+  )
+  .on("click",(event,d)=>{
+    event.stopPropagation();
+    state.selection={nodeId:d.id, edgeId:null};
+    renderInspector(); renderRuleHints(); renderNetwork();
+  })
+  .each(function(d){
+    const sel=d3.select(this);
+    if(d.type==="task"){
+      sel.append("circle").attr("r",24);
+    }else{
+      sel.append("rect").attr("x",-28).attr("y",-18).attr("width",56).attr("height",36).attr("rx",8).attr("ry",8);
+    }
+    sel.append("text").attr("class","label").attr("dy","-0.2em").text(d.id);
+    sel.append("text").attr("class","sub").attr("dy","1.1em")
+       .text(()=>`dur ${d.dur} | ES ${d.ES}`);
+  });
+
+  const all = enter.merge(node)
+    .attr("class", d=>`node ${d.type} ${d.isCritical?'critical':''} ${state.selection.nodeId===d.id?'selected':''}`);
+
+  sim.on("tick", ()=>{
+    g.selectAll(".link").attr("x1", d=>d.source.x).attr("y1", d=>d.source.y)
+       .attr("x2", d=>d.target.x).attr("y2", d=>d.target.y);
+    all.attr("transform", d=>`translate(${d.x},${d.y})`);
+  });
+
+  svg.on("click", ()=>{ state.selection={nodeId:null, edgeId:null}; renderInspector(); renderRuleHints(); renderNetwork(); });
+}
+
+/* ----------------------- Rendering: Gantt ----------------------- */
+const ganttSvg = d3.select("#gantt");
+function renderGantt(){
+  const width = document.getElementById('right').clientWidth - 24;
+  const height = document.getElementById('right').clientHeight - 60;
+  ganttSvg.attr("width", width).attr("height", height);
+  ganttSvg.selectAll("*").remove();
+
+  computeCPM();
+  const lev = (state.options.levelMode==="none")? null : levelSchedule(state.options.levelMode);
+
+  const tasks = state.nodes.slice().sort((a,b)=> a.ES - b.ES || a.id.localeCompare(b.id));
+  const makespan = state.makespan;
+  const maxT = Math.max(makespan, ...tasks.map(t=>t.finishLev||0));
+
+  const margin = {top:24,right:10,bottom:24,left:120};
+  const innerW = width - margin.left - margin.right;
+  const innerH = height - margin.top - margin.bottom;
+
+  const x = d3.scaleLinear().domain([0, maxT+2]).range([0, innerW]);
+  const y = d3.scaleBand().domain(tasks.map(t=>t.id)).range([0, innerH]).padding(0.25);
+
+  // axes
+  const gx = ganttSvg.append("g").attr("transform",`translate(${margin.left},${margin.top})`);
+  const xAxis = d3.axisTop(x).ticks(10);
+  gx.append("g").attr("class","axis").call(xAxis);
+  gx.append("g").attr("class","grid").call(d3.axisTop(x).tickSize(-innerH).tickFormat(""));
+
+  // rows
+  const rows = gx.selectAll(".row").data(tasks, d=>d.id).enter().append("g")
+    .attr("class","row")
+    .attr("transform", d=>`translate(0,${y(d.id)})`)
+    .on("click",(ev,d)=>{ state.selection={nodeId:d.id, edgeId:null}; renderInspector(); renderRuleHints(); renderNetwork(); });
+
+  rows.append("text").attr("class","row-label").attr("x",-8).attr("y", y.bandwidth()/2).attr("dy",".35em")
+      .attr("text-anchor","end").text(d=>`${d.id} (${d.label||d.type})`);
+
+  // earliest bars
+  rows.append("rect").attr("class","bar")
+      .attr("x", d=>x(d.ES)).attr("y", 4)
+      .attr("width", d=>x(d.EF)-x(d.ES)).attr("height", y.bandwidth()-8)
+      .classed("critical", d=>d.isCritical);
+
+  // leveled bars overlay
+  if(state.options.levelMode!=="none"){
+    rows.append("rect").attr("class","bar leveled")
+      .attr("x", d=>x(d.startLev||d.ES)).attr("y", 6)
+      .attr("width", d=>x((d.finishLev||d.EF)) - x(d.startLev||d.ES)).attr("height", y.bandwidth()-12);
+  }
+  document.getElementById('overloadBadge').textContent = `Overloads: ${state.overloads ?? 0}`;
+}
+
+
+/* ----------------------- Inspector ----------------------- */
+function renderInspector(){
+  const nSec = document.getElementById('selNode');
+  const eSec = document.getElementById('selEdge');
+  const none = document.getElementById('selNone');
+
+  if(state.selection.nodeId){
+    const n=nodeById(state.selection.nodeId);
+    none.style.display='none'; eSec.style.display='none'; nSec.style.display='';
+    document.getElementById('nId').value=n.id;
+    document.getElementById('nLabel').value=n.label||'';
+    document.getElementById('nType').value=n.type||'task';
+    document.getElementById('nDur').value=n.dur;
+    document.getElementById('nVar').value=n.variance||0;
+    document.getElementById('nOwner').value=n.owner||'';
+    document.getElementById('nRes').value=resToText(n.res||{});
+    document.getElementById('nNotes').value=n.notes||'';
+  }else if(state.selection.edgeId){
+    none.style.display='none'; nSec.style.display='none'; eSec.style.display='';
+    const e=state.edges.find(x=>x.id===state.selection.edgeId);
+    document.getElementById('eFrom').value=e.source;
+    document.getElementById('eTo').value=e.target;
+  }else{
+    nSec.style.display='none'; eSec.style.display='none'; none.style.display='';
+  }
+  renderRuleHints();
+}
+function renderRuleHints(){
+  const hints=[];
+  if(state.selection.edgeId){
+    const e=state.edges.find(x=>x.id===state.selection.edgeId);
+    if(indegree(e.target)===1) hints.push("R1 Collapse: ✅ indegree(B)=1");
+    else hints.push("R1 Collapse: ❌ needs indegree(B)=1");
+    const A=nodeById(e.source), B=nodeById(e.target);
+    const share = Object.keys(A.res||{}).some(r=>(A.res[r]||0)>0 && (B.res?.[r]||0)>0);
+    hints.push(share? "R4 Parallelize: ❌ share resources" : "R4 Parallelize: ✅ disjoint resources");
+  }
+  if(state.selection.nodeId){
+    const n=nodeById(state.selection.nodeId);
+    if(n.type==='gate' && n.dur===0 && outdegree(n.id)===1) hints.push("R3 Thin Gate: ✅ eligible");
+    else hints.push("R3 Thin Gate: ❌ select a zero‑duration gate with 1 outgoing edge");
+  }
+  if(!state.selection.nodeId && !state.selection.edgeId){
+    hints.push("Select an edge for R1/R4 or a gate for R3.");
+  }
+  document.getElementById('ruleHints').innerHTML = hints.map(h=>`<div>• ${h}</div>`).join('');
+}
+
+/* ----------------------- Actions / UI ----------------------- */
+// Create nodes
+function addNode(type){
+  pushHistory();
+  const id = nextId(type==='task'?'T':'N');
+  state.nodes.push({id, label:type==='task'?'Task':type, type, dur:(type==='task'?2:0), variance:(type==='task'?0.2:0), owner:'', res:{}});
+  state.selection={nodeId:id, edgeId:null};
+  log(`Add ${type}: ${id}`);
+  renderAll();
+}
+function deleteSelected(){
+  if(state.selection.nodeId){
+    pushHistory();
+    const id=state.selection.nodeId;
+    state.nodes = state.nodes.filter(n=>n.id!==id);
+    state.edges = state.edges.filter(e=>e.source!==id && e.target!==id);
+    state.selection={nodeId:null, edgeId:null};
+    log(`Deleted node ${id}`);
+    renderAll();
+  }else if(state.selection.edgeId){
+    pushHistory();
+    const id=state.selection.edgeId;
+    const e=state.edges.find(x=>x.id===id);
+    state.edges = state.edges.filter(x=>x.id!==id);
+    state.selection={nodeId:null, edgeId:null};
+    log(`Deleted edge ${e.source}→${e.target}`);
+    renderAll();
+  }
+}
+
+// Dependencies (add/remove)
+let addDepMode=false; let depSource=null;
+function toggleAddDep(){
+  addDepMode = !addDepMode; depSource=null;
+  document.getElementById('addDep').classList.toggle('primary', addDepMode);
+  diag(addDepMode?"Add Dependency: click source, then target (hold Shift for direct target).":"");
+}
+svg.on("mousedown",(ev)=>{
+  if(!addDepMode) return;
+  const coords = d3.pointer(ev);
+  // Using selection for nodes; rely on click handlers instead (simpler)
+});
+
+g.selectAll; // placeholder
+
+// Hook node clicks to add dep: already handled; we’ll use selection + Shift
+document.addEventListener('click', (ev)=>{
+  if(addDepMode && state.selection.nodeId && ev.shiftKey){
+    if(depSource==null){ depSource = state.selection.nodeId; diag(`Add Dependency: source ${depSource} set; now click target.`); }
+    else {
+      const src = depSource, tgt = state.selection.nodeId;
+      if(src===tgt){ diag("Edge not allowed: same node."); return; }
+      if(edgeBetween(src,tgt)){ diag("Edge exists."); depSource=null; return; }
+      if(wouldCreateCycle(src,tgt)){ diag("Edge would create a cycle."); depSource=null; return; }
+      pushHistory();
+      state.edges.push({id:crypto.randomUUID(), source:src, target:tgt});
+      log(`Edge added ${src}→${tgt}`);
+      depSource=null; addDepMode=false; document.getElementById('addDep').classList.remove('primary');
+      renderAll();
+    }
+  }
+});
+
+function removeDep(){
+  if(state.selection.edgeId){ deleteSelected(); }
+  else diag("Select an edge to remove.");
+}
+
+/* Inspector inputs */
+function bindInspector(){
+  const set = (id,fn)=> document.getElementById(id).addEventListener('input', fn);
+  set('nLabel', ev=>{ const n=nodeById(state.selection.nodeId); if(!n) return; pushHistory(); n.label=ev.target.value; renderAll(); });
+  set('nType', ev=>{ const n=nodeById(state.selection.nodeId); if(!n) return; pushHistory(); n.type=ev.target.value; if(n.type!=='task' && n.dur>0) n.dur=0; renderAll(); });
+  set('nDur', ev=>{ const n=nodeById(state.selection.nodeId); if(!n) return; pushHistory(); n.dur=asInt(ev.target.value); renderAll(); });
+  set('nVar', ev=>{ const n=nodeById(state.selection.nodeId); if(!n) return; pushHistory(); n.variance=Math.max(0, Number(ev.target.value)||0); renderAll(); });
+  set('nOwner', ev=>{ const n=nodeById(state.selection.nodeId); if(!n) return; pushHistory(); n.owner=ev.target.value; });
+  set('nRes', ev=>{ const n=nodeById(state.selection.nodeId); if(!n) return; pushHistory(); n.res=parseRes(ev.target.value); renderAll(); });
+  set('nNotes', ev=>{ const n=nodeById(state.selection.nodeId); if(!n) return; pushHistory(); n.notes=ev.target.value; });
+  document.getElementById('levelMode').addEventListener('change', ev=>{
+    state.options.levelMode = ev.target.value; renderAll();
+  });
+}
+
+/* Resources modal */
+function showResources(){
+  const rows = Object.entries(state.resources).map(([k,v])=>`
+    <tr>
+      <td><input data-rname="${k}" class="rName" value="${k}"></td>
+      <td><input data-rcap="${k}" class="rCap" type="number" min="0" step="1" value="${v.cap||0}"></td>
+      <td><button data-del="${k}" class="ghost">Remove</button></td>
+    </tr>`).join('');
+  const body = `
+    <p>Set resource pool capacities. Leveling uses integer time units.</p>
+    <table style="width:100%;border-collapse:collapse"><thead>
+      <tr><th align="left">Name</th><th align="left">Capacity</th><th></th></tr>
+    </thead><tbody>${rows}</tbody></table>
+    <p><button id="addRes" class="ghost">+ Add Resource</button></p>`;
+  showExplain('resources', body);
+
+  // Wire up
+  setTimeout(()=>{
+    document.querySelectorAll('.rCap').forEach(inp=> inp.addEventListener('input', ev=>{
+      const name = ev.target.getAttribute('data-rcap'); state.resources[name].cap = asInt(ev.target.value); renderAll();
+    }));
+    document.querySelectorAll('.rName').forEach(inp=> inp.addEventListener('change', ev=>{
+      const old = ev.target.getAttribute('data-rname'); const nv = (ev.target.value||'').trim();
+      if(!nv || nv===old || state.resources[nv]){ ev.target.value=old; return; }
+      state.resources[nv] = state.resources[old]; delete state.resources[old];
+      // remap node usages
+      state.nodes.forEach(n=>{ if(n.res?.[old]){ n.res[nv]=n.res[old]; delete n.res[old]; }});
+      renderAll(); showResources();
+    }));
+    document.querySelectorAll('button[data-del]').forEach(btn=> btn.addEventListener('click', ev=>{
+      const name=btn.getAttribute('data-del'); delete state.resources[name];
+      state.nodes.forEach(n=>{ if(n.res?.[name]) delete n.res[name]; });
+      renderAll(); showResources();
+    }));
+    document.getElementById('addRes').addEventListener('click', ()=>{
+      let base='Res', i=1; while(state.resources[base+i]) i++; state.resources[base+i]={cap:1}; renderAll(); showResources();
+    });
+  },0);
+}
+
+
+/* Risk sim modal (Monte Carlo, triangular around dur) */
+let simAbort=false;
+function showRisk(){
+  const body = `
+    <p>Monte Carlo on precedence (no resources) to estimate finish-time distribution.</p>
+    <div class="inline-help">For each task, we sample a triangular distribution: <i>optimistic</i>=0.7·dur, <i>most likely</i>=dur, <i>pessimistic</i>=1.3·dur. Edit durations to adjust.</div>
+    <p>
+      Runs: <input type="number" id="runs" value="1000" min="100" step="100" style="width:90px">
+      <button id="runSim" class="primary">Run</button>
+      <button id="abortSim" class="ghost">Abort</button>
+    </p>
+    <div id="simStatus" class="muted">Idle.</div>
+    <svg id="hist" style="width:100%;height:260px"></svg>
+  `;
+  showExplain('risk', body);
+
+  const tri = (a,m,b)=>{
+    const u=Math.random(); const c=(m-a)/(b-a);
+    return (u<c) ? a+Math.sqrt(u*(b-a)*(m-a)) : b-Math.sqrt((1-u)*(b-a)*(b-m));
+  };
+  function scheduleOnce(durs){
+    // local CPM forward only
+    const ids = topoOrder();
+    const map=new Map(state.nodes.map(n=>[n.id,n]));
+    const ES=new Map(), EF=new Map();
+    ids.forEach(id=>{
+      const preds=state.edges.filter(e=>e.target===id).map(e=>e.source);
+      const es = preds.length? Math.max(...preds.map(p=>EF.get(p)||0)) : 0;
+      ES.set(id, es); EF.set(id, es + (durs.get(id)||0));
+    });
+    return Math.max(...ids.map(id=>EF.get(id)||0));
+  }
+  function drawHist(values){
+    const svg = d3.select("#hist"); svg.selectAll("*").remove();
+    const w = svg.node().clientWidth, h = svg.node().clientHeight;
+    const margin={l:36,r:10,t:10,b:24}, W=w-margin.l-margin.r, H=h-margin.t-margin.b;
+    const x = d3.scaleLinear().domain([d3.min(values), d3.max(values)]).nice().range([0,W]);
+    const bins = d3.bin().domain(x.domain()).thresholds(20)(values);
+    const y = d3.scaleLinear().domain([0, d3.max(bins, d=>d.length)]).range([H,0]);
+    const g=svg.append("g").attr("transform",`translate(${margin.l},${margin.t})`);
+    g.append("g").selectAll("rect").data(bins).enter().append("rect")
+      .attr("x", d=>x(d.x0)+1).attr("y", d=>y(d.length)).attr("width", d=>Math.max(0,x(d.x1)-x(d.x0)-1)).attr("height", d=>H-y(d.length))
+      .attr("fill","#dbeafe").attr("stroke","#93c5fd");
+    g.append("g").attr("transform",`translate(0,${H})`).call(d3.axisBottom(x).ticks(8)).attr("class","axis");
+    g.append("g").call(d3.axisLeft(y).ticks(5)).attr("class","axis");
+  }
+  document.getElementById('runSim').onclick = async ()=>{
+    simAbort=false;
+    const runs=asInt(document.getElementById('runs').value)||1000;
+    const vals=[];
+    const base = state.nodes.map(n=>[n.id, {a:Math.max(0,Math.round(0.7*n.dur)), m:n.dur, b:Math.round(1.3*n.dur)}]);
+    const msg = document.getElementById('simStatus');
+    for(let i=0;i<runs;i++){
+      if(simAbort){ msg.textContent="Aborted."; return; }
+      const durs = new Map(base.map(([id,o])=>[id, Math.max(0, Math.round(tri(o.a,o.m,o.b)))]));
+      vals.push(scheduleOnce(durs));
+      if(i%100===0) msg.textContent=`Running… ${i}/${runs}`;
+      await new Promise(r=>setTimeout(r,0)); // yield to UI
+    }
+    msg.textContent=`Done ${runs} runs.`;
+    drawHist(vals);
+  };
+  document.getElementById('abortSim').onclick = ()=>{ simAbort=true; };
+}
+
+/* ----------------------- Explain content ----------------------- */
+const explainText = {
+  rewrites: `
+    <p><b>Rewrite rules</b> change only a small subgraph while a constraint checker keeps the plan globally sound.</p>
+    <ul>
+      <li><b>R1 Collapse serial A→B</b>: merge tasks when B has a single predecessor. Durations/resources/variance add.</li>
+      <li><b>R2 Insert buffer</b>: add a zero‑resource buffer at the end of the critical chain: <i>dur = k·√Σvariance</i>.</li>
+      <li><b>R3 Thin gate</b>: governance metadata change (approvals), keeps CPM the same.</li>
+      <li><b>R4 Parallelize safe</b>: remove precedence when tasks don’t share resources (and aren’t flagged noOverlap).</li>
+    </ul>
+    <p>Every rule re-checks: acyclicity, CPM, resource leveling, duplicates, and shows “Why Not?” when blocked.</p>
+  `,
+  what: `
+    <p><b>WBS Graph Rewriter</b> is a sandbox for experimenting with work-breakdown structures.</p>
+    <p>It combines a <b>precedence network</b>, <b>resource-aware Gantt</b>, and <b>rewrite rules</b> so you can explore how local edits ripple through the plan.</p>
+    <p>Use it to compare alternatives, spot overloads, and document why certain changes were applied.</p>
+  `,
+  how: `
+    <ol>
+      <li>Start with the sample network or import your own JSON snapshot.</li>
+      <li>Use <b>+ Task/Gate/Buffer</b> to add work, then <b>Add Dependency</b> to connect the graph.</li>
+      <li>Select a node or edge to edit properties in the <b>Inspector</b> and review eligibility hints.</li>
+      <li>Apply the rewrite rules (R1–R4) to restructure safely and let validation flag any issues.</li>
+      <li>Capture scenarios with <b>Save Scenario</b> and compare them side-by-side.</li>
+    </ol>
+  `,
+  shortcuts: `
+    <ul>
+      <li><b>Drag nodes</b> directly in the network to re-layout the graph.</li>
+      <li>While in <b>Add Dependency</b> mode, click a source then <span class="kbd">Shift</span> click the target for faster wiring.</li>
+      <li><b>Scroll</b> or <b>pinch zoom</b> inside the network and Gantt panes to inspect details.</li>
+      <li>Use the toolbar <b>Undo/Redo</b> buttons to walk back mistakes.</li>
+    </ul>
+  `,
+  model: `
+    <p>The data model mirrors a project WBS/CPM hybrid:</p>
+    <ul>
+      <li><b>Nodes</b>: task, gate, buffer, or milestone with duration, variance, owner, notes, and resource demand.</li>
+      <li><b>Edges</b>: finish-to-start dependencies that must keep the graph acyclic.</li>
+      <li><b>Resources</b>: named pools with integer capacities used for leveling.</li>
+      <li><b>Options</b>: leveling mode and buffer factor that influence scheduling.</li>
+      <li><b>Scenarios</b>: saved snapshots for compare/restore.</li>
+    </ul>
+  `,
+  tips: `
+    <ul>
+      <li>Watch the <b>Overloads</b> badge after edits—switch leveling modes to test mitigation ideas.</li>
+      <li>Keep IDs short and meaningful; the auto-ID helpers (T1, G1…) avoid duplicates.</li>
+      <li>Buffers don’t consume resources: use them to protect critical chains when risk is high.</li>
+      <li>Log entries capture each change—export them with the plan to document decision rationale.</li>
+    </ul>
+  `,
+  cpm: `
+    <p><b>CPM</b> computes Earliest/Latest times and <b>slack</b> from precedence only. Critical nodes have zero slack. The <b>Gantt</b> shows <span class="badge">Earliest</span> bars, and optionally a <span class="badge">Leveled</span> schedule when resources are constrained.</p>
+    <p>Leveling is heuristic (RCPSP is NP‑hard). Use it to <i>visualize</i> effects—not to claim optimality.</p>
+  `,
+  invariants: `
+    <p><b>Invariants</b> checked on every change:</p>
+    <ul>
+      <li>DAG (no cycles)</li>
+      <li>No duplicate edges</li>
+      <li>Durations ≥ 0</li>
+      <li>Resources referenced exist</li>
+      <li>Greedy leveling can place all tasks (otherwise we flag overloads)</li>
+    </ul>
+  `,
+  rules: `
+    <p>Preconditions are shown contextually. Examples:</p>
+    <ul>
+      <li><b>R1</b>: select edge A→B with indegree(B)=1</li>
+      <li><b>R3</b>: select a gate (type=gate, dur=0) with exactly one outgoing edge</li>
+      <li><b>R4</b>: select edge A→B where A and B have <i>no</i> shared resources</li>
+    </ul>
+  `,
+  why: `
+    <p><b>Why Not?</b> explains rule failures (e.g., cycle risk, shared resources, degree constraints). Fix those, then retry.</p>
+  `,
+  resources: `
+    <p>Set resource capacities. Tasks request integer units of named resources. Leveling modes:</p>
+    <ul>
+      <li><b>None</b>: bars at ES</li>
+      <li><b>Greedy Earliest‑First</b>: schedule ASAP subject to caps</li>
+      <li><b>Greedy Critical‑First</b>: prioritize low-slack tasks</li>
+    </ul>
+  `,
+  risk: `
+    <p>Lightweight Monte Carlo (triangular around each duration) to preview finish-time spread. Uses precedence only.</p>
+  `,
+  scenario: ``
+};
+function showExplain(topic, customHtml){
+  const modal=document.getElementById('modal');
+  const title=document.getElementById('modalTitle');
+  const body=document.getElementById('modalBody');
+  title.textContent = ({
+    rewrites:"Rewrite Rules",
+    what:"What this is",
+    how:"How to use",
+    shortcuts:"Shortcuts & Gestures",
+    model:"Data Model",
+    tips:"Pro Tips",
+    cpm:"CPM & Critical Path",
+    invariants:"Plan Invariants",
+    rules:"Rule Preconditions",
+    why:"Why Not?",
+    resources:"Resources & Leveling",
+    risk:"Risk Simulation",
+    scenario:"Scenario Comparison"
+  })[topic] || "Explain";
+  body.innerHTML = customHtml || explainText[topic] || "—";
+  modal.style.display='flex';
+}
+document.getElementById('modalClose').onclick=()=>{ document.getElementById('modal').style.display='none'; }
+document.querySelectorAll('.explain').forEach(el=> el.addEventListener('click', ()=> showExplain(el.dataset.topic)));
+[
+  ['helpWhat','what'],
+  ['helpHow','how'],
+  ['helpShortcuts','shortcuts'],
+  ['helpData','model'],
+  ['helpTips','tips']
+].forEach(([id, topic])=>{
+  const btn=document.getElementById(id);
+  if(btn) btn.addEventListener('click', ()=> showExplain(topic));
+});
+
+/* ----------------------- Export / Import ----------------------- */
+function exportJson(){
+  const data = JSON.stringify({nodes:state.nodes, edges:state.edges, resources:state.resources, options:state.options}, null, 2);
+  const blob=new Blob([data], {type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='wbs_plan.json'; a.click();
+}
+function importJson(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    try{
+      const obj=JSON.parse(fr.result);
+      pushHistory();
+      state.nodes=deepCopy(obj.nodes||[]); state.edges=deepCopy(obj.edges||[]); state.resources=deepCopy(obj.resources||{}); state.options=Object.assign(state.options, obj.options||{});
+      renderAll(); log("Imported JSON.");
+    }catch(e){ diag("Import failed: "+e.message); }
+  };
+  fr.readAsText(file);
+}
+
+/* ----------------------- Wire controls ----------------------- */
+document.getElementById('addTask').onclick=()=>addNode('task');
+document.getElementById('addGate').onclick=()=>addNode('gate');
+document.getElementById('addBuffer').onclick=()=>addNode('buffer');
+document.getElementById('deleteSel').onclick=deleteSelected;
+document.getElementById('addDep').onclick=toggleAddDep;
+document.getElementById('removeDep').onclick=removeDep;
+
+document.getElementById('rCollapse').onclick=()=>{
+  if(!state.selection.edgeId){ diag("Select an edge A→B to collapse."); return; }
+  try{ pushHistory(); if(ruleCollapseSerial(state.selection.edgeId)) renderAll(); else state.history.pop(); }catch(e){ diag(e.message); }
+};
+document.getElementById('rBuffer').onclick=()=>{
+  try{ pushHistory(); if(ruleInsertBuffer()) renderAll(); else state.history.pop(); }catch(e){ diag(e.message); }
+};
+document.getElementById('rThin').onclick=()=>{
+  if(!state.selection.nodeId){ diag("Select a gate to thin."); return; }
+  try{ pushHistory(); if(ruleThinGate(state.selection.nodeId)) renderAll(); else state.history.pop(); }catch(e){ diag(e.message); }
+};
+document.getElementById('rParallel').onclick=()=>{
+  if(!state.selection.edgeId){ diag("Select an edge A→B to consider for parallelization."); return; }
+  try{ pushHistory(); if(ruleParallelize(state.selection.edgeId)) renderAll(); else state.history.pop(); }catch(e){ diag(e.message); }
+};
+
+document.getElementById('validate').onclick=validateAll;
+document.getElementById('recalc').onclick=()=>{ renderAll(); log("Recalculated."); };
+document.getElementById('undo').onclick=undo;
+document.getElementById('redo').onclick=redo;
+document.getElementById('saveScenario').onclick=saveScenario;
+document.getElementById('compareScenario').onclick=compareScenario;
+document.getElementById('exportJson').onclick=exportJson;
+document.getElementById('importJson').addEventListener('change', ev=>{ if(ev.target.files[0]) importJson(ev.target.files[0]); });
+document.getElementById('resourcesBtn').onclick=showResources;
+document.getElementById('riskBtn').onclick=showRisk;
+
+/* ----------------------- Boot ----------------------- */
+function renderAll(){
+  try{
+    renderNetwork(); renderGantt(); renderInspector(); renderRuleHints();
+  }catch(e){
+    diag(e.message);
+  }
+}
+bindInspector(); refreshScenarioList(); renderAll(); log("Ready.");
+</script>
+</body>
+</html>

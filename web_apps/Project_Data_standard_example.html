@@ -681,8 +681,18 @@
       } else {
         for(const v of res.violations){
           const tr=document.createElement("tr");
-          const sevClass = v.severity==="error" ? "danger" : (v.severity==="warning" ? "muted" : "");
-          tr.innerHTML = `<td class="mono">${v.rule}</td><td class="${sevClass}">${v.severity}</td><td>${v.message}</td>`;
+          const ruleTd=document.createElement("td");
+          ruleTd.className="mono";
+          ruleTd.textContent = v.rule ?? "";
+
+          const severityTd=document.createElement("td");
+          severityTd.className = v.severity==="error" ? "danger" : (v.severity==="warning" ? "muted" : "");
+          severityTd.textContent = v.severity ?? "";
+
+          const messageTd=document.createElement("td");
+          messageTd.textContent = v.message ?? "";
+
+          tr.append(ruleTd, severityTd, messageTd);
           tbody.appendChild(tr);
         }
       }
@@ -717,7 +727,19 @@
 
     $("#btnValidate").addEventListener("click", () =>{
       const [obj, err] = safeParse($("#payload").value);
-      if(err){ setPill(false,false,"Invalid JSON"); $("#violationsTable tbody").innerHTML = `<tr><td colspan="3" class="danger">JSON parse error: ${err}</td></tr>`; return; }
+      if(err){
+        setPill(false,false,"Invalid JSON");
+        const tbody = $("#violationsTable tbody");
+        tbody.innerHTML = "";
+        const tr=document.createElement("tr");
+        const td=document.createElement("td");
+        td.colSpan = 3;
+        td.className = "danger";
+        td.textContent = `JSON parse error: ${err}`;
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
       const res = validatePDS(obj, {slaDays:+$("#slaDays").value || 30, tolerance:+$("#tolerance").value || 0.02});
       const report = applyResults(obj, res);
       // Hold latest report for export

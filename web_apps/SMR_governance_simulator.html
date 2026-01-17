@@ -1,508 +1,332 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>Wylfa SMR – Governance Simulator (Compact Edition)</title>
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nuclear Governance Loops — Accountability Vectors</title>
 <style>
-  :root{
-    --bg:#0b0d10; --panel:#11151a; --card:#0e1318; --fg:#e6edf3; --muted:#8a95a3;
-    --accent:#7cc4ff; --accent-2:#9ee493; --border:#1f2a36; --good:#55d69e; --warn:#ffcc66; --bad:#ff6b6b;
-    --radius:10px; --space:10px; --space-sm:6px; --font:13px;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:var(--font)/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
-  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
-  header{position:sticky;top:0;z-index:20;background:#0b0d10;border-bottom:1px solid var(--border)}
-  .wrap{max-width:1200px;margin:0 auto;padding:10px}
-  .topbar{display:flex;gap:8px;align-items:center;justify-content:space-between}
-  .topbar h1{margin:0;font-size:15px;font-weight:700}
-  .toolbar{display:flex;gap:6px;flex-wrap:wrap}
-  .btn,.iconbtn{
-    background:#0f141a;border:1px solid var(--border);color:var(--fg);padding:6px 10px;border-radius:8px;cursor:pointer;
-  }
-  .iconbtn{padding:6px 8px;font-weight:700}
-  .btn.primary{background:var(--accent);color:#06263d;border-color:#0f3752}
-  .badge{border:1px solid var(--border);padding:2px 6px;border-radius:999px;color:var(--muted);font-size:11px}
-  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:10px;margin-top:10px}
-  @media(max-width:1000px){.grid{grid-template-columns:1fr}}
-  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px}
-  .panel h2{margin:.1rem 0 .4rem;font-size:14px}
-  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  @media(max-width:900px){.metrics{grid-template-columns:repeat(2,1fr)}}
-  .metric{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:8px;display:grid;grid-template-columns:1fr auto;align-items:start;gap:6px}
-  .metric .k{color:var(--muted);font-size:12px}
-  .metric .v{font-weight:700}
-  .ico{border:1px solid var(--border);background:#0a1117;color:var(--muted);width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;cursor:pointer}
-  .timeline{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center}
-  .bar{height:12px;border-radius:999px;background:#121820;border:1px solid var(--border);overflow:hidden}
-  .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%}
-  .legend{display:flex;gap:8px;color:var(--muted);font-size:11px;flex-wrap:wrap}
-  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  @media(max-width:900px){.actions{grid-template-columns:1fr}}
-  .action{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:8px;display:grid;grid-template-columns:1fr auto;gap:6px}
-  .action .name{font-weight:700}
-  .action .desc{color:var(--muted);font-size:12px}
-  .action .chips{display:flex;gap:6px;flex-wrap:wrap}
-  .chip{font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);color:var(--muted);background:#0b1117}
-  .action button{background:var(--accent);color:#06263d;border:none;border-radius:8px;padding:6px 8px;font-weight:800;cursor:pointer;height:30px}
-  .action button[disabled]{opacity:.45;cursor:not-allowed}
-  .log{background:#0c1218;border:1px solid var(--border);border-radius:var(--radius);padding:8px;height:160px;overflow:auto;font-family:ui-monospace,Consolas,Menlo,monospace;font-size:12px}
-  .pill{padding:1px 5px;border-radius:6px;font-size:11px;border:1px solid transparent}
-  .ok{background:rgba(85,214,158,.15);color:var(--good);border-color:rgba(85,214,158,.25)}
-  .warn{background:rgba(255,204,102,.12);color:var(--warn);border-color:rgba(255,204,102,.25)}
-  .bad{background:rgba(255,107,107,.12);color:var(--bad);border-color:rgba(255,107,107,.25)}
-  .muted{color:var(--muted)}
-  details{background:#0d1319;border:1px solid var(--border);border-radius:var(--radius);padding:8px}
-  summary{cursor:pointer;font-weight:700}
-  .kbd{font-family:ui-monospace,Consolas,Menlo,monospace}
-  .right{text-align:right}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-
-  /* Modal & popover */
-  dialog{border:none;padding:0;background:transparent}
-  .modal{background:#0d1319;border:1px solid var(--border);border-radius:12px;max-width:720px;width:min(720px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.5)}
-  .modal .hd{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:10px 12px}
-  .modal .bd{padding:10px 12px}
-  .modal .ft{padding:10px 12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:8px}
-  .ghost{background:#0f141a;border:1px solid var(--border);color:var(--fg);padding:6px 10px;border-radius:8px;cursor:pointer}
-  .pop{position:fixed;inset:auto 10px 10px auto;max-width:360px;background:#0e141a;border:1px solid var(--border);border-radius:10px;padding:10px;display:none;z-index:50}
-  .pop h4{margin:.2rem 0 .4rem}
-  .pop .close{float:right;border:none;background:transparent;color:var(--muted);cursor:pointer}
-
-  /* Compact mode */
-  body.compact .log{height:140px}
-  body.compact .metrics{grid-template-columns:repeat(3,1fr)}
-  body.compact .panel{padding:8px}
+  :root { --w: 980px; --h: 560px; --pad: 10px; --r: 20px; --edge: 1.5px; --font: 13px; }
+  body { font-family: system-ui, sans-serif; margin: 0; background: #fafafa; color: #111; }
+  header, footer { padding: 10px 14px; background:#fff; border-bottom:1px solid #eee; }
+  footer{border-top:1px solid #eee; border-bottom:none}
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .toolbar button { padding:6px 10px; border:1px solid #ddd; background:#fff; border-radius:6px; cursor:pointer; }
+  .toolbar button:active { transform: translateY(1px); }
+  .mini { font-size: 12px; color:#444; }
+  .grid { display:grid; grid-template-columns: 320px 1fr; gap:12px; padding:10px; }
+  .panel { background:#fff; border:1px solid #eee; border-radius:10px; padding:10px; }
+  .panel h3 { margin:4px 0 8px; font-size: 15px;}
+  #canvas { width: var(--w); height: var(--h); border:1px solid #eee; border-radius:10px; background:#fff;}
+  .kv { display:grid; grid-template-columns: 1fr auto; gap:6px; font-size:13px; }
+  .kv code { background:#f4f4f4; padding:2px 6px; border-radius:6px; }
+  .legend { display:flex; gap:10px; align-items:center; font-size:12px; color:#333; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; border:1px solid #ccc;}
+  .dot.src { background:#e6f3ff; }
+  .dot.av { background:#ffe; }
+  .edgepos { width:14px; height:2px; display:inline-block; background:#3c8; }
+  .edgeneg { width:14px; height:2px; display:inline-block; background:#c44; }
+  details { border-top:1px dashed #eee; padding-top:8px; margin-top:8px; }
 </style>
 </head>
-<body class="compact">
+<body>
 <header>
-  <div class="wrap topbar">
-    <div class="row">
-      <h1>Wylfa SMR – Governance Simulator</h1>
-      <span class="badge">Start: Q1‑2026</span>
-      <span class="badge">Target FID: Q4‑2028</span>
-      <span class="badge">First power: 2030s</span>
-    </div>
+  <div class="wrap">
     <div class="toolbar">
-      <a class="btn" href="../index.html">Back to Card Index</a>
-      <button class="iconbtn" id="quickGuideBtn" title="Quick Guide (?)">?</button>
-      <button class="btn primary" id="oneClickBtn" title="Choose a recommended action and advance (A)">▶ One‑click Turn</button>
-      <button class="btn" id="endTurn">Next Quarter (Space)</button>
-      <button class="btn" id="auto4">Auto‑run 4q</button>
-      <button class="btn" id="autoYear">Auto‑run 1y</button>
-      <button class="btn" id="saveBtn">Save</button>
-      <button class="btn" id="loadBtn">Load</button>
-      <button class="btn" id="resetBtn" title="Reset (R)">Reset</button>
-      <button class="btn" id="compactBtn" title="Toggle compact mode">Compact</button>
-      <span class="badge">RNG seed: <span id="seedBadge"></span></span>
+      <button id="stepBtn">Step (Δt = 1)</button>
+      <button id="autorunBtn">Autorun</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
+      <span class="mini">Tick: <span id="tick">0</span></span>
+      <span class="mini">Spectral radius: <span id="rho">—</span></span>
+      <span class="mini">Max |state|: <span id="maxs">—</span></span>
     </div>
   </div>
 </header>
 
-<main class="wrap">
-  <div class="grid">
-    <!-- LEFT -->
-    <section class="panel">
-      <h2>Programme</h2>
-      <div class="metrics" id="metrics"></div>
+<div class="wrap grid">
+  <div class="panel">
+    <h3>Explainers</h3>
+    <div class="legend">
+      <span class="dot src"></span> core node
+      <span class="dot av"></span> accountability vector (explainer node)
+      <span class="edgepos"></span> reinforcing (+)
+      <span class="edgeneg"></span> balancing (–)
+    </div>
 
-      <div class="timeline" style="margin-top:8px">
-        <div>
-          <div class="muted">Quarter</div>
-          <div id="clock" class="badge">—</div>
-        </div>
-        <div>
-          <div class="bar"><div id="progress" class="fill"></div></div>
-          <div class="legend">
-            <span>Start <span id="startQ" class="kbd"></span></span>
-            <span>FID <span id="targetFID" class="kbd"></span></span>
-            <span>First Power <span id="targetFP" class="kbd"></span></span>
-          </div>
-        </div>
-      </div>
+    <details open>
+      <summary><b>What’s an accountability vector?</b></summary>
+      <p style="font-size:13px; line-height:1.35;">
+        Each feedback link A→B is split into two: A→AV(A→B)→B. The middle “AV” node is an explainer that records
+        <i>who</i> is accountable for the effect, the sign (+/–), and the current contribution (magnitude). This keeps system
+        fidelity while making loops legible to non‑technical stakeholders.
+      </p>
+      <div class="kv"><div>Formula</div><code>AV = gain·A; B ← B + AV</code></div>
+      <div class="kv"><div>Sign</div><code>gain &gt; 0 ⇒ reinforcing; gain &lt; 0 ⇒ balancing</code></div>
+    </details>
 
-      <div style="height:6px"></div>
-      <div class="row">
-        <strong>Available actions</strong>
-        <span class="muted">Tip: hit <span class="kbd">A</span> for a recommended move, then <span class="kbd">Space</span>.</span>
-      </div>
-      <div id="actions" class="actions"></div>
-    </section>
+    <details>
+      <summary><b>How the Step integrator works</b></summary>
+      <p class="mini">Discrete‑time linear update: <code>x(t+1) = Wx(t)</code> on the core nodes; AV nodes mirror edge flows.</p>
+      <div class="kv"><div>Stability cue</div><code>ρ(W) &lt; 1 ⇒ decays; ρ(W) ≈ 1 ⇒ marginal; ρ(W) &gt; 1 ⇒ grows/oscillates</code></div>
+    </details>
 
-    <!-- RIGHT -->
-    <section class="panel">
-      <h2>Event log</h2>
-      <div id="log" class="log" aria-live="polite"></div>
+    <details>
+      <summary><b>Try a policy nudge</b></summary>
+      <p class="mini">Click an edge’s gain to edit. Step to see how accountability vectors light up and where oscillations arise.</p>
+    </details>
 
-      <div style="height:8px"></div>
-      <details>
-        <summary>Data & sources (key facts)</summary>
-        <div class="muted">
-          <ul style="margin-top:.4rem">
-            <li><strong>Wylfa selected</strong> for UK’s first SMR site; initially <strong>three</strong> Rolls‑Royce SMRs; assessed potential up to <strong>eight</strong>. Press release & statements (Nov 2025).</li>
-            <li><strong>GDA</strong> (ONR/EA/NRW) runs in <strong>three steps</strong>; endpoint is ONR’s <strong>DAC</strong> & EA’s <strong>SoDA</strong>. RR SMR entered <strong>Step 3</strong> in 2024.</li>
-            <li><strong>Financing</strong>: GBE‑N public equity; optional <strong>RAB</strong> under the 2022 Act with Ofgem revenue collection rules.</li>
-            <li><strong>Timing</strong>: first power targeted in the <strong>2030s</strong>; delays driven by supply chain, licensing and engagement.</li>
-          </ul>
-        </div>
-      </details>
+    <details>
+      <summary><b>Graphviz (static report)</b></summary>
+      <pre class="mini" style="white-space:pre-wrap">digraph GovernanceLoops {
+  rankdir=LR;
+  node [shape=ellipse, style=filled, fillcolor="#e6f3ff", color="#9cc4ef", fontname="Helvetica"];
+  Reg [label="Regulator"];
+  Op  [label="Operator"];
+  Ov  [label="Oversight"];
 
-      <div style="height:8px"></div>
-      <details>
-        <summary>Ruleset (JSON)</summary>
-        <pre id="rulesText" class="muted" style="white-space:pre-wrap;font-family:ui-monospace,Consolas,Menlo,monospace;font-size:12px"></pre>
-      </details>
+  node [shape=circle, style=filled, fillcolor="#ffffe6", color="#e6e0a3"];
+  AV_e1 [label="AV(Reg→Op)\nLicence conditions"];
+  AV_e2 [label="AV(Op→Reg)\nIncident reports"];
+  AV_e3 [label="AV(Ov→Reg)\nParliamentary pressure"];
+  AV_e4 [label="AV(Op→Ov)\nTransparency metrics"];
 
-      <div style="height:8px"></div>
-      <div class="row muted">
-        <div><strong>Shortcuts:</strong> <span class="kbd">?</span> guide, <span class="kbd">A</span> one‑click, <span class="kbd">Space</span> next quarter, <span class="kbd">R</span> reset, <span class="kbd">S</span> save, <span class="kbd">L</span> load.</div>
-      </div>
-    </section>
+  edge [color="#3c8", penwidth=2];
+  Reg -> AV_e1 -> Op [label="+0.35"];
+  Ov  -> AV_e3 -> Reg [label="+0.20"];
+  Op  -> AV_e4 -> Ov  [label="+0.30"];
+
+  edge [color="#c44", penwidth=2];
+  Op  -> AV_e2 -> Reg [label="-0.25"];
+}
+</pre>
+      <div class="mini">Full .dot file: <code>web_apps/SMR_governance_simulator_av.dot</code></div>
+    </details>
   </div>
-</main>
 
-<!-- Explainer popover -->
-<div id="popover" class="pop" role="dialog" aria-modal="false">
-  <button class="close" id="popClose" aria-label="Close">✕</button>
-  <h4 id="popTitle">Explainer</h4>
-  <div id="popBody" class="muted" style="font-size:12px"></div>
+  <div class="panel">
+    <h3>Simulator</h3>
+    <canvas id="canvas" width="980" height="560"></canvas>
+  </div>
 </div>
 
-<!-- Quick Guide modal -->
-<dialog id="guide">
-  <div class="modal">
-    <div class="hd">
-      <div><strong>Quick Guide</strong></div>
-      <button class="ghost" id="closeGuide">✕</button>
-    </div>
-    <div class="bd" id="guideBody" style="min-height:120px"></div>
-    <div class="ft">
-      <div class="row">
-        <button class="ghost" id="prevStep">◀ Prev</button>
-        <button class="ghost" id="nextStep">Next ▶</button>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="startOne">Do a one‑click turn</button>
-        <button class="ghost" id="dismiss">Dismiss</button>
-      </div>
-    </div>
+<footer>
+  <div class="wrap mini">
+    Default demo: <i>Regulator ↔ Operator ↔ Oversight</i> with one reinforcing and one balancing loop.
   </div>
-</dialog>
+</footer>
 
-<script type="module">
-/* Seeded RNG */
-class RNG{constructor(seed=123456789){this.s=seed>>>0}next(){let x=this.s;x^=x<<13;x^=x>>>17;x^=x<<5;this.s=x>>>0;return this.s/0xffffffff}pick(a){return a[Math.floor(this.next()*a.length)]}}
+<script>
+/* --------------------------
+   Minimal graph + stepper
+---------------------------*/
+const $ = (id)=>document.getElementById(id);
+const W = 980, H = 560;
+const ctx = $("canvas").getContext("2d");
 
-const ruleset={
-  meta:{
-    site:"Wylfa (Ynys Môn, North Wales)",
-    vendor:"Rolls‑Royce SMR (~470–480 MWe each)",
-    initialUnits:3,potentialUnits:8,
-    regulators:["ONR","Environment Agency","NRW"],
-    deliveryBody:"Great British Energy – Nuclear (GBE‑N)",
-    gda:{steps:["Step 1 – Initiation","Step 2 – Fundamental Assessment","Step 3 – Detailed Assessment"],endpoint:["ONR – DAC","EA – SoDA"]},
-    financingPaths:["GBE‑N public equity","Optional RAB designation → Ofgem revenue collection"],
-    targets:{startQuarter:"Q1‑2026",targetFID:"Q4‑2028",targetFirstPower:"Mid‑2030s"}
-  },
-  init:{quarter:0,cashPublic:2500,cashPrivate:0,rabDesignated:false,gbeNEquitySecured:true,
-        gdaStep:2,gdaProgress:0,complianceRisk:15,publicSupport:62,scheduleSlipQ:0,
-        longLeadOrdered:false,enablingWorks:false,fidTaken:false,units:3},
-  actions:[
-    {id:"gda_deepen",name:"Advance GDA Step 3 package",desc:"Fund safety/security/environment workstreams; close queries; mature evidence base.",
-     cost:80,months:3,req:s=>s.gdaStep===3||(s.gdaStep===2&&s.gdaProgress>=100),
-     effect:s=>{s.gdaStep=3;s.gdaProgress=Math.min(100,s.gdaProgress+18);s.complianceRisk=Math.max(0,s.complianceRisk-2)}},
-    {id:"address_findings",name:"Address ONR/EA 'findings'",desc:"Resolve assessment findings to avoid step‑backs or DAC/SoDA caveats.",
-     cost:45,months:3,req:s=>s.gdaStep>=2,
-     effect:s=>{s.complianceRisk=Math.max(0,s.complianceRisk-6);s.gdaProgress=Math.min(100,s.gdaProgress+6)}},
-    {id:"nrw_consult",name:"EA/NRW consultation & community engagement",desc:"Formal consultations + community benefits refresh to maintain local support.",
-     cost:30,months:3,req:s=>s.gdaStep>=2,
-     effect:s=>{s.publicSupport=Math.min(100,s.publicSupport+5);s.complianceRisk=Math.max(0,s.complianceRisk-1)}},
-    {id:"apply_rab",name:"Prepare RAB designation case",desc:"Develop dossier: need, value‑for‑money, deliverability.",
-     cost:25,months:3,req:s=>!s.rabDesignated&&s.gdaStep>=2,effect:s=>{s.complianceRisk=Math.max(0,s.complianceRisk-1);s._rabReady=true}},
-    {id:"seek_designation",name:"Seek RAB designation (ministerial)",desc:"If approved: Ofgem licence & revenue collection begin.",
-     cost:0,months:0,req:s=>s._rabReady&&s.publicSupport>=55,effect:s=>{s._rabVote=true}},
-    {id:"gbeN_topup",name:"GBE‑N equity top‑up",desc:"Additional public equity tranche to de‑risk FID.",
-     cost:0,months:0,req:s=>true,effect:s=>{s.cashPublic+=350}},
-    {id:"long_lead",name:"Place long‑lead factory orders",desc:"Reserve SMR factory capacity; reduces supply‑chain slippage.",
-     cost:200,months:0,req:s=>s.gdaStep>=2&&!s.longLeadOrdered&&s.gbeNEquitySecured,
-     effect:s=>{s.longLeadOrdered=true;s.scheduleSlipQ=Math.max(0,s.scheduleSlipQ-1)}},
-    {id:"enabling",name:"Start enabling works",desc:"Site prep & infrastructure (subject to planning/licences).",
-     cost:120,months:3,req:s=>s.gdaStep>=2,effect:s=>{s.enablingWorks=true}},
-    {id:"expand_scope",name:"Scope expansion (+1 unit)",desc:"Assess a fourth unit (policy & infra dependent).",
-     cost:10,months:0,req:s=>s.units<8&&s.publicSupport>=60&&s.gdaStep>=3,
-     effect:s=>{s.units+=1;s.publicSupport=Math.max(0,s.publicSupport-2)}},
-    {id:"take_fid",name:"Final Investment Decision",desc:"Needs regulatory readiness and funding headroom.",
-     cost:0,months:0,req:s=>!s.fidTaken&&s.gdaStep===3&&s.gdaProgress>=85&&(s.cashPublic+s.cashPrivate)>=(1500+s.units*600),
-     effect:s=>{s.fidTaken=true}}
-  ],
-  events:[
-    {id:"onr_issue",label:"ONR raises a GDA issue",prob:s=>Math.max(.05,s.complianceRisk/120),
-     effect:s=>{s.gdaProgress=Math.max(0,s.gdaProgress-4);s.complianceRisk=Math.min(100,s.complianceRisk+3);log("ONR query → extra analysis required (−4% progress, +3 risk).","warn")}},
-    {id:"supply_bottleneck",label:"Global supply‑chain bottleneck",prob:s=>s.longLeadOrdered?.03:.12,
-     effect:s=>{s.scheduleSlipQ+=1;log("Supply chain tight → +1 quarter slip.","warn")}},
-    {id:"engagement_pushback",label:"Local pushback / consultation challenge",prob:s=>(s.publicSupport<55)?.12:.05,
-     effect:s=>{s.publicSupport=Math.max(0,s.publicSupport-4);s.complianceRisk=Math.min(100,s.complianceRisk+2);log("Stakeholder concerns → support −4, risk +2.","warn")}},
-    {id:"inflation_shock",label:"Construction inflation uptick",prob:s=>.06,
-     effect:s=>{const extra=40;s.cashPublic=Math.max(0,s.cashPublic-extra);log(`Inflation pressure → unplanned spend £${extra}m.`,"warn")}},
-    {id:"diplomatic_noise",label:"International political pressure",prob:s=>.05,
-     effect:s=>{if(!s.rabDesignated) s.publicSupport=Math.max(0,s.publicSupport-2);log("Diplomatic cross‑winds → support −2 (narrative risk).","warn")}}
-  ]
+let tick = 0;
+let autorun = null;
+
+/* Core nodes (domain concepts) */
+const nodes = [
+  { id:"Reg",  label:"Regulator", x: 200, y: 160, state: 1.0 },
+  { id:"Op",   label:"Operator",  x: 490, y: 280, state: 0.2 },
+  { id:"Ov",   label:"Oversight", x: 780, y: 160, state: 0.0 },
+];
+
+/* Edges (A→B, gain) that will get an AV explainer node each */
+let edges = [
+  { id:"e1", from:"Reg", to:"Op", gain: +0.35, who:"Licence conditions" },
+  { id:"e2", from:"Op",  to:"Reg", gain: -0.25, who:"Incident reports" },
+  { id:"e3", from:"Ov",  to:"Reg", gain: +0.20, who:"Parliamentary pressure" },
+  { id:"e4", from:"Op",  to:"Ov",  gain: +0.30, who:"Transparency metrics" },
+];
+
+/* Build accountability vectors as explainer nodes for each edge */
+const avNodes = []; // {id, label, src, dst, x,y, contrib}
+function buildAVs(){
+  avNodes.length = 0;
+  edges.forEach((e)=>{
+    const a = nodeById(e.from), b = nodeById(e.to);
+    const midx = (a.x + b.x)/2, midy = (a.y + b.y)/2;
+    avNodes.push({
+      id: "AV_"+e.id,
+      label: `AV(${a.label}→${b.label})`,
+      src: e.from, dst: e.to, gain: e.gain, who: e.who,
+      x: midx + (e.gain>0? 0: -14), y: midy + (e.gain>0? -16: +16),
+      contrib: 0
+    });
+  });
+}
+buildAVs();
+
+function nodeById(id){ return nodes.find(n=>n.id===id) || avNodes.find(n=>n.id===id); }
+
+/* Compute W matrix over core nodes only (order = nodes[]) */
+function weightMatrix(){
+  const n = nodes.length;
+  const M = Array.from({length:n}, ()=>Array(n).fill(0));
+  edges.forEach(e=>{
+    const i = nodes.findIndex(n=>n.id===e.to);
+    const j = nodes.findIndex(n=>n.id===e.from);
+    if(i>=0 && j>=0) M[i][j] += e.gain;
+  });
+  return M;
+}
+
+/* Spectral radius (power iteration, few steps) */
+function spectralRadius(M){
+  const n = M.length; if(n===0) return 0;
+  let v = Array(n).fill(0).map((_,i)=> i===0?1:0);
+  const iters = 10;
+  for(let k=0;k<iters;k++){
+    const w = new Array(n).fill(0);
+    for(let i=0;i<n;i++){
+      for(let j=0;j<n;j++) w[i]+=M[i][j]*v[j];
+    }
+    const norm = Math.max(...w.map(Math.abs)) || 1e-9;
+    v = w.map(x=>x/norm);
+  }
+  // Rayleigh quotient approx
+  let num=0, den=0;
+  for(let i=0;i<n;i++){
+    let mvi=0; for(let j=0;j<n;j++) mvi+=M[i][j]*v[j];
+    num += v[i]*mvi; den += v[i]*v[i];
+  }
+  return Math.abs(num/(den||1));
+}
+
+/* Step integrator: x←W x; AVs mirror edge flows */
+function step(){
+  const M = weightMatrix();
+  // AV contributions
+  edges.forEach(e=>{
+    const src = nodeById(e.from);
+    const av  = avNodes.find(a=>a.src===e.from && a.dst===e.to);
+    av.contrib = e.gain * src.state;
+  });
+  // Core update
+  const x = nodes.map(n=>n.state);
+  const xnext = x.map(()=>0);
+  for(let i=0;i<M.length;i++){
+    for(let j=0;j<M.length;j++){
+      xnext[i]+= M[i][j]*x[j];
+    }
+  }
+  nodes.forEach((n,i)=> n.state = xnext[i] );
+  tick++;
+  updateHUD();
+  draw();
+}
+
+function reset(){
+  tick=0;
+  nodes.forEach(n=> n.state = (n.id==="Reg"?1.0:(n.id==="Op"?0.2:0.0)));
+  avNodes.forEach(a=> a.contrib=0);
+  updateHUD();
+  draw();
+}
+
+/* UI — autorun/pause */
+$("stepBtn").onclick = step;
+$("resetBtn").onclick = reset;
+$("autorunBtn").onclick = ()=>{
+  if(autorun) return;
+  autorun = setInterval(step, 500);
 };
+$("pauseBtn").onclick = ()=>{ clearInterval(autorun); autorun = null; };
 
-/* --- State & helpers --- */
-const QTRS=["Q1","Q2","Q3","Q4"]; const START_YEAR=2026; const TARGET_FP_YEAR=2036; const TARGET_FID_Q=3;
-let rng=new RNG(0xC0FFEE); const state=structuredClone(ruleset.init);
-
-function nowQuarter(){const q=state.quarter%4;const y=START_YEAR+Math.floor(state.quarter/4);return `${QTRS[q]}‑${y}`}
-function setSeed(s){rng=new RNG(s>>>0);document.getElementById("seedBadge").textContent=`${s>>>0}`}
-function log(msg,kind="ok"){const el=document.getElementById("log");const pill=kind==="ok"?"ok":kind==="warn"?"warn":"bad";const line=document.createElement("div");line.innerHTML=`<span class="pill ${pill}">${nowQuarter()}</span> ${msg}`;el.prepend(line)}
-function fmtMoney(m){return `£${Math.round(m)}m`} function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
-
-function estimateLCOE(s){
-  const netCap=s.units*480, cf=.9, gen=netCap*8760*cf/1e3;
-  const capex=3500+s.units*2200; const wacc=s.rabDesignated?.05:.08;
-  const crf=(wacc*Math.pow(1+wacc,40))/(Math.pow(1+wacc,40)-1);
-  const annCap=capex*crf, fom=s.units*60, lcoe=(annCap+fom)/gen*1000;
-  return Math.round(lcoe)
-}
-function consumerImpact(s){
-  if(!s.rabDesignated) return "—";
-  const buildYears=8+Math.round(s.scheduleSlipQ/4);
-  const avgBill=1+(s.units*.6)/buildYears; return `£${avgBill.toFixed(2)}/mo during build (proxy)`
-}
-function progressPct(s){const totalQ=(TARGET_FP_YEAR-START_YEAR)*4;return clamp(Math.min(100,Math.round((s.quarter/(totalQ+s.scheduleSlipQ))*100)),0,100)}
-function affordable(cost){return state.cashPublic+state.cashPrivate>=cost}
-function spend(cost){let c=cost;const take=Math.min(state.cashPublic,c);state.cashPublic-=take;c-=take;if(c>0) state.cashPrivate=Math.max(0,state.cashPrivate-c)}
-
-/* --- Explain content --- */
-const EXPLAIN={
-  metric_gda:{t:"GDA progress",b:"The UK Generic Design Assessment (GDA) is a multi‑year, three‑step review by ONR/EA/NRW. Step 3 is detailed assessment; the end point is ONR’s DAC and EA’s SoDA."},
-  metric_risk:{t:"Compliance risk",b:"Proxy for technical, safety, security and environmental unknowns. Higher risk increases chances of ONR issues and delays."},
-  metric_support:{t:"Public support",b:"Blended local/regional/national sentiment. It affects political decisions such as RAB designation and planning momentum."},
-  metric_cashpub:{t:"Public capital (GBE‑N)",b:"Indicative public equity controlled by Great British Energy – Nuclear to co‑fund the programme."},
-  metric_cashpriv:{t:"Private capital",b:"Illustrative investor interest that strengthens as risk falls and RAB/design readiness improves."},
-  metric_rab:{t:"RAB designated",b:"Under the Nuclear Energy (Financing) Act 2022, a project can be designated for the Regulated Asset Base model, enabling revenue collection during construction."},
-  metric_units:{t:"Units in scope",b:"Initial plan is three RR SMRs at Wylfa, with potential ultimately up to eight (subject to policy, finance and infrastructure)."},
-  metric_slip:{t:"Schedule slip",b:"Cumulative quarters of delay from supply‑chain or regulatory events. Long‑lead orders help push this down."},
-  metric_lcoe:{t:"LCOE (proxy)",b:"Stylised cost per MWh. RAB reduces WACC (financing cost), which lowers this proxy."},
-  metric_consumer:{t:"Consumer impact (proxy)",b:"If RAB is used, households pay a small charge during construction; this simple proxy shows order of magnitude only."},
-  metric_longlead:{t:"Long‑lead orders",b:"Factory slots for modules, forgings and major components. Early ordering reduces later bottlenecks."},
-  metric_enable:{t:"Enabling works",b:"Site preparation and enabling infrastructure (roadworks, earthworks, services)."},
-  metric_fid:{t:"FID",b:"Final Investment Decision – the formal go/no‑go to build. Needs regulatory readiness and funding headroom."},
-  action_tip:{t:"How actions work",b:"Each action costs money. Some consume ~3 months (advancing the calendar); others are instant. You usually make one or two moves, then advance the quarter."}
-}
-
-/* --- Rendering --- */
-function render(){
-  document.getElementById("clock").textContent=nowQuarter();
-  document.getElementById("startQ").textContent=ruleset.meta.targets.startQuarter;
-  document.getElementById("targetFID").textContent=ruleset.meta.targets.targetFID;
-  document.getElementById("targetFP").textContent=ruleset.meta.targets.targetFirstPower;
-  document.getElementById("progress").style.width=progressPct(state)+"%";
-
-  const metrics=[
-    {k:"GDA", v:(state.gdaStep===3?"Step 3":state.gdaStep===2?"Step 2":"Step 1")+` • ${state.gdaProgress}%`, key:"metric_gda"},
-    {k:"Compliance risk", v:`${state.complianceRisk}/100`, badge:state.complianceRisk<25?"ok":(state.complianceRisk<50?"warn":"bad"), key:"metric_risk"},
-    {k:"Public support", v:`${state.publicSupport}%`, badge:state.publicSupport>=60?"ok":(state.publicSupport>=45?"warn":"bad"), key:"metric_support"},
-    {k:"Cash (public)", v:fmtMoney(state.cashPublic), key:"metric_cashpub"},
-    {k:"Cash (private)", v:fmtMoney(state.cashPrivate), key:"metric_cashpriv"},
-    {k:"RAB designated", v:state.rabDesignated?"Yes":"No", key:"metric_rab"},
-    {k:"Units (scope)", v:`${state.units}`, key:"metric_units"},
-    {k:"Schedule slip", v:`${state.scheduleSlipQ} qtrs`, key:"metric_slip"},
-    {k:"LCOE (proxy)", v:`£${estimateLCOE(state)}/MWh`, key:"metric_lcoe"},
-    {k:"Consumer impact", v:consumerImpact(state), key:"metric_consumer"},
-    {k:"Long‑lead", v:state.longLeadOrdered?"Ordered":"Not yet", key:"metric_longlead"},
-    {k:"Enabling works", v:state.enablingWorks?"Underway":"Not started", key:"metric_enable"},
-    {k:"FID", v:state.fidTaken?"Taken":"Pending", badge:state.fidTaken?"ok":undefined, key:"metric_fid"}
-  ];
-
-  const metEl=document.getElementById("metrics"); metEl.innerHTML="";
-  metrics.forEach(m=>{
-    const el=document.createElement("div"); el.className="metric";
-    el.innerHTML=`<div>
-        <div class="k">${m.k}</div>
-        <div class="v">${m.v} ${m.badge?`<span class="pill ${m.badge}" style="margin-left:6px">${m.badge.toUpperCase()}</span>`:""}</div>
-      </div>
-      <button class="ico" title="Explain" data-explain="${m.key}">ⓘ</button>`;
-    metEl.appendChild(el);
+/* Editing gains by clicking near edge labels */
+$("canvas").addEventListener("click", (ev)=>{
+  const rect = ev.target.getBoundingClientRect();
+  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  // Find nearest AV label
+  let best=null, d2=99999;
+  avNodes.forEach(a=>{
+    const dx=a.x-mx, dy=a.y-my; const dd=dx*dx+dy*dy;
+    if(dd<d2){d2=dd; best=a;}
   });
-  metEl.querySelectorAll(".ico").forEach(btn=>btn.addEventListener("click",()=>openExplain(btn.dataset.explain)));
-
-  // Actions
-  const actionsEl=document.getElementById("actions"); actionsEl.innerHTML="";
-  ruleset.actions.forEach(a=>{
-    const enabled=a.req(state), afford=(a.cost===0)||affordable(a.cost), disabled=!(enabled&&afford);
-    const card=document.createElement("div"); card.className="action";
-    card.innerHTML=`
-      <div>
-        <div class="name">${a.name}</div>
-        <div class="desc">${a.desc}</div>
-        <div class="chips">
-          ${a.cost?`<span class="chip">Cost ${fmtMoney(a.cost)}</span>`:""}
-          ${a.months?`<span class="chip">${a.months} months</span>`:""}
-          <span class="chip muted">ⓘ Explain</span>
-        </div>
-      </div>
-      <div class="right">
-        <div class="row">
-          <button class="ghost iconbtn explain" title="Explain">ⓘ</button>
-          <button ${disabled?"disabled":""}>Do it</button>
-        </div>
-      </div>`;
-    card.querySelector("button:not(.explain)").addEventListener("click",()=>applyAction(a));
-    card.querySelector(".explain").addEventListener("click",()=>openExplain("action_tip",a.name));
-    actionsEl.appendChild(card);
-  });
-
-  document.getElementById("rulesText").textContent=JSON.stringify(ruleset,null,2);
-}
-
-/* --- Actions & turns --- */
-function applyAction(a){
-  if(!a.req(state)) return;
-  if(a.cost>0 && !affordable(a.cost)){ log(`Insufficient funds for "${a.name}".`,"bad"); return; }
-  if(a.cost>0) spend(a.cost);
-  a.effect(state);
-  const months=a.months??0, qAdv=Math.ceil(months/3);
-  if(qAdv>0) state.quarter+=qAdv; // (Note: months time doesn't trigger events; endQuarter does)
-  log(`Action: ${a.name} ${a.cost>0?`(spent ${fmtMoney(a.cost)})`:""}`);
-  render();
-}
-
-function endQuarter(){
-  // Programme burn
-  const base=35+(state.gdaStep>=3?15:0)+(state.enablingWorks?20:0); spend(base);
-  // Random events
-  for(const ev of ruleset.events){ if(rng.next()<ev.prob(state)) ev.effect(state) }
-  // RAB designation vote if queued
-  if(state._rabVote){
-    const approval=(state.publicSupport>=60?0.7:0.45)*(state.complianceRisk<20?1.2:1.0);
-    if(rng.next()<approval){ state.rabDesignated=true; log("RAB designation approved → Ofgem mechanics start; WACC proxy reduced.","ok"); }
-    else{ log("RAB designation not approved this attempt. Strengthen the case & support.","warn"); }
-    state._rabVote=false;
+  if(best && d2<900){ // within 30px
+    const e = edges.find(e=> e.from===best.src && e.to===best.dst);
+    const val = prompt(`Edit gain for ${best.label}\nWho: ${e.who}\nCurrent: ${e.gain.toFixed(2)}\n(positive=reinforcing, negative=balancing)`, e.gain.toFixed(2));
+    if(val!==null){
+      const g = parseFloat(val);
+      if(!Number.isNaN(g)){ e.gain = g; buildAVs(); draw(); updateHUD(); }
+    }
   }
-  // Private capital formation
-  if(state.rabDesignated || (state.gdaStep===3 && state.gdaProgress>80)){ state.cashPrivate+=120 }
-  // Notifications
-  if(state.gdaStep===3 && state.gdaProgress>=100){ log("GDA Step 3 complete → regulators consider DAC (ONR) & SoDA (EA).","ok") }
-  // Construction tuning post‑FID
-  if(state.fidTaken){ state.scheduleSlipQ=Math.max(0,state.scheduleSlipQ-(state.longLeadOrdered?.1:0)) }
-  state.quarter+=1; render();
-}
-
-/* --- Recommendation engine for One‑click Turn --- */
-function recommendAction(){
-  const A=ruleset.actions;
-  const tryDo=id=>{
-    const a=A.find(x=>x.id===id);
-    if(a && a.req(state) && (a.cost===0 || affordable(a.cost))) return a;
-    return null;
-  };
-
-  // Priorities:
-  if(state.gdaStep<3 || state.gdaProgress<85) return tryDo("gda_deepen")||tryDo("address_findings")||tryDo("nrw_consult");
-  if(!state._rabReady && !state.rabDesignated) return tryDo("apply_rab");
-  if(state._rabReady && !state.rabDesignated && state.publicSupport>=55) return tryDo("seek_designation");
-  if(!state.longLeadOrdered) return tryDo("long_lead");
-  if(!state.enablingWorks) return tryDo("enabling");
-  if((state.cashPublic+state.cashPrivate)<(1500+state.units*600)) return tryDo("gbeN_topup");
-  if(!state.fidTaken && state.gdaProgress>=85) return tryDo("take_fid");
-  if(state.units<4) return tryDo("expand_scope");
-  return null;
-}
-
-/* One‑click turn: apply recommendation; if the chosen action consumed time (months>0), we DO NOT also endQuarter; otherwise we endQuarter */
-function oneClickTurn(){
-  const rec=recommendAction();
-  if(rec){ const hadQ=state.quarter; applyAction(rec);
-    const months=rec.months??0;
-    if(months===0) endQuarter();
-    else log("Time advanced by action; press Space to process events for next quarter.","warn");
-  } else {
-    log("No obvious recommended action → advancing a quarter.","warn"); endQuarter();
-  }
-}
-
-/* --- Save/Load/Reset --- */
-function saveState(){
-  const blob=new Blob([JSON.stringify({state,seed:rng.s},null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob); const a=document.createElement("a");
-  a.href=url; a.download=`wylfa-sim-save-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url);
-}
-function loadState(){
-  const inp=document.createElement("input"); inp.type="file"; inp.accept="application/json";
-  inp.onchange=e=>{
-    const f=e.target.files[0]; if(!f) return; const fr=new FileReader();
-    fr.onload=()=>{ try{ const o=JSON.parse(fr.result); Object.assign(state,o.state||{}); setSeed((o.seed??0)>>>0); log("Loaded save file.","ok"); render(); }catch{ log("Failed to load save file.","bad") } };
-    fr.readAsText(f);
-  }; inp.click();
-}
-function resetAll(){ Object.assign(state,structuredClone(ruleset.init)); setSeed(0xC0FFEE); document.getElementById("log").innerHTML=""; log("Reset simulation."); render(); }
-
-/* --- UI wiring --- */
-document.getElementById("endTurn").addEventListener("click",endQuarter);
-document.getElementById("saveBtn").addEventListener("click",saveState);
-document.getElementById("loadBtn").addEventListener("click",loadState);
-document.getElementById("resetBtn").addEventListener("click",resetAll);
-document.getElementById("oneClickBtn").addEventListener("click",oneClickTurn);
-document.getElementById("auto4").addEventListener("click",()=>autoRun(4));
-document.getElementById("autoYear").addEventListener("click",()=>autoRun(4));
-document.getElementById("compactBtn").addEventListener("click",()=>document.body.classList.toggle("compact"));
-
-/* Keyboard shortcuts */
-window.addEventListener("keydown",e=>{
-  const tag=e.target.tagName.toLowerCase();
-  if(tag==="input"||tag==="textarea") return;
-  if(e.key===" "){ e.preventDefault(); endQuarter(); }
-  else if(e.key.toLowerCase()==="a"){ e.preventDefault(); oneClickTurn(); }
-  else if(e.key.toLowerCase()==="r"){ resetAll() }
-  else if(e.key.toLowerCase()==="s"){ saveState() }
-  else if(e.key.toLowerCase()==="l"){ loadState() }
-  else if(e.key==="?"){ e.preventDefault(); openGuide() }
 });
 
-/* Auto‑run helper */
-let autoRunning=false;
-async function autoRun(qtrs){
-  if(autoRunning) return; autoRunning=true;
-  for(let i=0;i<qtrs;i++){ endQuarter(); await new Promise(r=>setTimeout(r,120)); }
-  autoRunning=false;
+/* HUD */
+function updateHUD(){
+  const M = weightMatrix();
+  const rho = spectralRadius(M);
+  $("rho").textContent = rho.toFixed(3);
+  $("tick").textContent = tick;
+  $("maxs").textContent = nodes.reduce((m,n)=>Math.max(m,Math.abs(n.state)),0).toFixed(3);
 }
 
-/* Explainer popover */
-const pop=document.getElementById("popover"), popTitle=document.getElementById("popTitle"), popBody=document.getElementById("popBody");
-document.getElementById("popClose").addEventListener("click",()=>pop.style.display="none");
-function openExplain(key,overrideTitle){
-  const e=EXPLAIN[key]; if(!e) return;
-  popTitle.textContent=overrideTitle||e.t; popBody.textContent=e.b; pop.style.display="block";
-  // simple placement: bottom-right; could be extended to anchor to element if needed
+/* Draw */
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Edges (core→core) with sign color
+  edges.forEach(e=>{
+    const a = nodeById(e.from), b = nodeById(e.to);
+    const s = e.gain>=0? "#3c8" : "#c44";
+    ctx.lineWidth = Math.max(0.8, Math.min(4, 1 + Math.abs(e.gain)*3));
+    ctx.strokeStyle = s;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    // gain label (clickable hint via AV node position)
+    ctx.fillStyle = "#333";
+    ctx.font = "12px system-ui";
+    const midx=(a.x+b.x)/2, midy=(a.y+b.y)/2;
+    ctx.fillText(`g=${e.gain.toFixed(2)}`, midx+6, midy-6);
+  });
+
+  // Core nodes
+  nodes.forEach(n=>{
+    ctx.fillStyle = "#e6f3ff";
+    ctx.strokeStyle = "#9cc4ef";
+    ctx.lineWidth = 1.2;
+    circle(n.x,n.y,22);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle="#0b3d6b";
+    ctx.font="13px system-ui";
+    ctx.textAlign="center";
+    ctx.fillText(n.label, n.x, n.y-28);
+    ctx.fillStyle="#222";
+    ctx.font="12px system-ui";
+    ctx.fillText(n.state.toFixed(2), n.x, n.y+4);
+  });
+
+  // AV nodes (explainer nodes on edges)
+  avNodes.forEach(a=>{
+    ctx.fillStyle = "#ffffe6";
+    ctx.strokeStyle = "#e6e0a3";
+    circle(a.x, a.y, 14);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle="#665c00";
+    ctx.font="11px system-ui";
+    ctx.textAlign="center";
+    ctx.fillText("AV", a.x, a.y+4);
+    // tiny label with current contribution
+    ctx.fillStyle="#333";
+    ctx.font="11px system-ui";
+    ctx.textAlign="left";
+    ctx.fillText(`${a.contrib>=0?"+":""}${a.contrib.toFixed(2)}`, a.x+16, a.y+4);
+  });
 }
 
-/* Quick Guide (wizard) */
-const guide=document.getElementById("guide"), guideBody=document.getElementById("guideBody");
-const steps=[
-  {t:"Welcome",b:`Goal: steer the UK's first SMR site at Wylfa from design assessment to FID and first power in the 2030s. Each quarter you pick actions, manage risks, and secure finance.`},
-  {t:"Regulation (GDA)",b:`GDA has 3 steps. You're entering Step 3 (detailed assessment). Finish Step 3 to reach DAC (ONR) and SoDA (EA). Keep compliance risk low by addressing findings.`},
-  {t:"Financing",b:`Baseline is GBE‑N public equity. You may also pursue RAB designation to reduce financing cost and start revenue collection during construction.`},
-  {t:"Metrics & risk",b:`Watch public support, compliance risk, schedule slip and LCOE (proxy). Random events can nudge each metric; mitigate with long‑lead orders and engagement.`},
-  {t:"Play loop",b:`Use <A> One‑click Turn for a smart move, then <Space> for the next quarter. You can Auto‑run a few quarters anytime.`}
-];
-let step=0; function renderStep(){guideBody.innerHTML=`<h3 style="margin:.1rem 0">${steps[step].t}</h3><p class="muted" style="margin:.2rem 0 0">${steps[step].b}</p>`}
-function openGuide(){ renderStep(); guide.showModal(); }
-document.getElementById("quickGuideBtn").addEventListener("click",openGuide);
-document.getElementById("closeGuide").addEventListener("click",()=>guide.close());
-document.getElementById("dismiss").addEventListener("click",()=>guide.close());
-document.getElementById("prevStep").addEventListener("click",()=>{step=Math.max(0,step-1);renderStep()});
-document.getElementById("nextStep").addEventListener("click",()=>{step=Math.min(steps.length-1,step+1);renderStep()});
-document.getElementById("startOne").addEventListener("click",()=>{guide.close(); oneClickTurn()});
+function circle(x,y,r){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); }
 
-/* Boot */
-setSeed(0xC0FFEE);
-log("Welcome. Hit ? for the Quick Guide, A for a one‑click turn, Space for next quarter.");
-render();
-openGuide(); // show once on load
+/* Init */
+reset();
+draw();
+updateHUD();
 </script>
 </body>
 </html>

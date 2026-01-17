@@ -34,4 +34,5 @@
 34,Project_Data_standard_example,Project Data Standard explainer and validation playground,ChatGPT,GPT5,"data_quality, project_data, visualization",,
 35,date-defence-kit,"Plan and defend delivery dates with Monte Carlo simulations, criticality insights, and narrative outputs.",User,GPT5,"risk, schedule, monte_carlo, simulation",,
 33,WBS_rewrite,Interactive demo for rewriting WBS dependency graphs with CPM and resource leveling,ChatGPT,agent,"project_management, scheduling, graph",,
-36,SMR_governance_simulator,"a playable governance simulator—a sandbox where players navigate ONR design?assessment loops, financing triggers (RAB/GBE?N), and local engagement to reach Final Investment Decision and first power.",ChatGPT,GPT5.1_Pro,"governance, design, simulator, gates",,
+36,SMR_governance_simulator,"a playable governance simulatora sandbox where players navigate ONR design?assessment loops, financing triggers (RAB/GBE?N), and local engagement to reach Final Investment Decision and first power.",ChatGPT,GPT5.1_Pro,"governance, design, simulator, gates",,
+37,pm_causal_playground,"PM causal DAG playground for back-door paths, colliders, and adjustment sets",ChatGPT,GPT5,"causal, visualization, project_management, education",,

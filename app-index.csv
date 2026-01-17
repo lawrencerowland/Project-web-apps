@@ -34,3 +34,4 @@
 34,Project_Data_standard_example,"Project Data Standard explainer and validation playground",ChatGPT,GPT5,"data_quality, project_data, visualization",,
 35,date-defence-kit,"Plan and defend delivery dates with Monte Carlo simulations, criticality insights, and narrative outputs.",User,,"risk, schedule, monte_carlo, simulation",,
 33,WBS_rewrite,"Interactive demo for rewriting WBS dependency graphs with CPM and resource leveling",ChatGPT,agent,"project_management, scheduling, graph",,
+37,probecrafter,"Probe library for diagnosing alignment, cadence, and value narratives in transformations",ChatGPT,GPT5,"diagnostic, facilitation, governance, benefits_realisation",,

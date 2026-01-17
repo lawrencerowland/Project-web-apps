@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interactive Demo: Advanced Project Planning Ideas</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #222;
+    }
+
+    header {
+      background-color: #222;
+      color: #fff;
+      padding: 16px 24px;
+    }
+
+    header h1 {
+      margin: 0 0 6px 0;
+      font-size: 1.4rem;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 0.9rem;
+      opacity: 0.85;
+    }
+
+    main {
+      padding: 16px 24px 40px 24px;
+    }
+
+    .nav-buttons {
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .nav-buttons button {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fafafa;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .nav-buttons button.active {
+      background: #1976d2;
+      border-color: #0d47a1;
+      color: #fff;
+    }
+
+    .section {
+      display: none;
+      background: #ffffff;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 1.15rem;
+    }
+
+    h3 {
+      font-size: 1rem;
+      margin-top: 16px;
+    }
+
+    p {
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 12px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      background: #fafafa;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 8px;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px 6px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #eee;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 0.7rem;
+      margin-right: 4px;
+    }
+
+    .badge-explore {
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+
+    .badge-exploit {
+      background: #fbe9e7;
+      color: #bf360c;
+    }
+
+    .badge-critical {
+      background: #ffebee;
+      color: #b71c1c;
+    }
+
+    .badge-ok {
+      background: #e8f5e9;
+      color: #1b5e20;
+    }
+
+    .controls {
+      margin-top: 8px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+
+    .controls label {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .controls input[type="number"] {
+      width: 80px;
+      padding: 2px 4px;
+      font-size: 0.85rem;
+    }
+
+    .controls input[type="checkbox"],
+    .controls input[type="radio"] {
+      margin-right: 4px;
+    }
+
+    .controls select {
+      padding: 2px 4px;
+      font-size: 0.85rem;
+    }
+
+    button.action {
+      margin-top: 6px;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background-color: #e3f2fd;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    button.action:hover {
+      background-color: #bbdefb;
+    }
+
+    .output {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      padding: 8px;
+      margin-top: 8px;
+      border-radius: 4px;
+      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+    }
+
+    .ok {
+      color: #1b5e20;
+      font-weight: 600;
+    }
+
+    .error {
+      color: #b71c1c;
+      font-weight: 600;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    .label-strong {
+      font-weight: 600;
+    }
+
+    .metric-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+      font-size: 0.85rem;
+    }
+
+    .metric-chip {
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #eceff1;
+    }
+
+    .inline-code {
+      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: #eceff1;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-size: 0.8rem;
+    }
+
+    .subtitle {
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #757575;
+      margin-bottom: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      header, main {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Cloud Data Platform Migration – Interactive Planning Sandbox</h1>
+  <p>
+    Example programme: migrate a legacy on-prem data warehouse to a cloud data platform,
+    with regulatory constraints and ambitious self-service analytics goals.
+  </p>
+</header>
+
+<main>
+  <div class="nav-buttons">
+    <button class="active" onclick="showSection('section1', this)">1. Counterfactual Project Calculus</button>
+    <button onclick="showSection('section2', this)">2. Proof-Carrying Plan</button>
+    <button onclick="showSection('section3', this)">3. Mechanism-Designed Coordination</button>
+    <button onclick="showSection('section4', this)">4. Topological Robustness</button>
+    <button onclick="showSection('section5', this)">5. Portfolio Meta-Planners</button>
+  </div>
+
+  <!-- 1. Counterfactual Project Calculus -->
+  <section id="section1" class="section active">
+    <h2>1. Counterfactual Project Calculus (Causal &amp; Epistemic View)</h2>
+    <p>
+      Here the migration plan is treated as a structural causal model: toggling decisions corresponds
+      to interventions, and the tool computes rough outcomes and classifies tasks as exploration or exploitation.
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="subtitle">Decisions as Interventions</div>
+        <p>Choose interventions and then compute outcomes &amp; epistemic mix.</p>
+        <div class="controls">
+          <label><span class="label-strong">Decision 1 – Data quality pilot:</span></label>
+          <label>
+            <input type="radio" name="cpc-pilot" id="cpc-pilot-yes" checked>
+            Run early data quality pilot on a small domain (exploratory).
+          </label>
+          <label>
+            <input type="radio" name="cpc-pilot" id="cpc-pilot-no">
+            Skip pilot and learn during full migration.
+          </label>
+
+          <label style="margin-top:8px;"><span class="label-strong">Decision 2 – Migration mode:</span></label>
+          <label>
+            <input type="radio" name="cpc-mode" id="cpc-mode-incremental" checked>
+            Incremental migration (phased domains).
+          </label>
+          <label>
+            <input type="radio" name="cpc-mode" id="cpc-mode-bigbang">
+            Big-bang cutover.
+          </label>
+
+          <label style="margin-top:8px;"><span class="label-strong">Decision 3 – Automation stance:</span></label>
+          <label>
+            <input type="radio" name="cpc-auto" id="cpc-auto-aggressive" checked>
+            Aggressive automation (schema &amp; pipeline generation).
+          </label>
+          <label>
+            <input type="radio" name="cpc-auto" id="cpc-auto-conservative">
+            Conservative automation with more manual checks.
+          </label>
+
+          <button class="action" onclick="computeCpcOutcomes()">Compute outcomes &amp; epistemic mix</button>
+        </div>
+        <div id="cpc-outcome" class="output"></div>
+      </div>
+
+      <div class="card">
+        <div class="subtitle">Tasks as Measurements or Delivery Steps</div>
+        <p>
+          This is the same plan seen as a set of “experiments” (exploration) and “commitments” (exploitation).
+        </p>
+        <table id="cpc-tasks-table">
+          <thead>
+          <tr>
+            <th>Task</th>
+            <th>Bound to decision</th>
+            <th>Role</th>
+            <th>Epistemic type</th>
+            <th>Active?</th>
+          </tr>
+          </thead>
+          <tbody>
+          <!-- Filled by JavaScript -->
+          </tbody>
+        </table>
+        <div class="hint">
+          The epistemic calculus is simple here, but the idea is that the plan is optimised not just for time,
+          but for where and when it learns about reality.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Proof-Carrying Project Plans -->
+  <section id="section2" class="section">
+    <h2>2. Proof-Carrying Project Plans (Toy Typed Plan Checker)</h2>
+    <p>
+      This section treats the plan as a proof object: tasks are proof obligations that must discharge critical requirements,
+      and a simple checker enforces invariants like coverage and ordering.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="subtitle">Requirements</div>
+        <p>Each requirement must be covered by at least one task and, for critical ones, before Go-Live.</p>
+        <table id="proof-req-table">
+          <thead>
+          <tr>
+            <th>Req ID</th>
+            <th>Description</th>
+            <th>Critical?</th>
+          </tr>
+          </thead>
+          <tbody>
+          <!-- Filled by JS -->
+          </tbody>
+        </table>
+        <p class="hint">
+          Think of these as types that certain tasks must inhabit; the “proof” is a mapping from tasks to requirements.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="subtitle">Tasks &amp; Assignment of Proof Obligations</div>
+        <p>
+          Toggle which requirements each task claims to satisfy, then run the checker to see whether the plan type-checks.
+        </p>
+        <table id="proof-tasks-table">
+          <thead>
+          <tr>
+            <th>Task</th>
+            <th>Resource</th>
+            <th>Start (week)</th>
+            <th>End (week)</th>
+            <th>Reqs implemented</th>
+          </tr>
+          </thead>
+          <tbody>
+          <!-- Filled by JS -->
+          </tbody>
+        </table>
+        <button class="action" onclick="runProofCheck()">Run proof check</button>
+        <div id="proof-output" class="output"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Mechanism-Designed Coordination Protocols -->
+  <section id="section3" class="section">
+    <h2>3. Mechanism-Designed Coordination (VCG-style Auction for Scarce Expert)</h2>
+    <p>
+      Here the scarce resource is a security architect needed by three teams this sprint;
+      we compare naive allocation with a simple Vickrey auction where truth-telling is a dominant strategy.
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="subtitle">Teams &amp; Private Values</div>
+        <p>Enter how much value each team expects from having the architect this sprint.</p>
+        <table>
+          <thead>
+          <tr>
+            <th>Team</th>
+            <th>Description</th>
+            <th>Value (story points, utility units, etc.)</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr>
+            <td>Data Engineering</td>
+            <td>Hardening ingestion pipelines &amp; IAM design.</td>
+            <td><input type="number" id="auction-val-0" value="15" min="0"></td>
+          </tr>
+          <tr>
+            <td>Analytics</td>
+            <td>Securing new self-service dashboards.</td>
+            <td><input type="number" id="auction-val-1" value="9" min="0"></td>
+          </tr>
+          <tr>
+            <td>Compliance</td>
+            <td>Formalising data retention and legal logging.</td>
+            <td><input type="number" id="auction-val-2" value="13" min="0"></td>
+          </tr>
+          </tbody>
+        </table>
+
+        <button class="action" onclick="runAuction()">Run Vickrey auction</button>
+        <div class="hint">
+          In a one-item Vickrey auction, the highest bidder wins but pays the second-highest bid; the mechanism is
+          strategy-proof under standard assumptions.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="subtitle">Allocation &amp; Incentive Comparison</div>
+        <div id="auction-output" class="output"></div>
+        <p class="hint">
+          You can play with bids to see that exaggerating values does not increase expected utility under the Vickrey rule,
+          unlike under naive “first come, first served” or “loudest voice wins” governance.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Topological Robustness -->
+  <section id="section4" class="section">
+    <h2>4. Topological Robustness of Dependency Structure</h2>
+    <p>
+      The same migration project is seen as a graph: optional dependencies create cycles and increase the first Betti number,
+      which here stands in as a simple proxy for coordination complexity and fragility.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="subtitle">Tasks &amp; Dependencies</div>
+        <p>Toggle optional dependencies and inspect how the topology changes.</p>
+        <table id="topo-deps-table">
+          <thead>
+          <tr>
+            <th>Edge ID</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Optional?</th>
+            <th>Active?</th>
+          </tr>
+          </thead>
+          <tbody>
+          <!-- Filled by JS -->
+          </tbody>
+        </table>
+        <button class="action" onclick="analyzeTopology()">Analyse topology</button>
+        <p class="hint">
+          We treat the dependency graph as an undirected simplicial 1-complex and compute a basic Betti-1
+          statistic: <span class="inline-code">β₁ = m − n + c</span>.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="subtitle">Topological Summary</div>
+        <div id="topo-output" class="output"></div>
+        <p class="hint">
+          In a real tool, you would also compare this morphology against a library of “healthy” and “pathological”
+          programme topologies and propose specific refactorings as “surgery”.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Portfolio-Level Meta-Planners -->
+  <section id="section5" class="section">
+    <h2>5. Portfolio-Level Meta-Planners (Toy Heuristic Synthesis)</h2>
+    <p>
+      Here we plan at the level of the planner: different heuristics (risk-first, value-first, learning-first, and
+      a “meta-learned” weighted combination) induce different schedules and outcome profiles for the same task set.
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="subtitle">Task Library for This Migration</div>
+        <p>These are generic tasks with risk, value, and epistemic uncertainty scores.</p>
+        <table id="meta-tasks-table">
+          <thead>
+          <tr>
+            <th>Task ID</th>
+            <th>Task</th>
+            <th>Risk</th>
+            <th>Value</th>
+            <th>Uncertainty</th>
+            <th>Duration (weeks)</th>
+          </tr>
+          </thead>
+          <tbody>
+          <!-- Filled by JS -->
+          </tbody>
+        </table>
+        <p class="hint">
+          The scores are illustrative; think of them as coming from historical priors or expert elicitation across the portfolio.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="subtitle">Choose a Planner &amp; Generate Schedule</div>
+        <div class="controls">
+          <label for="planner-select" class="label-strong">Planner heuristic:</label>
+          <select id="planner-select">
+            <option value="risk">Risk-first</option>
+            <option value="value">Value-first</option>
+            <option value="learning">Learning-first</option>
+            <option value="meta">Meta-learned combo</option>
+          </select>
+          <button class="action" onclick="generatePlan()">Generate plan</button>
+        </div>
+
+        <div class="metric-row">
+          <div class="metric-chip">
+            <span class="label-strong">Target commit time:</span> week <span id="meta-commit-time">8</span>
+          </div>
+          <div class="metric-chip">
+            <span class="label-strong">Meta weights (risk, value, uncertainty):</span>
+            <span id="meta-weights">(0.4, 0.3, 0.3)</span>
+          </div>
+        </div>
+
+        <h3>Resulting Schedule</h3>
+        <table id="meta-plan-table">
+          <thead>
+          <tr>
+            <th>Order</th>
+            <th>Task ID</th>
+            <th>Task</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Score used</th>
+          </tr>
+          </thead>
+          <tbody>
+          <!-- Filled by JS -->
+          </tbody>
+        </table>
+
+        <h3>Summary Metrics</h3>
+        <div id="meta-output" class="output"></div>
+        <p class="hint">
+          A real meta-planner would be learned from many past projects via program synthesis or meta-RL,
+          but the interaction pattern is essentially the same.
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  /********************************************************************
+   * Navigation
+   ********************************************************************/
+  function showSection(id, button) {
+    var sections = document.querySelectorAll('.section');
+    sections.forEach(function (s) {
+      s.classList.remove('active');
+    });
+    var target = document.getElementById(id);
+    if (target) {
+      target.classList.add('active');
+    }
+
+    var buttons = document.querySelectorAll('.nav-buttons button');
+    buttons.forEach(function (b) {
+      b.classList.remove('active');
+    });
+    if (button) {
+      button.classList.add('active');
+    }
+  }
+
+  /********************************************************************
+   * Section 1 – Counterfactual Project Calculus
+   ********************************************************************/
+  var cpcTasks = [
+    {
+      id: 'C1',
+      name: 'Run data quality pilot on Customer domain',
+      decision: 'pilot',
+      type: 'exploration',
+      role: 'Data Eng + Product'
+    },
+    {
+      id: 'C2',
+      name: 'Incremental migration of domains (Customer → Orders → Finance)',
+      decision: 'mode-incremental',
+      type: 'exploitation',
+      role: 'Data Platform'
+    },
+    {
+      id: 'C3',
+      name: 'Big-bang cutover of all ETL flows',
+      decision: 'mode-bigbang',
+      type: 'exploitation',
+      role: 'Data Platform'
+    },
+    {
+      id: 'C4',
+      name: 'Aggressive automation of schema + pipeline generation',
+      decision: 'auto-aggressive',
+      type: 'exploration',
+      role: 'Platform Eng'
+    },
+    {
+      id: 'C5',
+      name: 'Manual review of schemas and mappings',
+      decision: 'auto-conservative',
+      type: 'exploitation',
+      role: 'Data Stewards'
+    }
+  ];
+
+  function renderCpcTasksTable() {
+    var tbody = document.querySelector('#cpc-tasks-table tbody');
+    tbody.innerHTML = '';
+    cpcTasks.forEach(function (t) {
+      var tr = document.createElement('tr');
+
+      var tdName = document.createElement('td');
+      tdName.textContent = t.name;
+
+      var tdDecision = document.createElement('td');
+      tdDecision.textContent = t.decision;
+
+      var tdRole = document.createElement('td');
+      tdRole.textContent = t.role;
+
+      var tdType = document.createElement('td');
+      var spanType = document.createElement('span');
+      spanType.classList.add('badge');
+      if (t.type === 'exploration') {
+        spanType.classList.add('badge-explore');
+        spanType.textContent = 'exploration';
+      } else {
+        spanType.classList.add('badge-exploit');
+        spanType.textContent = 'exploitation';
+      }
+      tdType.appendChild(spanType);
+
+      var tdActive = document.createElement('td');
+      tdActive.id = 'cpc-active-' + t.id;
+      tdActive.textContent = '—';
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdDecision);
+      tr.appendChild(tdRole);
+      tr.appendChild(tdType);
+      tr.appendChild(tdActive);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function computeCpcOutcomes() {
+    // Read decision radio buttons
+    var pilot = document.getElementById('cpc-pilot-yes').checked;
+    var incremental = document.getElementById('cpc-mode-incremental').checked;
+    var bigbang = document.getElementById('cpc-mode-bigbang').checked;
+    var autoAggressive = document.getElementById('cpc-auto-aggressive').checked;
+    var autoConservative = document.getElementById('cpc-auto-conservative').checked;
+
+    // Base metrics
+    var timeToStable = 9.0;   // months
+    var majorIncidentRisk = 0.25; // probability of major incident in first 3 months
+    var revenueUplift = 1.0;  // normalized units
+    var explorationCount = 0;
+    var exploitationCount = 0;
+
+    // Effects of decisions (toy SCM)
+    if (pilot) {
+      timeToStable += 0.5;
+      majorIncidentRisk -= 0.10;
+      revenueUplift += 0.10;
+    } else {
+      timeToStable -= 0.3;
+      majorIncidentRisk += 0.07;
+    }
+
+    if (incremental) {
+      timeToStable += 0.5;
+      majorIncidentRisk -= 0.08;
+      revenueUplift -= 0.05;
+    }
+
+    if (bigbang) {
+      timeToStable -= 0.7;
+      majorIncidentRisk += 0.12;
+      revenueUplift += 0.08;
+    }
+
+    if (autoAggressive) {
+      timeToStable -= 0.6;
+      majorIncidentRisk += 0.07;
+      revenueUplift += 0.15;
+    }
+
+    if (autoConservative) {
+      timeToStable += 0.3;
+      majorIncidentRisk -= 0.05;
+      revenueUplift -= 0.03;
+    }
+
+    // Clamp values for sanity
+    if (majorIncidentRisk < 0.01) majorIncidentRisk = 0.01;
+    if (majorIncidentRisk > 0.9) majorIncidentRisk = 0.9;
+    if (timeToStable < 4) timeToStable = 4;
+    if (timeToStable > 18) timeToStable = 18;
+    if (revenueUplift < 0.5) revenueUplift = 0.5;
+    if (revenueUplift > 2.0) revenueUplift = 2.0;
+
+    // Compute exploration/exploitation active tasks
+    cpcTasks.forEach(function (t) {
+      var active = false;
+      if (t.decision === 'pilot') active = pilot;
+      if (t.decision === 'mode-incremental') active = incremental;
+      if (t.decision === 'mode-bigbang') active = bigbang;
+      if (t.decision === 'auto-aggressive') active = autoAggressive;
+      if (t.decision === 'auto-conservative') active = autoConservative;
+
+      var tdActive = document.getElementById('cpc-active-' + t.id);
+      if (tdActive) {
+        tdActive.textContent = active ? 'yes' : 'no';
+      }
+      if (active) {
+        if (t.type === 'exploration') explorationCount++;
+        else exploitationCount++;
+      }
+    });
+
+    var explorationShare = (explorationCount + exploitationCount) > 0
+      ? explorationCount / (explorationCount + exploitationCount)
+      : 0;
+
+    var out = '';
+    out += 'Decisions selected:\n';
+    out += '  • Data quality pilot: ' + (pilot ? 'RUN' : 'SKIP') + '\n';
+    out += '  • Migration mode: ' + (incremental ? 'Incremental' : 'Big-bang') + '\n';
+    out += '  • Automation stance: ' + (autoAggressive ? 'Aggressive automation' : 'Conservative automation') + '\n\n';
+
+    out += 'Predicted outcomes (toy SCM):\n';
+    out += '  • Time to stable operations: ' + timeToStable.toFixed(1) + ' months\n';
+    out += '  • Major incident probability in first 3 months: ' + (majorIncidentRisk * 100).toFixed(1) + '%\n';
+    out += '  • Relative first-year revenue uplift vs baseline: ×' + revenueUplift.toFixed(2) + '\n\n';
+
+    out += 'Epistemic composition of active tasks:\n';
+    out += '  • Exploration tasks active: ' + explorationCount + '\n';
+    out += '  • Exploitation tasks active: ' + exploitationCount + '\n';
+    out += '  • Share of exploration among active tasks: ' + (explorationShare * 100).toFixed(1) + '%\n';
+
+    if (explorationShare < 0.25) {
+      out += '\n⚠️ Warning: Very low exploration share – the plan may be “epistemically brittle” and highly sensitive to hidden assumptions.\n';
+    } else if (explorationShare > 0.65) {
+      out += '\nℹ️ Note: High exploration share – robust learning, but you might be leaving value on the table if timelines are tight.\n';
+    } else {
+      out += '\n✅ Balanced exploration/exploitation regime for this phase.\n';
+    }
+
+    var el = document.getElementById('cpc-outcome');
+    if (el) {
+      el.textContent = out;
+    }
+  }
+
+  /********************************************************************
+   * Section 2 – Proof-Carrying Plans
+   ********************************************************************/
+  var proofRequirements = [
+    {
+      id: 'R1',
+      description: 'GDPR compliance verified (data classification, lawful basis, logging)',
+      critical: true
+    },
+    {
+      id: 'R2',
+      description: 'Rollback path documented and tested for catastrophic failures',
+      critical: true
+    },
+    {
+      id: 'R3',
+      description: 'Critical executive dashboards validated against legacy',
+      critical: false
+    }
+  ];
+
+  var proofTasks = [
+    {
+      id: 'T1',
+      name: 'Design target cloud architecture & IAM model',
+      resource: 'Lead Architect',
+      start: 1,
+      end: 3,
+      defaultReqs: ['R2']
+    },
+    {
+      id: 'T2',
+      name: 'Implement ingestion pipelines for Customer & Orders',
+      resource: 'Data Eng A',
+      start: 3,
+      end: 7,
+      defaultReqs: []
+    },
+    {
+      id: 'T3',
+      name: 'GDPR data classification and policy mapping',
+      resource: 'Compliance Lead',
+      start: 2,
+      end: 6,
+      defaultReqs: ['R1']
+    },
+    {
+      id: 'T4',
+      name: 'User acceptance testing of executive dashboards',
+      resource: 'Product Owner',
+      start: 7,
+      end: 9,
+      defaultReqs: ['R3']
+    },
+    {
+      id: 'T5',
+      name: 'Go-live cutover to cloud platform',
+      resource: 'Ops Lead',
+      start: 9,
+      end: 10,
+      defaultReqs: []
+    }
+  ];
+
+  var goLiveStartWeek = 9;
+
+  function renderProofTables() {
+    // Requirements
+    var reqBody = document.querySelector('#proof-req-table tbody');
+    reqBody.innerHTML = '';
+    proofRequirements.forEach(function (r) {
+      var tr = document.createElement('tr');
+
+      var tdId = document.createElement('td');
+      tdId.textContent = r.id;
+
+      var tdDesc = document.createElement('td');
+      tdDesc.textContent = r.description;
+
+      var tdCrit = document.createElement('td');
+      var span = document.createElement('span');
+      span.classList.add('badge');
+      if (r.critical) {
+        span.classList.add('badge-critical');
+        span.textContent = 'critical';
+      } else {
+        span.classList.add('badge-ok');
+        span.textContent = 'non-critical';
+      }
+      tdCrit.appendChild(span);
+
+      tr.appendChild(tdId);
+      tr.appendChild(tdDesc);
+      tr.appendChild(tdCrit);
+
+      reqBody.appendChild(tr);
+    });
+
+    // Tasks
+    var taskBody = document.querySelector('#proof-tasks-table tbody');
+    taskBody.innerHTML = '';
+    proofTasks.forEach(function (t) {
+      var tr = document.createElement('tr');
+
+      var tdName = document.createElement('td');
+      tdName.textContent = t.id + ' – ' + t.name;
+
+      var tdRes = document.createElement('td');
+      tdRes.textContent = t.resource;
+
+      var tdStart = document.createElement('td');
+      tdStart.textContent = t.start;
+
+      var tdEnd = document.createElement('td');
+      tdEnd.textContent = t.end;
+
+      var tdReqs = document.createElement('td');
+      proofRequirements.forEach(function (r) {
+        var lbl = document.createElement('label');
+        lbl.style.display = 'inline-block';
+        lbl.style.marginRight = '8px';
+
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = 'task-' + t.id + '-req-' + r.id;
+        cb.value = r.id;
+        if (t.defaultReqs.indexOf(r.id) !== -1) {
+          cb.checked = true;
+        }
+
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(' ' + r.id));
+
+        tdReqs.appendChild(lbl);
+      });
+
+      tr.appendChild(tdName);
+      tr.appendChild(tdRes);
+      tr.appendChild(tdStart);
+      tr.appendChild(tdEnd);
+      tr.appendChild(tdReqs);
+
+      taskBody.appendChild(tr);
+    });
+  }
+
+  function runProofCheck() {
+    var outLines = [];
+    var ok = true;
+
+    // Build task->requirements map
+    var taskReqMap = {};
+    proofTasks.forEach(function (t) {
+      var selected = [];
+      proofRequirements.forEach(function (r) {
+        var cbId = 'task-' + t.id + '-req-' + r.id;
+        var cb = document.getElementById(cbId);
+        if (cb && cb.checked) {
+          selected.push(r.id);
+        }
+      });
+      taskReqMap[t.id] = selected;
+    });
+
+    // 1. Requirement coverage
+    outLines.push('Checking requirement coverage...');
+    proofRequirements.forEach(function (r) {
+      var covered = false;
+      proofTasks.forEach(function (t) {
+        if (taskReqMap[t.id].indexOf(r.id) !== -1) {
+          covered = true;
+        }
+      });
+      if (covered) {
+        outLines.push('  ✓ ' + r.id + ' is implemented by at least one task.');
+      } else {
+        ok = false;
+        outLines.push('  ✗ ' + r.id + ' is NOT implemented by any task.');
+      }
+    });
+    outLines.push('');
+
+    // 2. Critical requirements satisfied before Go-Live
+    outLines.push('Checking that critical requirements finish before Go-Live (week ' + goLiveStartWeek + ')...');
+    proofRequirements.forEach(function (r) {
+      if (!r.critical) return;
+      var earliestEnd = Infinity;
+      proofTasks.forEach(function (t) {
+        if (taskReqMap[t.id].indexOf(r.id) !== -1) {
+          if (t.end < earliestEnd) earliestEnd = t.end;
+        }
+      });
+
+      if (earliestEnd === Infinity) {
+        ok = false;
+        outLines.push('  ✗ ' + r.id + ' has no implementing task; cannot satisfy before Go-Live.');
+      } else if (earliestEnd <= goLiveStartWeek) {
+        outLines.push('  ✓ ' + r.id + ' is satisfied by week ' + earliestEnd + ', before Go-Live.');
+      } else {
+        ok = false;
+        outLines.push('  ✗ ' + r.id + ' only satisfied at week ' + earliestEnd + ', which is AFTER Go-Live.');
+      }
+    });
+    outLines.push('');
+
+    // 3. Double-booking of resources
+    outLines.push('Checking for double-booked resources...');
+    var resourceMap = {};
+    proofTasks.forEach(function (t) {
+      if (!resourceMap[t.resource]) {
+        resourceMap[t.resource] = [];
+      }
+      resourceMap[t.resource].push(t);
+    });
+
+    Object.keys(resourceMap).forEach(function (res) {
+      var tasks = resourceMap[res];
+      // naive pairwise overlap check
+      for (var i = 0; i < tasks.length; i++) {
+        for (var j = i + 1; j < tasks.length; j++) {
+          var t1 = tasks[i];
+          var t2 = tasks[j];
+          var overlap = Math.max(t1.start, t2.start) < Math.min(t1.end, t2.end);
+          if (overlap) {
+            ok = false;
+            outLines.push(
+              '  ✗ Resource "' + res + '" is double-booked: ' +
+              t1.id + ' (weeks ' + t1.start + '-' + t1.end + ')' +
+              ' overlaps with ' + t2.id + ' (weeks ' + t2.start + '-' + t2.end + ').'
+            );
+          }
+        }
+      }
+    });
+
+    if (ok) {
+      outLines.unshift('✅ All invariants satisfied: the plan type-checks as a proof of safe Go-Live under the stated assumptions.\n');
+    } else {
+      outLines.unshift('⚠️ Some invariants failed: the plan is not yet a valid proof of safe Go-Live.\n');
+    }
+
+    var el = document.getElementById('proof-output');
+    if (el) {
+      el.textContent = outLines.join('\n');
+    }
+  }
+
+  /********************************************************************
+   * Section 3 – Mechanism-Designed Coordination
+   ********************************************************************/
+  function runAuction() {
+    var teams = [
+      { name: 'Data Engineering', idx: 0 },
+      { name: 'Analytics', idx: 1 },
+      { name: 'Compliance', idx: 2 }
+    ];
+
+    var bids = [];
+    teams.forEach(function (t) {
+      var input = document.getElementById('auction-val-' + t.idx);
+      var val = parseFloat(input && input.value ? input.value : '0');
+      if (isNaN(val) || val < 0) val = 0;
+      bids.push({ team: t.name, value: val });
+    });
+
+    // Baseline naive allocation: first non-zero bidder gets it, no payment.
+    var baselineWinner = null;
+    bids.forEach(function (b) {
+      if (!baselineWinner && b.value > 0) baselineWinner = b.team;
+    });
+
+    // Vickrey auction: highest bidder wins, pays second-highest bid.
+    var sorted = bids.slice().sort(function (a, b) {
+      return b.value - a.value;
+    });
+
+    var winner = sorted[0];
+    var second = sorted[1] || { value: 0 };
+    var payment = second.value;
+    var winnerUtility = winner.value - payment;
+
+    var lines = [];
+    lines.push('Reported values (private valuations):');
+    bids.forEach(function (b) {
+      lines.push('  • ' + b.team + ': ' + b.value.toFixed(2));
+    });
+    lines.push('');
+
+    lines.push('Naive governance (first non-zero claim wins, zero price):');
+    if (baselineWinner) {
+      lines.push('  → Winner: ' + baselineWinner + ' (pays 0; incentives to exaggerate need are strong).');
+    } else {
+      lines.push('  → No team claims the architect; resource is idle.');
+    }
+    lines.push('');
+
+    lines.push('Vickrey auction (strategy-proof for truth-telling):');
+    if (winner.value === 0) {
+      lines.push('  → All bids are zero; architect remains unallocated.');
+    } else {
+      lines.push('  → Highest bidder: ' + winner.team + ' with value ' + winner.value.toFixed(2));
+      lines.push('  → Price charged (second-highest bid): ' + payment.toFixed(2));
+      lines.push('  → Winner utility if truthful: ' + winnerUtility.toFixed(2));
+    }
+    lines.push('');
+
+    lines.push('Qualitative incentive comparison:');
+    lines.push('  • Under the naive rule, a team benefits by exaggerating its value and shouting early.');
+    lines.push('  • Under the Vickrey rule, a team maximises expected utility by bidding its true value,');
+    lines.push('    because the price it pays does not depend on its own bid (within the winning region).');
+
+    var out = document.getElementById('auction-output');
+    if (out) {
+      out.textContent = lines.join('\n');
+    }
+  }
+
+  /********************************************************************
+   * Section 4 – Topological Robustness Analysis
+   ********************************************************************/
+  var topoTasks = [
+    { id: 'A', name: 'Assess current on-prem data warehouse' },
+    { id: 'B', name: 'Design cloud schema and zone layout' },
+    { id: 'C', name: 'Build migration tooling' },
+    { id: 'D', name: 'Migrate historical data' },
+    { id: 'E', name: 'Parallel run and reconciliation' },
+    { id: 'F', name: 'Decommission legacy warehouse' },
+    { id: 'G', name: 'Self-service dashboard rollout' }
+  ];
+
+  var topoEdges = [
+    { id: 'e1', from: 'A', to: 'B', optional: false, active: true },
+    { id: 'e2', from: 'B', to: 'C', optional: false, active: true },
+    { id: 'e3', from: 'C', to: 'D', optional: false, active: true },
+    { id: 'e4', from: 'D', to: 'E', optional: false, active: true },
+    { id: 'e5', from: 'E', to: 'F', optional: false, active: true },
+    // Optional cross-edges that create cycles and extra coordination complexity
+    { id: 'e6', from: 'B', to: 'E', optional: true, active: true },
+    { id: 'e7', from: 'C', to: 'G', optional: true, active: true },
+    { id: 'e8', from: 'G', to: 'E', optional: true, active: false }
+  ];
+
+  function renderTopoDepsTable() {
+    var tbody = document.querySelector('#topo-deps-table tbody');
+    tbody.innerHTML = '';
+
+    topoEdges.forEach(function (e) {
+      var tr = document.createElement('tr');
+
+      var tdId = document.createElement('td');
+      tdId.textContent = e.id;
+
+      var tdFrom = document.createElement('td');
+      tdFrom.textContent = e.from + ' – ' + getTopoTaskName(e.from);
+
+      var tdTo = document.createElement('td');
+      tdTo.textContent = e.to + ' – ' + getTopoTaskName(e.to);
+
+      var tdOpt = document.createElement('td');
+      tdOpt.textContent = e.optional ? 'yes' : 'no';
+
+      var tdActive = document.createElement('td');
+      if (e.optional) {
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = 'topo-edge-' + e.id;
+        cb.checked = e.active;
+        tdActive.appendChild(cb);
+      } else {
+        tdActive.textContent = 'always on';
+      }
+
+      tr.appendChild(tdId);
+      tr.appendChild(tdFrom);
+      tr.appendChild(tdTo);
+      tr.appendChild(tdOpt);
+      tr.appendChild(tdActive);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function getTopoTaskName(id) {
+    var t = topoTasks.find(function (x) { return x.id === id; });
+    return t ? t.name : '';
+  }
+
+  function analyzeTopology() {
+    // Determine active edges based on checkboxes for optional ones
+    var activeEdges = topoEdges.map(function (e) {
+      var copy = Object.assign({}, e);
+      if (copy.optional) {
+        var cb = document.getElementById('topo-edge-' + copy.id);
+        copy.active = !!(cb && cb.checked);
+      }
+      return copy;
+    }).filter(function (e) { return e.active; });
+
+    var n = topoTasks.length;
+    var m = activeEdges.length;
+
+    // Build undirected adjacency
+    var adj = {};
+    topoTasks.forEach(function (t) {
+      adj[t.id] = [];
+    });
+    activeEdges.forEach(function (e) {
+      if (!adj[e.from]) adj[e.from] = [];
+      if (!adj[e.to]) adj[e.to] = [];
+      adj[e.from].push(e.to);
+      adj[e.to].push(e.from);
+    });
+
+    // Count connected components
+    var visited = {};
+    var components = 0;
+    topoTasks.forEach(function (t) {
+      if (!visited[t.id]) {
+        components++;
+        dfsComponent(t.id, adj, visited);
+      }
+    });
+
+    // Compute Betti-1: β1 = m − n + c
+    var betti1 = m - n + components;
+    if (betti1 < 0) betti1 = 0;
+
+    // Detect nodes that lie on a cycle
+    var cycleNodes = findCycleNodes(adj);
+
+    // Suggest optional edges that are likely contributing to cycles
+    var cycleEdgeCandidates = activeEdges.filter(function (e) {
+      return e.optional &&
+        cycleNodes.indexOf(e.from) !== -1 &&
+        cycleNodes.indexOf(e.to) !== -1;
+    }).map(function (e) { return e.id; });
+
+    var lines = [];
+    lines.push('Active nodes: ' + n + ', active edges: ' + m + ', connected components: ' + components + '.');
+    lines.push('Computed Betti-1 (cycle rank): β₁ = ' + betti1 + '.');
+    lines.push('');
+
+    if (betti1 === 0) {
+      lines.push('✅ The dependency graph is a tree (no cycles); coordination structure is minimal but brittle to failures on critical edges.');
+    } else {
+      lines.push('⚠️ The graph contains cycles; some parallel paths and feedback loops exist.');
+      lines.push('Nodes that appear on at least one cycle (approximate): ' + (cycleNodes.length ? cycleNodes.join(', ') : 'none detected') + '.');
+      if (cycleEdgeCandidates.length > 0) {
+        lines.push('');
+        lines.push('Optional edges likely contributing to cycle complexity: ' + cycleEdgeCandidates.join(', ') + '.');
+        lines.push('→ Consider removing or “loosening” these dependencies, or explicitly managing them with dedicated coordination roles.');
+      }
+    }
+
+    var out = document.getElementById('topo-output');
+    if (out) {
+      out.textContent = lines.join('\n');
+    }
+  }
+
+  function dfsComponent(node, adj, visited) {
+    var stack = [node];
+    visited[node] = true;
+    while (stack.length > 0) {
+      var current = stack.pop();
+      var neighbors = adj[current] || [];
+      for (var i = 0; i < neighbors.length; i++) {
+        var nb = neighbors[i];
+        if (!visited[nb]) {
+          visited[nb] = true;
+          stack.push(nb);
+        }
+      }
+    }
+  }
+
+  function findCycleNodes(adj) {
+    var visited = {};
+    var parent = {};
+    var cycleSet = new Set();
+
+    Object.keys(adj).forEach(function (node) {
+      if (!visited[node]) {
+        parent[node] = null;
+        dfsCycle(node, parent, visited, adj, cycleSet);
+      }
+    });
+
+    return Array.from(cycleSet);
+  }
+
+  function dfsCycle(node, parent, visited, adj, cycleSet) {
+    visited[node] = true;
+    var neighbors = adj[node] || [];
+    for (var i = 0; i < neighbors.length; i++) {
+      var nb = neighbors[i];
+      if (!visited[nb]) {
+        parent[nb] = node;
+        dfsCycle(nb, parent, visited, adj, cycleSet);
+      } else if (nb !== parent[node]) {
+        // Found a back edge; reconstruct path node → ... → nb
+        cycleSet.add(nb);
+        var cur = node;
+        while (cur !== undefined && cur !== null && cur !== nb) {
+          cycleSet.add(cur);
+          cur = parent[cur];
+        }
+      }
+    }
+  }
+
+  /********************************************************************
+   * Section 5 – Meta-Planners
+   ********************************************************************/
+  var metaTasks = [
+    {
+      id: 'T1',
+      name: 'Baseline data quality assessment (profiling legacy warehouse)',
+      risk: 5,
+      value: 3,
+      uncertainty: 4,
+      duration: 2
+    },
+    {
+      id: 'T2',
+      name: 'Prototype migration of one high-value domain (Customer)',
+      risk: 4,
+      value: 4,
+      uncertainty: 5,
+      duration: 3
+    },
+    {
+      id: 'T3',
+      name: 'Implement core ingestion and transformation framework',
+      risk: 3,
+      value: 5,
+      uncertainty: 3,
+      duration: 4
+    },
+    {
+      id: 'T4',
+      name: 'Design GDPR logging and access control patterns',
+      risk: 5,
+      value: 4,
+      uncertainty: 3,
+      duration: 2
+    },
+    {
+      id: 'T5',
+      name: 'Roll out self-service BI layer to early adopters',
+      risk: 2,
+      value: 5,
+      uncertainty: 2,
+      duration: 3
+    }
+  ];
+
+  // Fixed "meta-learned" weights (pretend these came from portfolio synthesis)
+  var metaWeights = {
+    risk: 0.4,
+    value: 0.3,
+    uncertainty: 0.3
+  };
+
+  var targetCommitTime = 8; // week by which you want key unknowns resolved
+
+  function renderMetaTasksTable() {
+    var tbody = document.querySelector('#meta-tasks-table tbody');
+    tbody.innerHTML = '';
+    metaTasks.forEach(function (t) {
+      var tr = document.createElement('tr');
+
+      var tdId = document.createElement('td');
+      tdId.textContent = t.id;
+
+      var tdName = document.createElement('td');
+      tdName.textContent = t.name;
+
+      var tdRisk = document.createElement('td');
+      tdRisk.textContent = t.risk;
+
+      var tdValue = document.createElement('td');
+      tdValue.textContent = t.value;
+
+      var tdUnc = document.createElement('td');
+      tdUnc.textContent = t.uncertainty;
+
+      var tdDur = document.createElement('td');
+      tdDur.textContent = t.duration;
+
+      tr.appendChild(tdId);
+      tr.appendChild(tdName);
+      tr.appendChild(tdRisk);
+      tr.appendChild(tdValue);
+      tr.appendChild(tdUnc);
+      tr.appendChild(tdDur);
+
+      tbody.appendChild(tr);
+    });
+
+    var wEl = document.getElementById('meta-weights');
+    if (wEl) {
+      wEl.textContent = '(' +
+        metaWeights.risk.toFixed(1) + ', ' +
+        metaWeights.value.toFixed(1) + ', ' +
+        metaWeights.uncertainty.toFixed(1) + ')';
+    }
+
+    var cEl = document.getElementById('meta-commit-time');
+    if (cEl) {
+      cEl.textContent = targetCommitTime;
+    }
+  }
+
+  function generatePlan() {
+    var plannerSelect = document.getElementById('planner-select');
+    var planner = plannerSelect ? plannerSelect.value : 'risk';
+
+    var tasksCopy = metaTasks.map(function (t) {
+      return Object.assign({}, t);
+    });
+
+    // Compute scores and sort
+    tasksCopy.forEach(function (t) {
+      if (planner === 'risk') {
+        t.score = t.risk * 2 + t.value;
+      } else if (planner === 'value') {
+        t.score = t.value * 2 + t.risk;
+      } else if (planner === 'learning') {
+        t.score = t.uncertainty * 2 + t.risk;
+      } else {
+        // meta: weighted combination
+        t.score =
+          metaWeights.risk * t.risk +
+          metaWeights.value * t.value +
+          metaWeights.uncertainty * t.uncertainty;
+      }
+    });
+
+    tasksCopy.sort(function (a, b) {
+      return b.score - a.score;
+    });
+
+    // Build schedule and simple metrics
+    var time = 0;
+    var scheduleRows = [];
+    var firstHighValueTime = null;
+    var uncertaintyResolvedByCommit = 0;
+    var cumulativeRiskExposure = 0;
+
+    tasksCopy.forEach(function (t, index) {
+      var start = time;
+      var end = time + t.duration;
+      time = end;
+
+      if (t.value >= 4 && firstHighValueTime === null) {
+        firstHighValueTime = end;
+      }
+      if (end <= targetCommitTime) {
+        uncertaintyResolvedByCommit += t.uncertainty;
+      }
+      // crude approximation: risk exposure ~ risk * duration
+      cumulativeRiskExposure += t.risk * t.duration;
+
+      scheduleRows.push({
+        order: index + 1,
+        id: t.id,
+        name: t.name,
+        start: start,
+        end: end,
+        score: t.score
+      });
+    });
+
+    // Render table
+    var tbody = document.querySelector('#meta-plan-table tbody');
+    tbody.innerHTML = '';
+    scheduleRows.forEach(function (row) {
+      var tr = document.createElement('tr');
+
+      var tdOrder = document.createElement('td');
+      tdOrder.textContent = row.order;
+
+      var tdId = document.createElement('td');
+      tdId.textContent = row.id;
+
+      var tdName = document.createElement('td');
+      tdName.textContent = row.name;
+
+      var tdStart = document.createElement('td');
+      tdStart.textContent = row.start;
+
+      var tdEnd = document.createElement('td');
+      tdEnd.textContent = row.end;
+
+      var tdScore = document.createElement('td');
+      tdScore.textContent = row.score.toFixed(2);
+
+      tr.appendChild(tdOrder);
+      tr.appendChild(tdId);
+      tr.appendChild(tdName);
+      tr.appendChild(tdStart);
+      tr.appendChild(tdEnd);
+      tr.appendChild(tdScore);
+
+      tbody.appendChild(tr);
+    });
+
+    // Summary text
+    var lines = [];
+    lines.push('Planner heuristic: ' + plannerLabel(planner) + '.');
+    lines.push('');
+    lines.push('Total project duration under this planner: ' + time + ' weeks.');
+    if (firstHighValueTime !== null) {
+      lines.push('Time until first high-value deliverable (value ≥ 4): week ' + firstHighValueTime + '.');
+    } else {
+      lines.push('No task with value ≥ 4 in this toy set; adjust scores.');
+    }
+    lines.push('Total uncertainty resolved by target commit time (week ' + targetCommitTime + '): ' +
+      uncertaintyResolvedByCommit + ' (sum of uncertainty scores).');
+    lines.push('Cumulative risk exposure (∑ risk × duration): ' + cumulativeRiskExposure.toFixed(1) + '.');
+    lines.push('');
+    lines.push('Heuristic interpretation:');
+    if (planner === 'risk') {
+      lines.push('  • Risk-first tends to front-load risk burn-down, often delaying visible value but improving downside protection.');
+    } else if (planner === 'value') {
+      lines.push('  • Value-first aims to show impact early, at the cost of sometimes “flying blind” on deeper uncertainties.');
+    } else if (planner === 'learning') {
+      lines.push('  • Learning-first treats the project as an experiment: high-uncertainty items occur early to shrink the hypothesis space.');
+    } else {
+      lines.push('  • Meta-learned weights reflect an inferred organisational preference over risk, value, and uncertainty from the wider portfolio.');
+    }
+
+    var out = document.getElementById('meta-output');
+    if (out) {
+      out.textContent = lines.join('\n');
+    }
+  }
+
+  function plannerLabel(planner) {
+    if (planner === 'risk') return 'Risk-first (lexicographic risk burn-down)';
+    if (planner === 'value') return 'Value-first (impact-first)';
+    if (planner === 'learning') return 'Learning-first (epistemic optimisation)';
+    if (planner === 'meta') return 'Meta-learned weighted combination';
+    return planner;
+  }
+
+  /********************************************************************
+   * Initialisation
+   ********************************************************************/
+  document.addEventListener('DOMContentLoaded', function () {
+    renderCpcTasksTable();
+    computeCpcOutcomes();
+    renderProofTables();
+    renderTopoDepsTable();
+    renderMetaTasksTable();
+    // Generate an initial plan for the default planner
+    generatePlan();
+  });
+</script>
+</body>
+</html>

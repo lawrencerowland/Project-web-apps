@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>PM Causal Playground (Back‑doors & Colliders)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; display: grid; grid-template-columns: 280px 1fr; height: 100vh;}
+    aside { border-right: 1px solid #e5e7eb; padding: 14px 12px; overflow:auto }
+    h1 { font-size: 16px; margin: 0 0 8px; }
+    label, button, select { font-size: 14px; margin: 6px 0; display:block }
+    .hint { color:#6b7280; font-size:12px; line-height:1.3 }
+    #canvas { position: relative; background:#fafafa }
+    svg { width:100%; height:100% }
+    .node rect { rx:6; ry:6; fill:#ffffff; stroke:#cbd5e1; }
+    .node text { font-size:12px; pointer-events:none }
+    .edge { stroke:#94a3b8; stroke-width:1.5; fill:none; marker-end: url(#arrow); }
+    .edge.backdoor { stroke:#ef4444; stroke-width:2.2 }
+    .edge.frontdoor { stroke:#10b981; stroke-dasharray:4 3 }
+    .node.adjust { stroke:#10b981; stroke-width:2.2; }
+    .node.collider rect { fill:#fff7ed; stroke:#f59e0b; }
+    .panel { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-top:8px }
+    .pill { display:inline-block; background:#eef2ff; border:1px solid #c7d2fe; padding:2px 6px; border-radius:999px; margin:2px; font-size:12px }
+    .toolbar { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap }
+    .toolbar button { display:inline-block }
+    .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:4px; padding:1px 4px; font-size:12px }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>PM Causal Playground</h1>
+    <div class="hint">Add nodes, draw arrows, pick a cause & outcome. We’ll flag back‑doors, colliders, and a minimal adjustment set.</div>
+
+    <div class="panel">
+      <label>New variable</label>
+      <input id="newVar" placeholder="e.g., Interface Misalignment" />
+      <div class="toolbar">
+        <button id="addVar">Add</button>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <label>Link A → B</label>
+      <select id="from"></select>
+      <select id="to"></select>
+      <button id="link">Add Arrow</button>
+      <div class="hint">Tip: Avoid cycles; keep it causal (acyclic).</div>
+    </div>
+
+    <div class="panel">
+      <label>Cause</label>
+      <select id="cause"></select>
+      <label>Outcome</label>
+      <select id="outcome"></select>
+      <button id="analyze">Analyze</button>
+      <div id="result" class="hint" style="margin-top:8px"></div>
+    </div>
+
+    <div class="panel">
+      <div><b>Explainers</b></div>
+      <div class="toolbar">
+        <button class="explainer-btn" data-key="overview">Overview</button>
+        <button class="explainer-btn" data-key="background">Quick background</button>
+        <button class="explainer-btn" data-key="app">What it does</button>
+      </div>
+      <div id="explainerText" class="hint" style="margin-top:6px"></div>
+    </div>
+
+    <div class="panel">
+      <div><b>Legend</b></div>
+      <div><span class="pill">red edge</span> back‑door path</div>
+      <div><span class="pill" style="background:#d1fae5;border-color:#a7f3d0">green edge</span> front‑door (causal) path</div>
+      <div><span class="pill" style="background:#fffbeb;border-color:#f59e0b">gold node</span> collider (don’t adjust)</div>
+      <div><span class="pill" style="background:#ecfdf5;border-color:#10b981">green border</span> suggested adjustment</div>
+    </div>
+
+    <div class="hint">Shortcuts: <span class="kbd">drag</span> nodes • <span class="kbd">Del</span> to remove selected edge</div>
+  </aside>
+
+  <div id="canvas">
+    <svg id="svg"></svg>
+  </div>
+
+  <!-- D3 + d3-dag from CDN -->
+  <script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+  <script src="https://unpkg.com/d3-dag@1"></script>
+  <script>
+    // --- State ---
+    const nodes = new Map(); // name -> {id,name,x,y}
+    const edges = []; // {source, target}
+    let selectedEdge = null;
+
+    // --- Helpers ---
+    function refreshSelectors() {
+      const ids = [...nodes.keys()];
+      for (const sel of [fromSel, toSel, causeSel, outcomeSel]) {
+        const keep = sel.value;
+        sel.innerHTML = "";
+        for (const id of ids) {
+          const opt = document.createElement("option");
+          opt.value = id; opt.textContent = id;
+          sel.appendChild(opt);
+        }
+        if (ids.includes(keep)) sel.value = keep;
+      }
+    }
+
+    function addNode(name) {
+      if (!name || nodes.has(name)) return;
+      nodes.set(name, { id: name, name, x: 120 + Math.random()*500, y: 80 + Math.random()*360 });
+      refreshSelectors(); render();
+    }
+
+    function addEdge(a, b) {
+      if (!a || !b || a === b) return;
+      // prevent duplicates
+      if (edges.some(e => e.source === a && e.target === b)) return;
+      // simple cycle guard (not exhaustive)
+      if (createsCycle(a, b)) { alert("That would create a cycle. DAGs must be acyclic."); return; }
+      edges.push({ source: a, target: b }); render();
+    }
+
+    function createsCycle(a, b) {
+      // check if there's a path b -> a already
+      const g = buildAdj();
+      const seen = new Set();
+      const stack = [b];
+      while (stack.length) {
+        const n = stack.pop();
+        if (n === a) return true;
+        (g.get(n) || []).forEach(v => { if (!seen.has(v)) { seen.add(v); stack.push(v); } });
+      }
+      return false;
+    }
+
+    function buildAdj() {
+      const adj = new Map();
+      for (const k of nodes.keys()) adj.set(k, []);
+      for (const e of edges) adj.get(e.source).push(e.target);
+      return adj;
+    }
+    function buildUndirected() {
+      const adj = new Map();
+      for (const k of nodes.keys()) adj.set(k, new Set());
+      for (const e of edges) {
+        adj.get(e.source).add(e.target);
+        adj.get(e.target).add(e.source);
+      }
+      return adj;
+    }
+
+    // --- Causal analysis (simple, didactic) ---
+    function analyze(cause, outcome) {
+      // 1) Tag front-door edges on any directed path from cause to outcome
+      const adj = buildAdj();
+      const frontEdges = new Set();
+      const stack = [[cause, []]];
+      while (stack.length) {
+        const [u, path] = stack.pop();
+        if (u === outcome) {
+          // mark path edges as front-door
+          for (let i=0;i<path.length-1;i++) frontEdges.add(path[i]+"→"+path[i+1]);
+          continue;
+        }
+        for (const v of adj.get(u) || []) stack.push([v, [...path, u, v]]);
+      }
+
+      // 2) Find simple undirected paths cause ↔ outcome (DFS on skeleton) to detect back-doors
+      const und = buildUndirected();
+      const backdoorEdges = new Set();
+      const colliders = new Set();
+
+      const dfs = (u, target, visited, path) => {
+        if (u === target) {
+          // Examine path for collider/non-collider structure using edge directions
+          for (let i=1; i<path.length-1; i++) {
+            const a = path[i-1], b = path[i], c = path[i+1];
+            const ab = direction(a,b);
+            const cb = direction(c,b);
+            // collider if a→b and c→b
+            if (ab==="->" && cb==="->") colliders.add(b);
+          }
+          // back-door if path starts with incoming into cause or includes a collider-opened segment
+          const startDir = direction(path[1], path[0]); // second -> first (cause is first)
+          if (startDir==="->") {
+            // path starts as something -> cause (a back-door candidate)
+            for (let i=0;i<path.length-1;i++) backdoorEdges.add(path[i]+"—"+path[i+1]);
+          }
+          return;
+        }
+        visited.add(u);
+        for (const v of und.get(u) || []) {
+          if (!visited.has(v)) dfs(v, target, visited, [...path, v]);
+        }
+        visited.delete(u);
+      };
+
+      function direction(a,b){
+        // relation along edge a-b
+        if (edges.some(e=>e.source===a && e.target===b)) return "->";
+        if (edges.some(e=>e.source===b && e.target===a)) return "<-";
+        return "--";
+      }
+
+      dfs(cause, outcome, new Set([cause]), [cause]);
+
+      // 3) Compute a naive minimal adjustment set:
+      //    - ancestors of both cause & outcome that are NOT colliders, excluding descendants of cause.
+      const ancestors = (seed) => {
+        const rev = new Map();
+        for (const k of nodes.keys()) rev.set(k, []);
+        edges.forEach(e => rev.get(e.target).push(e.source));
+        const out = new Set();
+        const st = [seed];
+        while (st.length) {
+          const x = st.pop();
+          for (const p of rev.get(x)||[]) if (!out.has(p)) { out.add(p); st.push(p); }
+        }
+        return out;
+      };
+      const desc = (seed) => {
+        const a = buildAdj(); const out = new Set(); const st=[seed];
+        while (st.length) {
+          const x=st.pop();
+          for (const ch of a.get(x)||[]) if (!out.has(ch)) { out.add(ch); st.push(ch); }
+        }
+        return out;
+      };
+
+      const A = ancestors(cause);
+      const Y = ancestors(outcome);
+      const cand = new Set([...A].filter(x => Y.has(x)));
+      const forbidden = new Set([...colliders, ...desc(cause), cause, outcome]);
+      const adjust = [...cand].filter(x => !forbidden.has(x));
+
+      // Marking info for renderer
+      return { frontEdges, backdoorEdges, colliders, adjust };
+    }
+
+    // --- Rendering with d3 + d3-dag (manual layout for drag) ---
+    const svg = d3.select("#svg");
+    const gEdges = svg.append("g");
+    const gNodes = svg.append("g");
+
+    svg.append("defs").append("marker")
+      .attr("id","arrow").attr("viewBox","0 0 10 10")
+      .attr("refX",8).attr("refY",5)
+      .attr("markerWidth",6).attr("markerHeight",6).attr("orient","auto-start-reverse")
+      .append("path").attr("d","M 0 0 L 10 5 L 0 10 z");
+
+    function render(mark= {}) {
+      // nodes
+      const ndata = [...nodes.values()];
+      const nodeSel = gNodes.selectAll(".node").data(ndata, d=>d.id);
+      const nodeEnter = nodeSel.enter().append("g").attr("class","node").call(d3.drag()
+        .on("drag",(event,d)=>{ d.x = Math.max(40, Math.min(svg.node().clientWidth-40, event.x));
+                                 d.y = Math.max(24, Math.min(svg.node().clientHeight-24, event.y));
+                                 render(mark); }));
+      nodeEnter.append("rect").attr("width",140).attr("height",28).attr("x",-70).attr("y",-14);
+      nodeEnter.append("text").attr("text-anchor","middle").attr("dy","0.35em").text(d=>d.name);
+      nodeSel.merge(nodeEnter)
+        .attr("transform", d => `translate(${d.x||200},${d.y||100})`)
+        .classed("collider", d => mark.colliders?.has(d.id))
+        .each(function(d){
+          d3.select(this).select("rect")
+            .classed("adjust", !!(mark.adjust && mark.adjust.includes(d.id)));
+        });
+      nodeSel.exit().remove();
+
+      // edges
+      const edata = edges.map(e => ({...e,
+        sx: nodes.get(e.source)?.x, sy: nodes.get(e.source)?.y,
+        tx: nodes.get(e.target)?.x, ty: nodes.get(e.target)?.y
+      })).filter(e=>e.sx!=null && e.tx!=null);
+
+      const edgeSel = gEdges.selectAll("path.edge").data(edata, d=>d.source+"→"+d.target);
+      edgeSel.enter().append("path").attr("class","edge")
+        .on("click",(event,d)=>{ selectedEdge = d; event.stopPropagation(); render(mark); })
+        .merge(edgeSel)
+        .attr("d", d => `M ${d.sx} ${d.sy} C ${(d.sx+d.tx)/2} ${d.sy}, ${(d.sx+d.tx)/2} ${d.ty}, ${d.tx} ${d.ty}`)
+        .classed("backdoor", d => mark.backdoorEdges?.has(d.source+"—"+d.target) || mark.backdoorEdges?.has(d.target+"—"+d.source))
+        .classed("frontdoor", d => mark.frontEdges?.has(d.source+"→"+d.target))
+        .attr("stroke", d => (selectedEdge && selectedEdge.source===d.source && selectedEdge.target===d.target) ? "#111827" : null)
+        .attr("stroke-width", d => (selectedEdge && selectedEdge.source===d.source && selectedEdge.target===d.target) ? 2.6 : null);
+      edgeSel.exit().remove();
+    }
+
+    // --- UI wiring ---
+    const newVar = document.getElementById("newVar");
+    const addVarBtn = document.getElementById("addVar");
+    const resetBtn = document.getElementById("reset");
+    const fromSel = document.getElementById("from");
+    const toSel = document.getElementById("to");
+    const linkBtn = document.getElementById("link");
+    const causeSel = document.getElementById("cause");
+    const outcomeSel = document.getElementById("outcome");
+    const analyzeBtn = document.getElementById("analyze");
+    const resultDiv = document.getElementById("result");
+    const explainerText = document.getElementById("explainerText");
+
+    const explainers = {
+      overview: `Here’s a tiny, tangible way to teach causal reasoning to project teams: a drag‑and‑drop DAG where PMs add variables like Risk, Interface, Scope Creep, then the app highlights back‑door paths, colliders, and what to condition on to estimate causal effects. No stats jargon needed—just boxes and arrows that light up the right (or wrong!) moves.`,
+      background: `Quick background (plain English):<ul>
+        <li><b>DAG (Directed Acyclic Graph)</b>: boxes (variables) + arrows (causal influence).</li>
+        <li><b>Back‑door path</b>: any non‑causal “sneaky” path from cause → outcome that creates bias. We block these by conditioning on the right variables (but never on colliders).</li>
+        <li><b>Collider</b>: a node where two arrows collide (A → C ← B). Conditioning on a collider opens bias.</li>
+        <li><b>Do‑calculus vibe</b>: we’re not doing the algebra; we’re giving PMs an intuition for when adjusting helps vs hurts.</li>
+      </ul>`,
+      app: `What the mini‑app does:<ul>
+        <li>Draw nodes like Design Risk, Vendor Delay, Interface Misalignment, Scope, Cost Overrun.</li>
+        <li>Drag to rearrange; connect arrows A→B to assert causality.</li>
+        <li>Pick a cause and outcome; it:</li>
+        <li>Finds and highlights back‑door paths.</li>
+        <li>Suggests a minimal adjustment set (e.g., “Control for Vendor Capacity; avoid conditioning on collider Issue Escalations”).</li>
+        <li>Warns if you’ve adjusted for a collider.</li>
+      </ul>`
+    };
+
+    addVarBtn.onclick = () => { addNode(newVar.value.trim()); newVar.value=""; };
+    resetBtn.onclick = () => { nodes.clear(); edges.splice(0,edges.length); selectedEdge=null; refreshSelectors(); resultDiv.innerHTML=""; explainerText.innerHTML=""; render(); };
+    linkBtn.onclick = () => addEdge(fromSel.value, toSel.value);
+
+    analyzeBtn.onclick = () => {
+      if (!causeSel.value || !outcomeSel.value) return;
+      const mark = analyze(causeSel.value, outcomeSel.value);
+      render(mark);
+      const adj = (mark.adjust||[]).map(x=>`<span class="pill">${x}</span>`).join(" ");
+      const col = [...mark.colliders].map(x=>`<span class="pill" style="background:#fffbeb;border-color:#f59e0b">${x}</span>`).join(" ");
+      resultDiv.innerHTML = `
+        <div><b>Suggested adjustment set</b>: ${adj || "<i>(none)</i>"}</div>
+        <div><b>Detected colliders</b>: ${col || "<i>(none)</i>"}</div>
+        <div class="hint" style="margin-top:6px">Rule of thumb: block back‑doors by adjusting non‑collider ancestors of both cause & outcome; avoid conditioning on colliders or descendants of the cause.</div>
+      `;
+    };
+
+    document.querySelectorAll(".explainer-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        explainerText.innerHTML = explainers[btn.dataset.key];
+      });
+    });
+
+    // Delete selected edge
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Delete" && selectedEdge) {
+        const i = edges.findIndex(x => x.source===selectedEdge.source && x.target===selectedEdge.target);
+        if (i>=0) edges.splice(i,1);
+        selectedEdge = null; render();
+      }
+    });
+
+    // Seed example
+    ["Scope Creep","Interface Misalignment","Vendor Capacity","Design Risk","Cost Overrun","Delay"].forEach(addNode);
+    addEdge("Scope Creep","Design Risk");
+    addEdge("Interface Misalignment","Design Risk");
+    addEdge("Vendor Capacity","Delay");
+    addEdge("Design Risk","Delay");
+    addEdge("Delay","Cost Overrun");
+
+    refreshSelectors(); render();
+  </script>
+</body>
+</html>

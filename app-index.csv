@@ -36,3 +36,4 @@
 33,WBS_rewrite,Interactive demo for rewriting WBS dependency graphs with CPM and resource leveling,ChatGPT,agent,"project_management, scheduling, graph",,
 36,SMR_governance_simulator,"a playable governance simulatora sandbox where players navigate ONR design?assessment loops, financing triggers (RAB/GBE?N), and local engagement to reach Final Investment Decision and first power.",ChatGPT,GPT5.1_Pro,"governance, design, simulator, gates",,
 37,pm_causal_playground,"PM causal DAG playground for back-door paths, colliders, and adjustment sets",ChatGPT,GPT5,"causal, visualization, project_management, education",,
+38,white_space_analysis,Capability scorecard and whitespace map for digital transformation delivery,ChatGPT,GPT-5.2-Codex,"capabilities, whitespace, visualization, d3, strategy",,

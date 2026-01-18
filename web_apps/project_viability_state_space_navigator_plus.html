@@ -306,9 +306,11 @@ let heat = { node:{}, edge:{} }; // counts from walks
 /* ---------------------------
    Cytoscape init
 ---------------------------- */
-if (window.cytoscapeFcose) {
+const hasFcose = Boolean(window.cytoscapeFcose);
+if (hasFcose) {
   cytoscape.use(window.cytoscapeFcose);
 }
+const layoutName = hasFcose ? "fcose" : "cose";
 
 const cy = cytoscape({
   container: document.getElementById("cy"),
@@ -377,12 +379,12 @@ const cy = cytoscape({
       }
     }
   ],
-  layout: { name:"fcose", quality:"default", randomize:true, animate:false, packComponents:true }
+  layout: { name:layoutName, quality:"default", randomize:true, animate:false, packComponents:true }
 });
 
 function runLayout(){
   cy.layout({
-    name:"fcose",
+    name:layoutName,
     quality:"default",
     randomize:true,
     animate:false,

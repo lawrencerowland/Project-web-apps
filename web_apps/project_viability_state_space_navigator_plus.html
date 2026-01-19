@@ -227,6 +227,45 @@
 /* ---------------------------
    Utility: cloning + RNG
 ---------------------------- */
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureCytoscape(){
+  if (window.cytoscape) return true;
+  await loadScript("https://unpkg.com/cytoscape@3.29.6/dist/cytoscape.min.js");
+  return Boolean(window.cytoscape);
+}
+
+async function ensureFcose(){
+  if (window.cytoscapeFcose) return true;
+  try {
+    await loadScript("https://unpkg.com/cytoscape-fcose@2.2.2/cytoscape-fcose.js");
+  } catch (err) {
+    console.warn("fCoSE layout failed to load; falling back to cose.", err);
+  }
+  return Boolean(window.cytoscapeFcose);
+}
+
+function showCytoscapeError(message){
+  const cyEl = document.getElementById("cy");
+  if (cyEl) {
+    cyEl.innerHTML = `
+      <div style="padding:16px; font-size:13px; color:#ffb4b4;">
+        <strong>Graph renderer unavailable.</strong><br/>
+        ${message}
+      </div>`;
+  }
+  console.error(message);
+}
+
 function deepClone(obj){
   if (typeof structuredClone === "function") return structuredClone(obj);
   return JSON.parse(JSON.stringify(obj));
@@ -306,81 +345,86 @@ let heat = { node:{}, edge:{} }; // counts from walks
 /* ---------------------------
    Cytoscape init
 ---------------------------- */
-const hasFcose = Boolean(window.cytoscapeFcose);
-if (hasFcose) {
-  cytoscape.use(window.cytoscapeFcose);
-}
-const layoutName = hasFcose ? "fcose" : "cose";
+let cy = null;
+let layoutName = "cose";
 
-const cy = cytoscape({
-  container: document.getElementById("cy"),
-  elements: [],
-  style: [
-    {
-      selector: "node",
-      style: {
-        "label": "data(label)",
-        "color": "#e7e9ee",
-        "text-valign": "center",
-        "text-halign": "center",
-        "font-size": 10,
-        "text-outline-width": 2,
-        "text-outline-color": "#0f1115",
-        "background-color": "#999",
-        "border-width": "mapData(h, 0, 1, 1, 8)",
-        "border-color": "#0f1115",
-        "width": "mapData(v, 0, 1, 22, 44)",
-        "height": "mapData(v, 0, 1, 22, 44)"
+function initCytoscape(){
+  const hasFcose = Boolean(window.cytoscapeFcose);
+  if (hasFcose) {
+    cytoscape.use(window.cytoscapeFcose);
+  }
+  layoutName = hasFcose ? "fcose" : "cose";
+
+  cy = cytoscape({
+    container: document.getElementById("cy"),
+    elements: [],
+    style: [
+      {
+        selector: "node",
+        style: {
+          "label": "data(label)",
+          "color": "#e7e9ee",
+          "text-valign": "center",
+          "text-halign": "center",
+          "font-size": 10,
+          "text-outline-width": 2,
+          "text-outline-color": "#0f1115",
+          "background-color": "#999",
+          "border-width": "mapData(h, 0, 1, 1, 8)",
+          "border-color": "#0f1115",
+          "width": "mapData(v, 0, 1, 22, 44)",
+          "height": "mapData(v, 0, 1, 22, 44)"
+        }
+      },
+      {
+        selector: "node.start",
+        style: {
+          "border-color": "#7aa2ff",
+          "border-width": 5
+        }
+      },
+      {
+        selector: "node.attractor",
+        style: {
+          "border-style": "dashed",
+          "border-width": 6
+        }
+      },
+      {
+        selector: "node.selected",
+        style: { "text-outline-color": "#7aa2ff" }
+      },
+      {
+        selector: "edge",
+        style: {
+          "curve-style": "bezier",
+          "target-arrow-shape": "triangle",
+          "line-color": "#667099",
+          "target-arrow-color": "#667099",
+          "width": "mapData(w, 0, 1, 1, 7)",
+          "opacity": 0.9
+        }
+      },
+      {
+        selector: "edge.selected",
+        style: { "line-color": "#7aa2ff", "target-arrow-color": "#7aa2ff" }
+      },
+      {
+        selector: "edge[labelVisible = 'true']",
+        style: {
+          "label": "data(label)",
+          "font-size": 9,
+          "text-background-opacity": 1,
+          "text-background-color": "#0f1115",
+          "text-background-padding": 2,
+          "color": "#e7e9ee",
+          "text-rotation": "autorotate"
+        }
       }
-    },
-    {
-      selector: "node.start",
-      style: {
-        "border-color": "#7aa2ff",
-        "border-width": 5
-      }
-    },
-    {
-      selector: "node.attractor",
-      style: {
-        "border-style": "dashed",
-        "border-width": 6
-      }
-    },
-    {
-      selector: "node.selected",
-      style: { "text-outline-color": "#7aa2ff" }
-    },
-    {
-      selector: "edge",
-      style: {
-        "curve-style": "bezier",
-        "target-arrow-shape": "triangle",
-        "line-color": "#667099",
-        "target-arrow-color": "#667099",
-        "width": "mapData(w, 0, 1, 1, 7)",
-        "opacity": 0.9
-      }
-    },
-    {
-      selector: "edge.selected",
-      style: { "line-color": "#7aa2ff", "target-arrow-color": "#7aa2ff" }
-    },
-    {
-      selector: "edge[labelVisible = 'true']",
-      style: {
-        "label": "data(label)",
-        "font-size": 9,
-        "text-background-opacity": 1,
-        "text-background-color": "#0f1115",
-        "text-background-padding": 2,
-        "color": "#e7e9ee",
-        "text-rotation": "autorotate"
-      }
-    }
-  ],
-  layout: { name:layoutName, quality:"default", randomize:true, animate:false, packComponents:true }
-});
+    ],
+    layout: { name:layoutName, quality:"default", randomize:true, animate:false, packComponents:true }
+  });
+}
 
 function runLayout(){
   cy.layout({
@@ -1131,96 +1175,113 @@ function exportPNG(){
 /* ---------------------------
    Buttons + UI wiring
 ---------------------------- */
-document.getElementById("thr").addEventListener("input", (e) => {
-  thr = Number(e.target.value);
-  document.getElementById("thrLabel").textContent = thr.toFixed(2);
-  recomputeAnalysisAndStyle();
-});
+function wireUi(){
+  document.getElementById("thr").addEventListener("input", (e) => {
+    thr = Number(e.target.value);
+    document.getElementById("thrLabel").textContent = thr.toFixed(2);
+    recomputeAnalysisAndStyle();
+  });
 
-document.getElementById("pCut").addEventListener("input", (e) => {
-  pCut = Number(e.target.value);
-  document.getElementById("pCutLabel").textContent = pCut.toFixed(2);
-  applyEdgeFilter();
-  recomputeAnalysisAndStyle();
-});
+  document.getElementById("pCut").addEventListener("input", (e) => {
+    pCut = Number(e.target.value);
+    document.getElementById("pCutLabel").textContent = pCut.toFixed(2);
+    applyEdgeFilter();
+    recomputeAnalysisAndStyle();
+  });
 
-document.getElementById("amp").addEventListener("input", (e) => {
-  document.getElementById("ampLabel").textContent = Number(e.target.value).toFixed(2);
-});
-document.getElementById("pAmp").addEventListener("input", (e) => {
-  document.getElementById("pAmpLabel").textContent = Number(e.target.value).toFixed(2);
-});
+  document.getElementById("amp").addEventListener("input", (e) => {
+    document.getElementById("ampLabel").textContent = Number(e.target.value).toFixed(2);
+  });
+  document.getElementById("pAmp").addEventListener("input", (e) => {
+    document.getElementById("pAmpLabel").textContent = Number(e.target.value).toFixed(2);
+  });
 
-document.getElementById("showEdgeLabels").addEventListener("change", () => {
-  updateEdgeLabelVisibility();
-});
+  document.getElementById("showEdgeLabels").addEventListener("change", () => {
+    updateEdgeLabelVisibility();
+  });
 
-document.getElementById("startSelect").addEventListener("change", (e) => {
-  pushUndo("change start state");
-  startId = e.target.value;
-  model.meta.start = startId;
-  recomputeAnalysisAndStyle();
-});
+  document.getElementById("startSelect").addEventListener("change", (e) => {
+    pushUndo("change start state");
+    startId = e.target.value;
+    model.meta.start = startId;
+    recomputeAnalysisAndStyle();
+  });
 
-document.getElementById("probeBtn").addEventListener("click", () => probe());
-document.getElementById("walkBtn").addEventListener("click", () => {
-  const steps = Math.max(1, Math.min(50000, Number(document.getElementById("walkSteps").value || 250)));
-  walk(steps);
-});
-document.getElementById("relayoutBtn").addEventListener("click", () => runLayout());
-document.getElementById("undoBtn").addEventListener("click", () => undo());
-document.getElementById("resetBtn").addEventListener("click", () => {
-  pushUndo("reset");
-  model = deepClone(baseline);
-  model = normalizeModel(model);
-  heat = { node:{}, edge:{} };
-  startId = model.meta.start;
-  renderModel({preservePositions:false, relayout:true});
-});
+  document.getElementById("probeBtn").addEventListener("click", () => probe());
+  document.getElementById("walkBtn").addEventListener("click", () => {
+    const steps = Math.max(1, Math.min(50000, Number(document.getElementById("walkSteps").value || 250)));
+    walk(steps);
+  });
+  document.getElementById("relayoutBtn").addEventListener("click", () => runLayout());
+  document.getElementById("undoBtn").addEventListener("click", () => undo());
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    pushUndo("reset");
+    model = deepClone(baseline);
+    model = normalizeModel(model);
+    heat = { node:{}, edge:{} };
+    startId = model.meta.start;
+    renderModel({preservePositions:false, relayout:true});
+  });
 
-document.getElementById("clearHeatBtn").addEventListener("click", () => {
-  pushUndo("clear heat");
-  heat = { node:{}, edge:{} };
-  recomputeAnalysisAndStyle();
-});
+  document.getElementById("clearHeatBtn").addEventListener("click", () => {
+    pushUndo("clear heat");
+    heat = { node:{}, edge:{} };
+    recomputeAnalysisAndStyle();
+  });
 
-document.getElementById("focusAttractorsBtn").addEventListener("click", () => {
-  const attractors = cy.nodes(".attractor");
-  if (!attractors.length) return;
-  cy.fit(attractors, 40);
-});
+  document.getElementById("focusAttractorsBtn").addEventListener("click", () => {
+    const attractors = cy.nodes(".attractor");
+    if (!attractors.length) return;
+    cy.fit(attractors, 40);
+  });
 
-document.getElementById("exportBtn").addEventListener("click", () => exportJSON());
-document.getElementById("pngBtn").addEventListener("click", () => exportPNG());
+  document.getElementById("exportBtn").addEventListener("click", () => exportJSON());
+  document.getElementById("pngBtn").addEventListener("click", () => exportPNG());
 
-document.getElementById("importFile").addEventListener("change", (e) => {
-  const file = e.target.files?.[0];
-  if (file) importJSON(file);
-  e.target.value = "";
-});
+  document.getElementById("importFile").addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (file) importJSON(file);
+    e.target.value = "";
+  });
 
-// keyboard shortcut: ctrl/cmd+z for undo
-document.addEventListener("keydown", (e) => {
-  const isUndo = (e.key.toLowerCase() === "z") && (e.ctrlKey || e.metaKey);
-  if (isUndo){
-    e.preventDefault();
-    undo();
-  }
-});
+  // keyboard shortcut: ctrl/cmd+z for undo
+  document.addEventListener("keydown", (e) => {
+    const isUndo = (e.key.toLowerCase() === "z") && (e.ctrlKey || e.metaKey);
+    if (isUndo){
+      e.preventDefault();
+      undo();
+    }
+  });
+}
 
 /* ---------------------------
    Cytoscape interactions
 ---------------------------- */
-cy.on("tap", (evt) => {
-  if (evt.target === cy) clearSelection();
-});
-cy.on("tap", "node", (evt) => selectNode(evt.target));
-cy.on("tap", "edge", (evt) => selectEdge(evt.target));
+function wireCytoscapeInteractions(){
+  cy.on("tap", (evt) => {
+    if (evt.target === cy) clearSelection();
+  });
+  cy.on("tap", "node", (evt) => selectNode(evt.target));
+  cy.on("tap", "edge", (evt) => selectEdge(evt.target));
+}
 
 /* ---------------------------
    Boot
 ---------------------------- */
-(function boot(){
+async function boot(){
+  const loaded = await ensureCytoscape().catch((err) => {
+    showCytoscapeError(err?.message ?? String(err));
+    return false;
+  });
+  if (!loaded || !window.cytoscape) {
+    showCytoscapeError("Cytoscape.js is required to render the graph. Check network access to the CDN.");
+    return;
+  }
+  await ensureFcose();
+  initCytoscape();
+  wireUi();
+  wireCytoscapeInteractions();
+
   model = normalizeModel(model);
   thr = Number(document.getElementById("thr").value);
   pCut = Number(document.getElementById("pCut").value);
@@ -1234,7 +1295,9 @@ cy.on("tap", "edge", (evt) => selectEdge(evt.target));
   updateStartDropdown();
   renderModel({preservePositions:false, relayout:true});
   clearSelection();
-})();
+}
+
+boot();
 </script>
 </body>
 </html>

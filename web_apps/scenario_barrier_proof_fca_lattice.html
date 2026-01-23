@@ -1,0 +1,1353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Scenario × Barrier × Proof — FCA Lattice (Fixed Example)</title>
+
+  <style>
+    :root{
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --danger: #dc2626;
+      --shadow: 0 10px 26px rgba(2,6,23,0.10);
+    }
+    *{ box-sizing: border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    /* Top bar */
+    header{
+      display:flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items:flex-start;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: #0b1220;
+      color: #e2e8f0;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .kicker{ font-size: 12px; color: #94a3b8; }
+    h1{ margin: 2px 0 0; font-size: 18px; }
+    .subtitle{ font-size: 12px; color: #a5b4fc; margin-top: 6px; max-width: 820px; line-height: 1.35; }
+    .top-actions{ display:flex; gap: 10px; flex-wrap: wrap; justify-content:flex-end; }
+
+    /* Layout */
+    .layout{
+      height: calc(100vh - 70px);
+      display:grid;
+      grid-template-columns: 340px 1fr 380px;
+    }
+    .panel{
+      background: var(--panel);
+      overflow:auto;
+      border-right: 1px solid var(--border);
+    }
+    .panel.right{
+      border-right:none;
+      border-left: 1px solid var(--border);
+    }
+    .section{
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .h2{
+      margin: 0 0 10px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+    .divider{ height:1px; background: var(--border); margin: 12px 0; }
+
+    main{
+      position:relative;
+      background:#fff;
+    }
+    #cy{ width:100%; height:100%; }
+    .canvasHint{
+      position:absolute;
+      left: 12px;
+      bottom: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.93);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      max-width: 560px;
+    }
+
+    /* Buttons, inputs */
+    .btn{
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.10);
+      color: #e2e8f0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 650;
+      font-size: 13px;
+      line-height: 1;
+      user-select:none;
+    }
+    .btn:hover{ filter: brightness(1.05); }
+    .btn.primary{
+      background: var(--primary);
+      border-color: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+    .btn.ghost{
+      background: transparent;
+      border-color: rgba(255,255,255,0.22);
+    }
+    .btn.small{
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+    .btn.danger{
+      background: var(--danger);
+      border-color: rgba(255,255,255,0.15);
+      color: white;
+    }
+    .btn.active{
+      outline: 3px solid rgba(37,99,235,0.25);
+    }
+
+    .panel .btn{
+      color: var(--text);
+      background: #fff;
+      border-color: var(--border);
+    }
+    .panel .btn.ghost{ background: transparent; }
+    .panel .btn.danger{ background: var(--danger); color:#fff; border-color: transparent; }
+
+    .row{ display:flex; gap: 8px; flex-wrap: wrap; align-items:center; }
+
+    .label{
+      font-size: 12px;
+      font-weight: 750;
+      color: var(--muted);
+      display:block;
+      margin: 0 0 6px;
+    }
+    .input{
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    .hint{
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    code, kbd{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+    }
+    kbd{
+      padding: 2px 6px;
+      border: 1px solid var(--border);
+      border-bottom-width: 2px;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .emptyState{
+      font-size: 13px;
+      color: var(--muted);
+      padding: 10px 12px;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      background: #fbfdff;
+    }
+    .callout{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: #f8fafc;
+      margin: 12px 0;
+    }
+    ul{ margin: 8px 0 0 18px; padding: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; }
+
+    details{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow:hidden;
+      background:#fff;
+      margin-top: 10px;
+    }
+    summary{
+      padding: 10px 12px;
+      cursor:pointer;
+      font-weight: 750;
+      font-size: 13px;
+      list-style: none;
+    }
+    summary::-webkit-details-marker{ display:none; }
+    .pill{
+      display:inline-block;
+      padding: 2px 8px;
+      font-size: 11px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #0f172a;
+      margin-left: 8px;
+      font-weight: 700;
+    }
+
+    /* Risk cards inside extent */
+    .riskCard{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow:hidden;
+      background:#fff;
+      margin: 8px 0;
+    }
+    .riskCard summary{
+      font-size: 13px;
+      padding: 10px 12px;
+      font-weight: 800;
+      background: #fbfdff;
+    }
+    .riskBody{
+      padding: 10px 12px 12px;
+    }
+    .riskBody .hint{ margin-top: 6px; }
+    .tagRow{ display:flex; flex-wrap:wrap; gap: 6px; margin-top: 8px; }
+    .tag{
+      display:inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #fff;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .matrix{
+      overflow:auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background:#fff;
+      margin: 10px 12px 12px;
+    }
+    .matrix table{ border-collapse: collapse; width: max-content; min-width: 100%; }
+    .matrix th, .matrix td{
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      padding: 8px 10px;
+      font-size: 12px;
+      white-space: nowrap;
+      vertical-align: top;
+    }
+    .matrix th{
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      z-index: 1;
+    }
+    .matrix td:first-child, .matrix th:first-child{
+      position: sticky;
+      left: 0;
+      background: #f8fafc;
+      z-index: 2;
+      font-weight: 800;
+      min-width: 260px;
+    }
+    .mark{ text-align:center; font-weight: 900; }
+
+    /* Modal */
+    .modal{
+      display:none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2,6,23,0.55);
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 20;
+    }
+    .modal.open{ display:flex; }
+    .dialog{
+      max-width: 760px;
+      width: 100%;
+      background: #fff;
+      color: var(--text);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(2,6,23,0.10);
+      overflow:hidden;
+    }
+    .dialog-header{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .dialog-body{
+      padding: 16px;
+      line-height: 1.55;
+    }
+    .dialog-header .btn{
+      color: var(--text);
+      background: transparent;
+      border-color: var(--border);
+    }
+
+    /* Responsive */
+    @media (max-width: 1100px){
+      .layout{ grid-template-columns: 1fr; height:auto; }
+      .panel{ border-right:none; border-left:none; }
+      main{ height: 70vh; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <div class="kicker">Fixed example project — causal barrier coverage</div>
+      <h1>Scenario × Barrier × Proof — FCA Concept Lattice</h1>
+      <div class="subtitle" id="projectTitle">Loading…</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn ghost" data-open="modalWhat">What is this?</button>
+      <button class="btn ghost" data-open="modalRead">How to read nodes</button>
+      <button class="btn ghost" data-open="modalGaps">What counts as a gap?</button>
+      <button class="btn primary" id="btnReset">Reset view</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- Left panel -->
+    <aside class="panel">
+      <div class="section">
+        <div class="h2">Project story</div>
+        <div class="callout">
+          <div style="font-weight:900; margin-bottom: 6px;">Distribution Center Go‑Live (first 8 weeks)</div>
+          <div class="hint" style="margin-top:0;">
+            Each risk in this demo is written as a <b>causal chain</b> (what starts it → what happens → impact).
+            We then tag which <b>barriers (controls)</b> exist to break the chain, and what <b>proof (evidence)</b> we have that the barrier is real.
+            FCA turns that table into a lattice of shared barrier/proof patterns.
+          </div>
+          <div class="tagRow">
+            <span class="tag">6 scenarios</span>
+            <span class="tag">5 barriers</span>
+            <span class="tag">5 proofs</span>
+            <span class="tag">1 evidence‑only gap</span>
+            <span class="tag">1 unassessed scenario</span>
+          </div>
+        </div>
+
+        <div class="h2" style="margin-top: 14px;">Explore</div>
+
+        <div class="row">
+          <button class="btn small" id="btnLayoutHierarchy">Hierarchy</button>
+          <button class="btn small" id="btnLayoutForce">Force</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <label class="label">Find a scenario</label>
+          <div class="row" style="flex-wrap:nowrap;">
+            <input class="input" id="riskSearch" placeholder="forklift, chemical, risk-004…" />
+            <button class="btn small" id="btnSearch">Find</button>
+          </div>
+          <div class="hint">
+            Searches by <code>risk-id</code> <i>or</i> keywords in the scenario title.
+            Try <code>forklift</code> or <code>risk-006</code>.
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <label class="label">Coverage</label>
+          <div class="row">
+            <button class="btn small danger" id="btnGaps">Highlight gaps</button>
+          </div>
+          <div class="hint">
+            In this demo, a scenario is considered <b>covered</b> if it has ≥1 <code>control:</code> attribute (a barrier).
+            Proof (<code>evidence:</code>) without a barrier is flagged as an <b>evidence‑only gap</b>.
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <details id="scenarioList" open>
+          <summary>Scenario list <span class="pill">what’s in scope</span></summary>
+          <div style="padding: 0 12px 12px;">
+            <div class="hint">This is the fixed example dataset used to build the lattice.</div>
+            <ul id="scenarioUl"></ul>
+          </div>
+        </details>
+
+        <details id="matrixDetails">
+          <summary>Input matrix <span class="pill">scenario×barriers×proof</span></summary>
+          <div class="hint" style="padding: 0 12px 12px;">
+            This is the raw table FCA uses. A cell means “this barrier/proof applies to this scenario.”
+          </div>
+          <div class="matrix" id="matrix"></div>
+        </details>
+      </div>
+
+      <div class="section">
+        <div class="h2">Keyboard</div>
+        <ul>
+          <li><kbd>Esc</kbd> clears search highlights and closes dialogs</li>
+          <li><kbd>Click</kbd> a node to inspect full extent/intent</li>
+          <li><kbd>Drag</kbd> to pan; <kbd>Scroll</kbd> to zoom</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Graph -->
+    <main>
+      <div id="cy"></div>
+      <div class="canvasHint" id="canvasHint">
+        A <b>node</b> is a “barrier bundle”: the scenarios (extent) that share the same barriers/proofs (intent).
+        Click any node to see the causal stories for the scenarios it groups.
+      </div>
+    </main>
+
+    <!-- Right panel -->
+    <aside class="panel right">
+      <div class="section" id="selectedPanel">
+        <div class="h2">Selected node</div>
+        <div class="emptyState">Click a node in the lattice to see details.</div>
+      </div>
+
+      <div class="section">
+        <div class="h2">Gap report</div>
+        <div class="emptyState" id="gapReport">
+          Turn on <b>Highlight gaps</b> to generate a gap report.
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal" id="modalWhat" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modalWhatTitle">
+      <div class="dialog-header">
+        <div style="font-weight:900;" id="modalWhatTitle">What you’re looking at</div>
+        <button class="btn small" data-close>Close</button>
+      </div>
+      <div class="dialog-body">
+        <p>
+          This page shows a <b>concept lattice</b> built using <b>Formal Concept Analysis (FCA)</b>.
+          FCA does one very specific (and very useful) thing:
+          it groups scenarios by the <em>exact same</em> set of barriers (controls) and proofs (evidence) they share.
+        </p>
+
+        <div class="callout">
+          <b>Concept = (Extent, Intent)</b>
+          <ul>
+            <li><b>Extent</b>: which scenarios fall into that group</li>
+            <li><b>Intent</b>: which barriers/proofs are shared by all those scenarios</li>
+          </ul>
+        </div>
+
+        <p>
+          The “causal” part is in how we <b>write the risks</b>:
+          each scenario has a causal chain (“what starts it → what happens → impact”).
+          Controls are the <b>barriers</b> that break the chain.
+          Evidence is the <b>proof</b> the barrier is real (walkthroughs, logs, audit reports, tickets).
+        </p>
+
+        <div class="callout">
+          <b>What FCA is doing (and not doing)</b>
+          <ul>
+            <li><b>Not</b> inferring causality.</li>
+            <li><b>Yes</b> surfacing coverage patterns: “Which causal scenarios share the same barrier set?”</li>
+            <li><b>Yes</b> exposing gaps: “Which scenarios have no barriers (or only paperwork)?”</li>
+          </ul>
+        </div>
+
+        <p class="hint">
+          Director‑level questions this view answers quickly:
+          “Where are we over‑relying on training?”, “Which scenarios share a single critical barrier?”,
+          “Which scenarios have proof but no implemented barrier?”, and “Which scenarios haven’t even been assessed yet?”
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalRead" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modalReadTitle">
+      <div class="dialog-header">
+        <div style="font-weight:900;" id="modalReadTitle">How to read nodes</div>
+        <button class="btn small" data-close>Close</button>
+      </div>
+      <div class="dialog-body">
+        <p>
+          Each node label shows counts. Example:
+        </p>
+        <div class="callout mono">
+          2 scenario(s)<br/>
+          barriers: 1<br/>
+          proofs: 0
+        </div>
+
+        <ul>
+          <li>Click a node → right panel shows the full <b>intent</b> (shared barriers/proofs) and <b>extent</b> (scenarios).</li>
+          <li>Edges connect “more general” to “more specific”: going downward usually <b>adds barriers/proofs</b> and <b>shrinks</b> the scenario set.</li>
+          <li>The lattice is deterministic: given the same input matrix, you get the same structure every time.</li>
+        </ul>
+
+        <div class="hint">
+          Tip: start with the big nodes (many scenarios), then follow edges downward until you find small nodes that represent
+          “special” barrier bundles (often where you’ll find thin coverage or single points of failure).
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalGaps" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="modalGapsTitle">
+      <div class="dialog-header">
+        <div style="font-weight:900;" id="modalGapsTitle">What counts as a gap?</div>
+        <button class="btn small" data-close>Close</button>
+      </div>
+      <div class="dialog-body">
+        <p>
+          In this demo, a scenario is considered <b>covered</b> if it has at least one <code>control:</code> attribute (a barrier).
+        </p>
+
+        <div class="callout">
+          <b>Gap rules in this demo</b>
+          <ul>
+            <li><b>No‑barrier gap</b>: scenario has <b>zero</b> <code>control:</code> attributes</li>
+            <li><b>Evidence‑only gap</b>: scenario has proof (<code>evidence:</code>) but still <b>no barrier</b></li>
+            <li><b>Unassessed scenario</b>: scenario has <b>no attributes at all</b> (no barriers, no proof)</li>
+          </ul>
+        </div>
+
+        <p class="hint">
+          Real programs often require both barriers <em>and</em> proof. This demo separates “paperwork exists” from “a barrier exists”
+          so directors can spot the learning‑loop failure case: tickets/logs with no corrective barrier.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cytoscape -->
+  <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+
+  <script>
+  (function(){
+    "use strict";
+
+    // -------------------------
+    // 1) Fixed example dataset
+    // -------------------------
+    const PROJECT = {
+      title: "Distribution Center Go‑Live — barrier coverage lattice (6 scenarios, 5 barriers, 5 proofs)",
+      controlPrefix: "control:",
+      evidencePrefix: "evidence:",
+      objects: [
+        "risk-001",
+        "risk-002",
+        "risk-003",
+        "risk-004",
+        "risk-005",
+        "risk-006"
+      ],
+      attributes: [
+        // Barriers (controls)
+        "control:traffic_separation_plan",
+        "control:competency_training_signoff",
+        "control:lockout_tagout",
+        "control:preventive_maintenance_program",
+        "control:vendor_chemical_audit",
+
+        // Proof (evidence)
+        "evidence:floorwalk_checklist_2026_01_15",
+        "evidence:training_roster_Q1_2026",
+        "evidence:pm_workorder_log_2026_01",
+        "evidence:vendor_audit_report_2026_01_09",
+        "evidence:near_miss_ticket_1234"
+      ],
+
+      // Human-friendly descriptions (what directors care about)
+      riskMeta: {
+        "risk-001": {
+          title: "Forklift–pedestrian collision at cross‑dock",
+          chain: "Mixed traffic + blind corners → near‑misses → collision",
+          impact: "Serious injury, stop‑work, schedule slip"
+        },
+        "risk-002": {
+          title: "Conveyor jam overheats → smoke/fire",
+          chain: "Dust + jam sensors failing → overheating → ignition",
+          impact: "Fire alarm, downtime, asset damage"
+        },
+        "risk-003": {
+          title: "Maintenance begins work without full energy isolation",
+          chain: "Schedule pressure + ambiguous isolation points → LOTO bypass → exposure",
+          impact: "Severe injury, regulatory incident"
+        },
+        "risk-004": {
+          title: "Vendor chemical storage spill/exposure",
+          chain: "Incompatible chemicals + poor labeling → spill → fumes/exposure",
+          impact: "Injury, cleanup, environmental reporting"
+        },
+        "risk-005": {
+          title: "Near‑miss tickets exist but no corrective barrier is implemented",
+          chain: "Signals captured → no owner/action → repeat incidents",
+          impact: "Learning loop broken; same incident recurs"
+        },
+        "risk-006": {
+          title: "Mezzanine load limit not assessed/recorded",
+          chain: "Design data missing → overload risk → structural failure",
+          impact: "Catastrophic risk; immediate stop‑work if discovered late"
+        }
+      },
+
+      attrMeta: {
+        // Controls
+        "control:traffic_separation_plan": {
+          short: "Traffic separation plan",
+          kind: "control",
+          desc: "Physical separation + signage: walkways, bollards, one‑way aisles, crossings."
+        },
+        "control:competency_training_signoff": {
+          short: "Competency training & sign‑off",
+          kind: "control",
+          desc: "Role‑based training + sign‑off for operators/maintainers; refreshers for new hires."
+        },
+        "control:lockout_tagout": {
+          short: "Lockout/Tagout (LOTO)",
+          kind: "control",
+          desc: "Energy isolation + zero‑energy verification before clearing jams or maintenance."
+        },
+        "control:preventive_maintenance_program": {
+          short: "Preventive maintenance program",
+          kind: "control",
+          desc: "Scheduled PM for conveyors: sensors, guarding, lubrication, dust removal."
+        },
+        "control:vendor_chemical_audit": {
+          short: "Vendor chemical audit",
+          kind: "control",
+          desc: "Audit storage, labeling, SDS access, incompatibilities; corrective actions tracked."
+        },
+
+        // Evidence
+        "evidence:floorwalk_checklist_2026_01_15": {
+          short: "Floor‑walk checklist (Jan 15)",
+          kind: "evidence",
+          desc: "Supervisor walkthrough verifying pedestrian routes, barriers, and signage."
+        },
+        "evidence:training_roster_Q1_2026": {
+          short: "Training roster (Q1 2026)",
+          kind: "evidence",
+          desc: "Export of completed training sign‑offs for operators/maintainers."
+        },
+        "evidence:pm_workorder_log_2026_01": {
+          short: "PM work orders (Jan 2026)",
+          kind: "evidence",
+          desc: "CMMS log showing PM tasks closed for conveyors."
+        },
+        "evidence:vendor_audit_report_2026_01_09": {
+          short: "Vendor audit report (Jan 9)",
+          kind: "evidence",
+          desc: "Audit report + corrective actions for chemical storage."
+        },
+        "evidence:near_miss_ticket_1234": {
+          short: "Near‑miss ticket #1234",
+          kind: "evidence",
+          desc: "Ticket exists (signal), but not linked to an owned barrier/action."
+        }
+      },
+
+      // relation: scenario -> list(attributes present)
+      relation: {
+        "risk-001": [
+          "control:traffic_separation_plan",
+          "control:competency_training_signoff",
+          "evidence:floorwalk_checklist_2026_01_15",
+          "evidence:training_roster_Q1_2026"
+        ],
+        "risk-002": [
+          "control:preventive_maintenance_program",
+          "control:competency_training_signoff",
+          "evidence:pm_workorder_log_2026_01",
+          "evidence:training_roster_Q1_2026"
+        ],
+        "risk-003": [
+          "control:lockout_tagout",
+          "control:competency_training_signoff",
+          "evidence:training_roster_Q1_2026"
+        ],
+        "risk-004": [
+          "control:vendor_chemical_audit",
+          "control:competency_training_signoff",
+          "evidence:vendor_audit_report_2026_01_09",
+          "evidence:training_roster_Q1_2026"
+        ],
+        "risk-005": [
+          "evidence:near_miss_ticket_1234"
+        ],
+        "risk-006": []
+      }
+    };
+
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+    function escapeHtml(s){
+      return String(s)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function attrShort(a){
+      return (PROJECT.attrMeta[a] && PROJECT.attrMeta[a].short) ? PROJECT.attrMeta[a].short : a;
+    }
+    function attrDesc(a){
+      return (PROJECT.attrMeta[a] && PROJECT.attrMeta[a].desc) ? PROJECT.attrMeta[a].desc : "";
+    }
+    function riskTitle(r){
+      return (PROJECT.riskMeta[r] && PROJECT.riskMeta[r].title) ? PROJECT.riskMeta[r].title : r;
+    }
+
+    $("#projectTitle").textContent = PROJECT.title;
+
+    // -------------------------
+    // 2) Fill scenario list (left panel)
+    // -------------------------
+    $("#scenarioUl").innerHTML = PROJECT.objects.map(r => {
+      const m = PROJECT.riskMeta[r];
+      return `<li><code>${escapeHtml(r)}</code> — ${escapeHtml(m.title)}</li>`;
+    }).join("");
+
+    // -------------------------
+    // 3) FCA (Next Closure) in JS
+    // -------------------------
+    const Objects = PROJECT.objects.slice();
+    const Attrs = PROJECT.attributes.slice();
+
+    const Rel = {};
+    for(const o of Objects){
+      Rel[o] = new Set(PROJECT.relation[o] || []);
+    }
+
+    function prime_attr(B){
+      // B' = objects having all attributes in B
+      const res = [];
+      outer: for(const o of Objects){
+        const set = Rel[o];
+        for(const a of B){
+          if(!set.has(a)) continue outer;
+        }
+        res.push(o);
+      }
+      return new Set(res);
+    }
+
+    function prime_obj(X){
+      // X' = attributes common to all objects in X
+      // FCA convention: empty extent -> all attributes
+      if(X.size === 0) return new Set(Attrs);
+      const common = new Set(Attrs);
+      for(const o of X){
+        const set = Rel[o];
+        for(const a of Array.from(common)){
+          if(!set.has(a)) common.delete(a);
+        }
+      }
+      return common;
+    }
+
+    function closure(B){
+      return prime_obj(prime_attr(B));
+    }
+
+    function setEq(A,B){
+      if(A.size !== B.size) return false;
+      for(const x of A) if(!B.has(x)) return false;
+      return true;
+    }
+    function setIntersect(A,B){
+      const r = new Set();
+      for(const x of A) if(B.has(x)) r.add(x);
+      return r;
+    }
+    function setUnion(A,B){
+      const r = new Set(A);
+      for(const x of B) r.add(x);
+      return r;
+    }
+
+    function nextClosure(B){
+      // Ganter's NextClosure (lectic order over Attrs)
+      const Bset = new Set(B);
+      for(let i = Attrs.length - 1; i >= 0; i--){
+        const ai = Attrs[i];
+        if(!Bset.has(ai)){
+          const prefix = new Set(Attrs.slice(0,i));
+          const candidate = closure(setUnion(setIntersect(Bset, prefix), new Set([ai])));
+          if(setEq(setIntersect(candidate, prefix), setIntersect(Bset, prefix))){
+            return candidate;
+          }
+        }
+      }
+      return null;
+    }
+
+    function allIntents(){
+      const intents = [];
+      let B = closure(new Set()); // top intent (common attrs)
+      intents.push(B);
+      while(true){
+        const Bn = nextClosure(B);
+        if(!Bn) break;
+        intents.push(Bn);
+        B = Bn;
+      }
+      return intents;
+    }
+
+    const intents = allIntents();
+
+    // Build concepts: each intent -> extent
+    const concepts = intents.map((intent, idx) => {
+      const extent = prime_attr(intent);
+      const intentArr = Array.from(intent).sort();
+      const extentArr = Array.from(extent).sort();
+
+      const barrierCount = intentArr.filter(a => a.startsWith(PROJECT.controlPrefix)).length;
+      const proofCount = intentArr.filter(a => a.startsWith(PROJECT.evidencePrefix)).length;
+
+      // Node label: keep it director-friendly and compact
+      const label = `${extentArr.length} scenario(s)\nbarriers: ${barrierCount}\nproofs: ${proofCount}`;
+
+      return {
+        id: "c" + idx,
+        extent: extentArr,
+        intent: intentArr,
+        stats: {
+          scenarioCount: extentArr.length,
+          barrierCount,
+          proofCount,
+          intentSize: intentArr.length
+        },
+        label
+      };
+    });
+
+    function hasseEdges(concepts){
+      // Cover relation using extent inclusion (directed from larger extent -> smaller extent)
+      const ext = concepts.map(c => new Set(c.extent));
+      const edges = [];
+      const n = concepts.length;
+
+      function isProperSup(A,B){
+        if(A.size <= B.size) return false;
+        for(const x of B) if(!A.has(x)) return false;
+        return true;
+      }
+
+      for(let i=0;i<n;i++){
+        for(let j=0;j<n;j++){
+          if(i===j) continue;
+          if(isProperSup(ext[i], ext[j])){
+            let between = false;
+            for(let k=0;k<n;k++){
+              if(k===i || k===j) continue;
+              if(isProperSup(ext[i], ext[k]) && isProperSup(ext[k], ext[j])){
+                between = true;
+                break;
+              }
+            }
+            if(!between){
+              edges.push({ id: "e"+edges.length, source: concepts[i].id, target: concepts[j].id });
+            }
+          }
+        }
+      }
+      return edges;
+    }
+
+    const edges = hasseEdges(concepts);
+
+    // Root concept = max extent size
+    const maxExtent = Math.max(...concepts.map(c => c.extent.length));
+    const rootId = (concepts.find(c => c.extent.length === maxExtent) || concepts[0]).id;
+
+    // -------------------------
+    // 4) Matrix view
+    // -------------------------
+    function renderMatrix(){
+      const attrs = Attrs.slice();
+
+      const head = `
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            ${attrs.map(a => {
+              const isCtrl = a.startsWith(PROJECT.controlPrefix);
+              const short = attrShort(a);
+              const prefix = isCtrl ? "Barrier" : "Proof";
+              const title = `${prefix}: ${short}\n${attrDesc(a)}\n\nToken: ${a}`;
+              return `<th title="${escapeHtml(title)}">${escapeHtml(short)}</th>`;
+            }).join("")}
+          </tr>
+        </thead>
+      `;
+
+      const body = `
+        <tbody>
+          ${Objects.map(o => {
+            const set = Rel[o];
+            const m = PROJECT.riskMeta[o] || { title: o };
+            return `
+              <tr>
+                <td>
+                  <div><code>${escapeHtml(o)}</code> — ${escapeHtml(m.title)}</div>
+                  <div class="hint" style="margin-top:6px;"><b>Causal chain:</b> ${escapeHtml(m.chain || "")}</div>
+                </td>
+                ${attrs.map(a => set.has(a) ? `<td class="mark">✓</td>` : `<td></td>`).join("")}
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      `;
+
+      $("#matrix").innerHTML = `<table>${head}${body}</table>`;
+    }
+    renderMatrix();
+
+    // -------------------------
+    // 5) Cytoscape graph
+    // -------------------------
+    function ensureCytoscape(){
+      if(typeof cytoscape === "undefined"){
+        $("#cy").innerHTML = `
+          <div style="padding:16px;">
+            <div class="callout">
+              <b>Cytoscape.js failed to load.</b>
+              <div class="hint" style="margin-top:8px;">
+                This page loads Cytoscape.js from a CDN. If you are offline, download Cytoscape.js and replace the script tag,
+                or serve this file from an environment with internet access.
+              </div>
+            </div>
+          </div>
+        `;
+        return null;
+      }
+      return cytoscape;
+    }
+
+    const Cyt = ensureCytoscape();
+    if(!Cyt) return;
+
+    const cy = Cyt({
+      container: $("#cy"),
+      elements: {
+        nodes: concepts.map(c => ({
+          data: {
+            id: c.id,
+            label: c.label,
+            extent: c.extent,
+            intent: c.intent,
+            stats: c.stats
+          }
+        })),
+        edges: edges.map(e => ({ data: e }))
+      },
+      wheelSensitivity: 0.2,
+      layout: { name: "breadthfirst", directed: true, padding: 25, roots: "#"+rootId, spacingFactor: 1.25 },
+      style: [
+        { selector: "node", style: {
+          "label": "data(label)",
+          "text-wrap": "wrap",
+          "text-max-width": 170,
+          "font-size": 10,
+          "background-color": "#e2e8f0",
+          "border-width": 1,
+          "border-color": "#94a3b8",
+          "width": 52,
+          "height": 52,
+          "text-valign": "center",
+          "text-halign": "center"
+        }},
+        { selector: "edge", style: {
+          "width": 1,
+          "line-color": "#94a3b8",
+          "target-arrow-color": "#94a3b8",
+          "target-arrow-shape": "triangle",
+          "curve-style": "bezier"
+        }},
+        { selector: "node:selected", style: {
+          "border-width": 4,
+          "border-color": "#2563eb",
+          "background-color": "#dbeafe"
+        }},
+        { selector: ".gap", style: {
+          "border-width": 4,
+          "border-color": "#dc2626",
+          "background-color": "#fee2e2"
+        }},
+        { selector: ".emptyRisk", style: {
+          "border-style": "dashed"
+        }},
+        { selector: ".searchHit", style: {
+          "border-width": 4,
+          "border-color": "#0f766e",
+          "background-color": "#ccfbf1"
+        }},
+        { selector: ".dim", style: {
+          "opacity": 0.18
+        }}
+      ]
+    });
+
+    function runHierarchy(){
+      cy.layout({ name:"breadthfirst", directed:true, padding:30, roots:"#"+rootId, spacingFactor: 1.25 }).run();
+    }
+    function runForce(){
+      cy.layout({ name:"cose", padding: 30, animate: true, randomize: true }).run();
+    }
+
+    $("#btnLayoutHierarchy").addEventListener("click", runHierarchy);
+    $("#btnLayoutForce").addEventListener("click", runForce);
+
+    // -------------------------
+    // 6) Selected concept panel
+    // -------------------------
+    function splitAttrs(arr){
+      const barriers = [], proofs = [], other = [];
+      for(const a of arr){
+        if(a.startsWith(PROJECT.controlPrefix)) barriers.push(a);
+        else if(a.startsWith(PROJECT.evidencePrefix)) proofs.push(a);
+        else other.push(a);
+      }
+      return {barriers, proofs, other};
+    }
+
+    function plural(n, s){ return n===1 ? s : (s+"s"); }
+
+    function renderAttrList(items){
+      if(items.length === 0) return "<div class=\"hint\">—</div>";
+      return `
+        <ul>
+          ${items.map(a => `
+            <li>
+              <b>${escapeHtml(attrShort(a))}</b>
+              <span class="mono">(${escapeHtml(a)})</span>
+              <div class="hint">${escapeHtml(attrDesc(a))}</div>
+            </li>
+          `).join("")}
+        </ul>
+      `;
+    }
+
+    function renderSelected(node){
+      if(!node){
+        $("#selectedPanel").innerHTML = `
+          <div class="h2">Selected node</div>
+          <div class="emptyState">Click a node in the lattice to see details.</div>
+        `;
+        return;
+      }
+
+      const d = node.data();
+      const extent = d.extent || [];
+      const intent = d.intent || [];
+      const {barriers, proofs, other} = splitAttrs(intent);
+
+      const extentCards = extent.map(r => {
+        const m = PROJECT.riskMeta[r] || { title: r, chain:"", impact:"" };
+        const attrsForRisk = PROJECT.relation[r] || [];
+        const barrierTags = attrsForRisk.filter(a => a.startsWith(PROJECT.controlPrefix)).map(attrShort);
+        const proofTags = attrsForRisk.filter(a => a.startsWith(PROJECT.evidencePrefix)).map(attrShort);
+
+        return `
+          <details class="riskCard">
+            <summary><code>${escapeHtml(r)}</code> — ${escapeHtml(m.title)}</summary>
+            <div class="riskBody">
+              <div class="hint"><b>Causal chain:</b> ${escapeHtml(m.chain || "")}</div>
+              <div class="hint"><b>If it happens:</b> ${escapeHtml(m.impact || "")}</div>
+              <div class="tagRow">
+                ${barrierTags.map(t => `<span class="tag">Barrier: ${escapeHtml(t)}</span>`).join("")}
+                ${proofTags.map(t => `<span class="tag">Proof: ${escapeHtml(t)}</span>`).join("")}
+              </div>
+            </div>
+          </details>
+        `;
+      }).join("");
+
+      $("#selectedPanel").innerHTML = `
+        <div class="h2">Selected node</div>
+
+        <div class="callout">
+          <div><b>${extent.length}</b> ${plural(extent.length,"scenario")} share this barrier/proof pattern</div>
+          <div class="hint">Node id: <code>${escapeHtml(d.id)}</code></div>
+        </div>
+
+        <div class="callout">
+          <div style="font-weight:900; margin-bottom:6px;">Intent (shared barriers/proofs)</div>
+
+          <div class="hint"><b>Barriers</b> (${barriers.length})</div>
+          ${renderAttrList(barriers)}
+
+          <div class="hint" style="margin-top:10px;"><b>Proof</b> (${proofs.length})</div>
+          ${renderAttrList(proofs)}
+
+          ${other.length ? `
+            <div class="hint" style="margin-top:10px;"><b>Other</b> (${other.length})</div>
+            ${renderAttrList(other)}
+          ` : ``}
+        </div>
+
+        <div class="callout">
+          <div style="font-weight:900; margin-bottom:6px;">Extent (scenarios)</div>
+          <div class="hint" style="margin-top:0;">
+            These scenarios share the same barrier/proof pattern above. Expand each one to read its causal chain.
+          </div>
+          ${extentCards || `<div class="emptyState">No scenarios in this concept (rare in small demos).</div>`}
+        </div>
+
+        <div class="row">
+          <button class="btn small" id="btnCenter">Center on node</button>
+          <button class="btn small ghost" id="btnDimOthers">Dim others</button>
+        </div>
+        <div class="hint">“Dim others” helps you focus on the local neighborhood of this concept.</div>
+      `;
+
+      $("#btnCenter").addEventListener("click", () => {
+        cy.animate({ center: { eles: node }, duration: 300 });
+        node.select();
+      });
+      $("#btnDimOthers").addEventListener("click", () => {
+        cy.elements().removeClass("dim");
+        const hood = node.closedNeighborhood();
+        cy.elements().not(hood).addClass("dim");
+      });
+    }
+
+    cy.on("tap", "node", (evt) => renderSelected(evt.target));
+    cy.on("tap", (evt) => { if(evt.target === cy) cy.elements().removeClass("dim"); });
+
+    // -------------------------
+    // 7) Gap highlighting + report
+    // -------------------------
+    function computeGaps(){
+      const noBarrier = [];
+      const empty = [];
+      for(const o of Objects){
+        const attrs = PROJECT.relation[o] || [];
+        const hasAny = attrs.length > 0;
+        const hasBarrier = attrs.some(a => a.startsWith(PROJECT.controlPrefix));
+        if(!hasAny) empty.push(o);
+        if(!hasBarrier) noBarrier.push(o);
+      }
+      return {noBarrier, empty};
+    }
+
+    function mostSpecificConceptForRisk(riskId){
+      const candidates = concepts.filter(c => c.extent.includes(riskId));
+      if(candidates.length === 0) return null;
+      candidates.sort((a,b) => {
+        // prefer larger intent; tie-break: smaller extent
+        if(b.intent.length !== a.intent.length) return b.intent.length - a.intent.length;
+        return a.extent.length - b.extent.length;
+      });
+      return candidates[0].id;
+    }
+
+    let gapsOn = false;
+    $("#btnGaps").addEventListener("click", () => {
+      gapsOn = !gapsOn;
+      $("#btnGaps").classList.toggle("active", gapsOn);
+
+      cy.nodes().removeClass("gap emptyRisk");
+
+      if(!gapsOn){
+        $("#gapReport").innerHTML = `Turn on <b>Highlight gaps</b> to generate a gap report.`;
+        return;
+      }
+
+      const gaps = computeGaps();
+      const emptySet = new Set(gaps.empty);
+
+      // Highlight the most specific concept for each gap scenario (avoids painting the whole lattice red)
+      for(const r of gaps.noBarrier){
+        const cid = mostSpecificConceptForRisk(r);
+        if(cid) cy.getElementById(cid).addClass("gap");
+      }
+      for(const r of gaps.empty){
+        const cid = mostSpecificConceptForRisk(r);
+        if(cid) cy.getElementById(cid).addClass("emptyRisk");
+      }
+
+      const evidenceOnly = [];
+      for(const o of gaps.noBarrier){
+        if(emptySet.has(o)) continue;
+        const attrs = PROJECT.relation[o] || [];
+        const hasProof = attrs.some(a => a.startsWith(PROJECT.evidencePrefix));
+        if(hasProof) evidenceOnly.push(o);
+      }
+
+      function riskLi(o){
+        const m = PROJECT.riskMeta[o];
+        return `<li><code>${escapeHtml(o)}</code> — ${escapeHtml(m.title)}</li>`;
+      }
+
+      $("#gapReport").innerHTML = `
+        <div class="callout">
+          <div style="font-weight:900; margin-bottom:6px;">No‑barrier gaps (${gaps.noBarrier.length})</div>
+          <div class="hint">Scenarios with <b>zero</b> <code>${escapeHtml(PROJECT.controlPrefix)}</code> attributes.</div>
+          <ul>${gaps.noBarrier.map(riskLi).join("") || "<li>—</li>"}</ul>
+        </div>
+
+        <div class="callout">
+          <div style="font-weight:900; margin-bottom:6px;">Evidence‑only (${evidenceOnly.length})</div>
+          <div class="hint">Proof exists, but no barrier. This usually means “we can see the problem” but no one owns the corrective barrier.</div>
+          <ul>${evidenceOnly.map(riskLi).join("") || "<li>—</li>"}</ul>
+        </div>
+
+        <div class="callout">
+          <div style="font-weight:900; margin-bottom:6px;">Unassessed scenarios (${gaps.empty.length})</div>
+          <div class="hint">No barriers and no proof — often missing assessment or data ingestion.</div>
+          <ul>${gaps.empty.map(riskLi).join("") || "<li>—</li>"}</ul>
+        </div>
+
+        <div class="hint">
+          Tip: when gaps are highlighted, click the red/dashed nodes to see the scenario causal chains and what proof exists (if any).
+        </div>
+      `;
+    });
+
+    // -------------------------
+    // 8) Search (by id or keyword)
+    // -------------------------
+    function matchedRisks(query){
+      const q = (query || "").trim().toLowerCase();
+      if(!q) return [];
+      return Objects.filter(r => {
+        const m = PROJECT.riskMeta[r] || { title:"", chain:"" };
+        return r.toLowerCase().includes(q) || (m.title || "").toLowerCase().includes(q) || (m.chain || "").toLowerCase().includes(q);
+      });
+    }
+
+    function searchRisk(query){
+      cy.nodes().removeClass("searchHit");
+      const matches = matchedRisks(query);
+
+      if(matches.length === 0){
+        $("#canvasHint").textContent = `No scenario matches “${query}”. Try “forklift”, “chemical”, or “risk-003”.`;
+        setTimeout(() => $("#canvasHint").textContent = "A node is a “barrier bundle”: the scenarios (extent) that share the same barriers/proofs (intent). Click any node to see the causal stories for the scenarios it groups.", 3000);
+        return;
+      }
+
+      // Highlight most specific concept(s) for each matched risk
+      const conceptIds = new Set();
+      for(const r of matches){
+        const cid = mostSpecificConceptForRisk(r);
+        if(cid) conceptIds.add(cid);
+      }
+      for(const cid of conceptIds){
+        cy.getElementById(cid).addClass("searchHit");
+      }
+
+      // Focus
+      const firstId = Array.from(conceptIds)[0];
+      if(firstId){
+        const first = cy.getElementById(firstId);
+        cy.animate({ center: { eles: first }, duration: 300 });
+        first.select();
+        renderSelected(first);
+      }
+
+      if(matches.length > 1){
+        $("#canvasHint").textContent = `Found ${matches.length} scenarios for “${query}”. Highlighting their most specific nodes.`;
+        setTimeout(() => $("#canvasHint").textContent = "A node is a “barrier bundle”: the scenarios (extent) that share the same barriers/proofs (intent). Click any node to see the causal stories for the scenarios it groups.", 3500);
+      }
+    }
+
+    $("#btnSearch").addEventListener("click", () => searchRisk($("#riskSearch").value));
+    $("#riskSearch").addEventListener("keydown", (e) => { if(e.key === "Enter") searchRisk($("#riskSearch").value); });
+
+    // ESC clears highlights and closes modals
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape"){
+        cy.nodes().removeClass("searchHit");
+        closeAllModals();
+      }
+    });
+
+    // -------------------------
+    // 9) Reset
+    // -------------------------
+    $("#btnReset").addEventListener("click", () => {
+      gapsOn = false;
+      $("#btnGaps").classList.remove("active");
+      $("#riskSearch").value = "";
+      cy.elements().removeClass("gap emptyRisk searchHit dim");
+      cy.elements().unselect();
+      renderSelected(null);
+      $("#gapReport").innerHTML = `Turn on <b>Highlight gaps</b> to generate a gap report.`;
+      $("#canvasHint").textContent = "A node is a “barrier bundle”: the scenarios (extent) that share the same barriers/proofs (intent). Click any node to see the causal stories for the scenarios it groups.";
+      runHierarchy();
+    });
+
+    // -------------------------
+    // 10) Modals
+    // -------------------------
+    function openModal(id){
+      const m = document.getElementById(id);
+      if(!m) return;
+      m.classList.add("open");
+      m.setAttribute("aria-hidden","false");
+    }
+    function closeModal(m){
+      m.classList.remove("open");
+      m.setAttribute("aria-hidden","true");
+    }
+    function closeAllModals(){
+      $$(".modal.open").forEach(closeModal);
+    }
+
+    $$("[data-open]").forEach(btn => {
+      btn.addEventListener("click", () => openModal(btn.getAttribute("data-open")));
+    });
+    $$("[data-close]").forEach(btn => {
+      btn.addEventListener("click", closeAllModals);
+    });
+    $$(".modal").forEach(m => {
+      m.addEventListener("click", (e) => { if(e.target === m) closeModal(m); });
+    });
+
+    // Start with empty details
+    renderSelected(null);
+
+  })();
+  </script>
+</body>
+</html>

@@ -42,3 +42,4 @@
 40,project_viability_state_space_navigator_plus,"State-space navigator for project viability, safe-to-fail probes, and walk-based diagnostics.",ChatGPT,GPT-5.2-Codex,"viability, systems, simulation, visualization",,
 41,scenario_barrier_proof_fca_lattice,"Scenario × barrier × proof FCA lattice for causal coverage and gap analysis.",ChatGPT,GPT-5.2-Codex,"risk, fca, lattice, visualization, safety",,
 42,critical-path-spotter,"Critical path spotter for project schedules with dependency delays.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, critical_path, visualization",,
+43,project_time_exchange,"Project Time Exchange app for CPM crash menus, budget frontiers, and VCG-style optimization.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, optimization, visualization",,

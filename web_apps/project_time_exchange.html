@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PTX — Project Time Exchange (v4 with Explainers)</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { --bg:#0e1122; --panel:#151939; --muted:#8ea0c8; --text:#e9eef6; --accent:#a7e0a0; --accent2:#f7d774; --critical:#ff8a8a; --ok:#9fe7ff; --grid:#2b315a; --shadow:rgba(0,0,0,0.36); }
+    html,body{height:100%;margin:0;background:#0e1122;color:#e9eef6;font-family:Segoe UI,Roboto,Arial,sans-serif}
+    a{color:#a7e0a0}
+    #app{display:grid;grid-template-columns:380px 1fr;grid-template-rows:auto auto 1fr;grid-gap:12px;padding:14px}
+    header{grid-column:1/-1;background:#151939;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.36);padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+    header .title{display:flex;gap:10px;align-items:baseline}
+    header .title h1{font-size:20px;margin:0}
+    header .title .tag{font-size:12px;color:#8ea0c8;border:1px solid #2b315a;border-radius:999px;padding:2px 8px}
+    header .actions{display:flex;gap:8px;flex-wrap:wrap}
+    .panel{background:#151939;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,0.36);padding:12px}
+    .left{grid-row:2/-1;display:grid;grid-template-rows:auto auto 1fr;gap:12px}
+    .controls,.editor,.explainer{display:grid;gap:10px}
+    .controls .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .controls label{font-size:12px;color:#8ea0c8}
+    .controls input,.controls textarea{width:100%;background:#11142a;color:#e9eef6;border:1px solid #2b315a;border-radius:8px;padding:8px;font-size:14px}
+    .controls button{background:#232951;color:#e9eef6;border:1px solid #2b315a;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:600}
+    .controls button.primary{background:#2b356f}
+    .controls button.accent{background:#2c5a3b;border-color:#2c5a3b}
+    .editor textarea{height:140px;font-family:Consolas,Menlo,monospace}
+    .right{display:grid;grid-template-rows:auto auto 1fr;gap:12px}
+    .charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .chart{background:#0f132c;border:1px solid #2b315a;border-radius:12px;padding:8px;position:relative;min-height:260px}
+    .chart h3{font-size:14px;margin-bottom:6px;color:#8ea0c8}
+    .svgwrap{width:100%;height:240px}
+    svg{width:100%;height:100%}
+    .legend{position:absolute;right:8px;top:8px;font-size:11px;color:#8ea0c8}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:6px 8px;border-bottom:1px solid #2b315a;font-size:13px}
+    th{text-align:left;color:#8ea0c8}
+    .badge{display:inline-block;border:1px solid #2b315a;border-radius:6px;padding:2px 6px;font-size:11px;color:#8ea0c8}
+    .status{display:flex;gap:6px;flex-wrap:wrap}
+    .status .pill{background:#1a1f3f;border:1px solid #2b315a;border-radius:999px;padding:4px 8px;font-size:12px;color:#8ea0c8}
+    .small{font-size:12px;color:#8ea0c8}
+    .highlight{color:#f7d774}
+    .critical-bar{fill:#ff8a8a}
+    .normal-bar{fill:#9fe7ff}
+    .dot{fill:#a7e0a0}
+    .line{stroke:#f7d774;stroke-width:2;fill:none}
+    .knee-dot{fill:#ff8a8a}
+    .tooltip{position:absolute;background:#0c0f24;border:1px solid #2b315a;border-radius:6px;padding:6px 8px;font-size:12px;pointer-events:none;opacity:0;transition:opacity .12s ease}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+    .diag{background:#0f132c;border:1px solid #2b315a;border-radius:10px;padding:8px;max-height:160px;overflow:auto;font-size:12px}
+    /* Explainers */
+    .explainer .card{border:1px solid #2b315a;border-radius:10px;background:#101433;padding:10px}
+    .explainer .card h4{margin:0 0 4px 0;color:#f7d774;font-size:13px}
+    .explainer .card p{margin:4px 0 0 0;font-size:13px;line-height:1.35}
+    .explainer .quote{border-left:3px solid #8ea0c8;padding-left:10px;margin:6px 0 0 0;color:#d7def0}
+    .banner{background:#15351f;border:1px solid #2c5a3b;color:#a7e0a0;border-radius:10px;padding:8px 10px;margin:4px 0}
+    .error-banner{background:#4a1d1d;border:1px solid #742e2e;color:#ffd0d0;border-radius:10px;padding:8px 10px;margin:4px 0;display:none}
+  </style>
+</head>
+<body>
+<div id="app">
+  <header class="panel">
+    <div class="title">
+      <h1>Project Time Exchange</h1>
+      <div class="tag">v4 · CPM · Crash Menus · Pareto Knee · VCG · Explainers</div>
+    </div>
+    <div class="actions">
+      <button id="btnAuto" class="primary">Run All (Explain)</button>
+      <button id="btnReset">Reset</button>
+      <button id="btnExport">Export CSV</button>
+      <button id="btnDownloadJSON">Download JSON</button>
+      <label class="small" for="fileJSON">
+        <input type="file" id="fileJSON" accept="application/json" style="display:none;">
+        <span id="btnImportJSON" style="cursor:pointer;border:1px solid #2b315a;padding:7px 10px;border-radius:8px;background:#232951;display:inline-block;">Import JSON</span>
+      </label>
+      <button id="btnPing">Test Click</button>
+    </div>
+  </header>
+
+  <div class="left">
+    <section class="panel controls">
+      <div class="banner">✅ Page loaded. Use the buttons below; see Diagnostics for any errors.</div>
+      <div id="errorBanner" class="error-banner"></div>
+      <h2>Dataset & Controls</h2>
+      <div class="status" id="statusRow"></div>
+      <div class="row">
+        <div>
+          <label>Value of time v (cost per week saved)</label>
+          <input id="inputV" type="number" value="80" min="0" step="1">
+        </div>
+        <div>
+          <label>Budget limit (for knee/feasible selection)</label>
+          <input id="inputBudget" type="number" value="300" min="0" step="10">
+        </div>
+      </div>
+      <div class="btn-row">
+        <button id="btnExample" class="accent">Load Example (A–G)</button>
+        <button id="btnApply" class="primary">Apply Edits</button>
+        <button id="btnCompute">Compute Baseline</button>
+        <button id="btnEnumerate">Enumerate Frontier</button>
+        <button id="btnOptimize">Optimize (VCG)</button>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="small"><b>Baseline makespan</b>: <span id="lblBaseline" class="highlight">—</span></div>
+          <div class="small"><b>Budget-knee selection</b>: <span id="lblKnee" class="highlight">—</span></div>
+          <div class="small"><b>VCG optimum (v)</b>: <span id="lblVCG" class="highlight">—</span></div>
+        </div>
+        <div>
+          <div class="small"><b>Allocation summary</b>: <span id="lblAlloc" class="highlight">—</span></div>
+          <div class="small"><b>Payments (sum)</b>: <span id="lblPayments" class="highlight">—</span></div>
+          <div class="small"><b>Welfare</b>: <span id="lblWelfare" class="highlight">—</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="small"><b>Diagnostics</b></div>
+        <div class="diag"><pre id="diagLog"></pre></div>
+      </div>
+    </section>
+
+    <section class="panel editor">
+      <h2>Editable Data</h2>
+      <label>Activities (JSON)</label>
+      <textarea id="activitiesJson"></textarea>
+      <label>Precedences (JSON)</label>
+      <textarea id="precedencesJson"></textarea>
+      <div class="small">Each activity must have a duration (weeks) and a crashOptions array whose first element is the baseline {duration: duration, cost: 0}. Precedence arcs must reference valid IDs and form a DAG.</div>
+    </section>
+
+    <section class="panel explainer">
+      <h2>Explainers (basics & principles)</h2>
+      <div class="card">
+        <h4>Two‑liner (for project controls)</h4>
+        <p id="twoliner">PTS reframes crashing as a one‑shot procurement on your CPM network: each activity publishes discrete, credible crash options (weeks saved ↦ cost/risk), and controls buys a bundle that most reduces makespan for the money. We clear with a VCG‑style rule that prices each option’s externality on the critical polytope, yielding a spend↦time frontier, auditable re‑baseline, and empirically useful “prices of time”.</p>
+        <div class="btn-row"><button id="btnCopyTwo" class="primary">Copy Two‑Liner</button></div>
+      </div>
+
+      <div class="card">
+        <h4>Spec excerpt (salient matter, preserved)</h4>
+        <div class="quote" id="specExcerpt"></div>
+        <p class="small">Note: Strategy‑proofness is in the standard ideal model (quasi‑linear utilities, no collusion). With a hard budget cap, VCG payments become diagnostic rather than strictly incentive‑compatible.</p>
+      </div>
+
+      <div id="explainList"></div>
+    </section>
+  </div>
+
+  <div class="right">
+    <section class="panel charts">
+      <div class="chart">
+        <h3>Baseline Gantt (critical tasks highlighted)</h3>
+        <div class="svgwrap" id="ganttBaseline"></div>
+        <div class="legend">Critical = <span class="highlight">red</span></div>
+      </div>
+      <div class="chart">
+        <h3>Optimized Gantt (selection: knee or VCG)</h3>
+        <div class="svgwrap" id="ganttOptimized"></div>
+        <div class="legend">Critical = <span class="highlight">red</span></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h3>Budget ↦ Makespan Frontier</h3>
+      <div class="svgwrap" id="frontierChart"></div>
+      <div class="small">Knee point uses maximum distance to the chord between endpoints ("kneedle" heuristic).</div>
+    </section>
+    <section class="panel">
+      <h3>Chosen Allocation & VCG Payments</h3>
+      <div id="allocTableWrap"></div>
+    </section>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script type="text/javascript">
+// ---------- Utilities (ES5) ----------
+function deepCopy(obj){ return JSON.parse(JSON.stringify(obj)); }
+function fmt(x, d){ if (d===undefined) d=0; return (typeof x==='number' && isFinite(x)) ? x.toFixed(d) : String(x); }
+function byKey(obj){ var a=[],k; for(k in obj) if (obj.hasOwnProperty(k)) a.push(k); a.sort(); return a; }
+function el(id){ return document.getElementById(id); }
+function log(msg){ var p=el('diagLog'); p.textContent += (msg + "\n"); p.scrollTop = p.scrollHeight; }
+function clearLog(){ el('diagLog').textContent=''; }
+function showErrorBanner(txt){ var b=el('errorBanner'); b.style.display='block'; b.textContent=txt; }
+function hideErrorBanner(){ var b=el('errorBanner'); b.style.display='none'; }
+function copyText(str){
+  var ta=document.createElement('textarea'); ta.value=str; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); } catch(e){}
+  document.body.removeChild(ta);
+}
+
+// ---------- Global tooltip ----------
+function showTip(ev, text){ var tt=el('tooltip'); tt.style.opacity=1; tt.innerHTML=text; tt.style.left=(ev.clientX+12)+'px'; tt.style.top=(ev.clientY+12)+'px'; }
+function hideTip(){ var tt=el('tooltip'); tt.style.opacity=0; }
+
+// ---------- CPM ----------
+var CPM = {
+  compute: function(input){
+    var activities = input.activities, precedences = input.precedences, durations = input.durations;
+    var nodes = byKey(activities);
+    var preds={}, succs={}, indeg={}, i;
+    for(i=0;i<nodes.length;i++){ preds[nodes[i]]=[]; succs[nodes[i]]=[]; indeg[nodes[i]]=0; }
+    for(i=0;i<precedences.length;i++){ var e=precedences[i]; preds[e.to].push(e.from); succs[e.from].push(e.to); }
+    for(i=0;i<nodes.length;i++){ indeg[nodes[i]] = preds[nodes[i]].length; }
+    var q=[], order=[], indeg2=deepCopy(indeg);
+    for(i=0;i<nodes.length;i++){ if (indeg[nodes[i]]===0) q.push(nodes[i]); }
+    while(q.length){ var u=q.shift(); order.push(u); var s=succs[u]||[]; for(var j=0;j<s.length;j++){ var v=s[j]; indeg2[v]--; if (indeg2[v]===0) q.push(v); } }
+    if (order.length!==nodes.length) throw new Error('Graph has a cycle; CPM requires a DAG.');
+    var ES={}, EF={}, LS={}, LF={}, k;
+    for(i=0;i<order.length;i++){
+      var n=order[i]; var d=durations[n];
+      if (typeof d!=='number' || !isFinite(d)) throw new Error('Duration for '+n+' is invalid.');
+      var parents=preds[n], es=0;
+      for(k=0;k<parents.length;k++){ var p=parents[k]; if (EF[p]>es) es=EF[p]; }
+      ES[n]=es; EF[n]=es+d;
+    }
+    var exits=[], finish=0;
+    for(i=0;i<nodes.length;i++){ var node=nodes[i]; if ((succs[node]||[]).length===0) exits.push(node); }
+    for(i=0;i<exits.length;i++){ if (EF[exits[i]]>finish) finish=EF[exits[i]]; }
+    var rev=order.slice().reverse();
+    for(i=0;i<rev.length;i++){
+      n=rev[i];
+      if ((succs[n]||[]).length===0) LF[n]=finish;
+      else {
+        var s2=succs[n], minLS=Infinity;
+        for(k=0;k<s2.length;k++){ var sN=s2[k]; if (LS[sN]<minLS) minLS=LS[sN]; }
+        LF[n]=minLS;
+      }
+      LS[n]=LF[n]-durations[n];
+    }
+    var floats={}, crit=[];
+    for(i=0;i<nodes.length;i++){ n=nodes[i]; floats[n]=LS[n]-ES[n]; if (Math.abs(floats[n])<1e-9) crit.push(n); }
+    return { finish:finish, ES:ES, EF:EF, LS:LS, LF:LF, floats:floats, crit:crit, order:order, preds:preds, succs:succs };
+  }
+};
+
+// ---------- Enumeration ----------
+function enumerateCombos(data){
+  var ids = byKey(data.activities);
+  var menus = []; var i;
+  for(i=0;i<ids.length;i++){
+    var id=ids[i]; menus.push(data.activities[id].crashOptions || [{duration:data.activities[id].duration, cost:0}]);
+  }
+  var combos=[], choice={};
+  function rec(idx){
+    if (idx===ids.length){
+      var durations={}, cost=0;
+      for(var m=0;m<ids.length;m++){ var id2=ids[m]; var opt=choice[id2]; durations[id2]=opt.duration; cost+=opt.cost; }
+      var mres = CPM.compute({ activities:data.activities, precedences:data.precedences, durations:durations });
+      combos.push({ durations:durations, cost:cost, finish:mres.finish, ES:mres.ES, EF:mres.EF, LS:mres.LS, LF:mres.LF, floats:mres.floats, crit:mres.crit, choice: deepCopy(choice) });
+      return;
+    }
+    var id3=ids[idx], menu=menus[idx];
+    for(var k=0;k<menu.length;k++){
+      var opt2=menu[k]; if (typeof opt2.duration!=='number' || typeof opt2.cost!=='number') continue;
+      choice[id3] = { optionIdx:k, duration:opt2.duration, cost:opt2.cost };
+      rec(idx+1);
+    }
+  }
+  rec(0);
+  return combos;
+}
+
+// ---------- Knee ----------
+function findKnee(frontier){
+  if (!frontier || frontier.length<3) return Math.max(0, frontier.length-1);
+  var p0=frontier[0], pN=frontier[frontier.length-1];
+  var x0=p0.cost, y0=p0.finish, xN=pN.cost, yN=pN.finish;
+  var denom=Math.sqrt(Math.pow(xN-x0,2)+Math.pow(yN-y0,2)) || 1;
+  var bestI=0, bestD=-Infinity, i;
+  for(i=0;i<frontier.length;i++){
+    var p=frontier[i];
+    var num=Math.abs((yN-y0)*p.cost - (xN-x0)*p.finish + xN*y0 - yN*x0);
+    var d=num/denom; if (d>bestD){ bestD=d; bestI=i; }
+  }
+  return bestI;
+}
+
+// ---------- SVG helpers ----------
+function line(svg,x1,y1,x2,y2,cls){ var ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',x1); ln.setAttribute('y1',y1); ln.setAttribute('x2',x2); ln.setAttribute('y2',y2); if(cls) ln.setAttribute('class',cls); svg.appendChild(ln); return ln; }
+function circle(cx,cy,r,cls){ var c=document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('cx',cx); c.setAttribute('cy',cy); c.setAttribute('r',r); if(cls) c.setAttribute('class',cls); return c; }
+function text(svg,x,y,txt,cls){ var t=document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x',x); t.setAttribute('y',y); if(cls) t.setAttribute('class',cls); t.textContent=txt; svg.appendChild(t); return t; }
+function makeSVG(wrap, maxT, tasks, title){
+  var W = wrap.clientWidth || 600, H = wrap.clientHeight || 240;
+  var pad={l:40,r:10,t:10,b:20};
+  var rowH=Math.max(18, Math.min(26, Math.floor((H-pad.t-pad.b)/Math.max(1,tasks.length))));
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  var gridCount=Math.min(10, Math.max(4, Math.round(maxT/2)));
+  var i;
+  for(i=0;i<=gridCount;i++){ var x=pad.l+(W-pad.l-pad.r)*i/gridCount; line(svg,x,pad.t,x,H-pad.b,'gridline'); }
+  text(svg,pad.l,pad.t+10, title, 'small'); text(svg,6,H-6,'time (weeks)','small');
+  var xScale=function(t){ return pad.l + (W-pad.l-pad.r) * (t/(maxT||1)); };
+  for(i=0;i<tasks.length;i++){
+    var tsk=tasks[i]; var y=pad.t + i*rowH + 6; var x1=xScale(tsk.es), x2=xScale(tsk.ef);
+    var rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',x1); rect.setAttribute('y',y);
+    rect.setAttribute('width', Math.max(2, x2-x1)); rect.setAttribute('height', rowH-8);
+    rect.setAttribute('class', tsk.crit ? 'critical-bar' : 'normal-bar');
+    (function(tsk){
+      rect.addEventListener('mouseenter', function(ev){ showTip(ev, tsk.id+' — ES '+tsk.es+', EF '+tsk.ef+', dur '+tsk.dur+(tsk.crit?' (critical)':'')); });
+    })(tsk);
+    rect.addEventListener('mouseleave', hideTip);
+    svg.appendChild(rect);
+    text(svg, 6, y + rowH - 12, tsk.id, 'small');
+  }
+  return svg;
+}
+
+// ---------- App (ES5) ----------
+var App = {
+  data: null,
+  baseline: null,
+  enumeration: null,
+  select: { mode:'knee', choiceIdx:null },
+  vcg: null,
+
+  init: function(){
+    try {
+      this.loadExample();
+      this.wire();
+      this.renderAll();
+      this.renderExplainers(); // new
+      log('Initialized.');
+    } catch(e) { this.error(e); }
+  },
+
+  wire: function(){
+    el('btnExample').addEventListener('click', function(){ try { log('Clicked: Load Example'); App.loadExample(); App.renderAll(); App.note('Loaded example.'); } catch(e){ App.error(e); } });
+    el('btnApply').addEventListener('click', function(){ try { App.applyEdits(); App.renderAll(); App.note('Applied edits.'); } catch(e){ App.error(e); } });
+    el('btnCompute').addEventListener('click', function(){ try { App.computeBaseline(); App.renderAll(); App.note('Baseline computed.'); } catch(e){ App.error(e); } });
+    el('btnEnumerate').addEventListener('click', function(){ try { App.enumerateFrontier(); App.renderAll(); App.note('Frontier enumerated.'); } catch(e){ App.error(e); } });
+    el('btnOptimize').addEventListener('click', function(){ try { App.optimizeVCG(); App.select.mode='vcg'; App.renderAll(); App.note('VCG optimized.'); } catch(e){ App.error(e); } });
+    el('btnAuto').addEventListener('click', function(){ App.runAll(); });
+    el('btnReset').addEventListener('click', function(){ try { App.loadExample(); App.select={mode:'knee',choiceIdx:null}; App.enumeration=null; App.vcg=null; clearLog(); App.renderAll(); App.renderExplainers(); App.note('Reset.'); } catch(e){ App.error(e); } });
+    el('btnExport').addEventListener('click', function(){ try { App.exportCSV(); } catch(e){ App.error(e); } });
+    el('btnDownloadJSON').addEventListener('click', function(){ try { App.downloadJSON(); } catch(e){ App.error(e); } });
+    el('btnImportJSON').addEventListener('click', function(){ el('fileJSON').click(); });
+    el('fileJSON').addEventListener('change', function(evt){ App.importJSON(evt); });
+    el('btnPing').addEventListener('click', function(){ App.note('Ping OK — buttons responsive.'); });
+    el('btnCopyTwo').addEventListener('click', function(){ copyText(el('twoliner').textContent); App.note('Two‑liner copied to clipboard.'); });
+  },
+
+  // Data
+  loadExample: function(){
+    this.data = {
+      activities: {
+        "A": { name:"A — Site prep", duration:2, crashOptions:[{duration:2,cost:0},{duration:1,cost:60}] },
+        "B": { name:"B — Foundations", duration:5, crashOptions:[{duration:5,cost:0},{duration:4,cost:70},{duration:3,cost:160}] },
+        "C": { name:"C — Framing", duration:3, crashOptions:[{duration:3,cost:0},{duration:2,cost:40},{duration:1,cost:110}] },
+        "D": { name:"D — MEP rough-in", duration:6, crashOptions:[{duration:6,cost:0},{duration:4,cost:200},{duration:3,cost:320}] },
+        "E": { name:"E — Enclosure", duration:11, crashOptions:[{duration:11,cost:0},{duration:9,cost:150},{duration:8,cost:230},{duration:7,cost:330}] },
+        "F": { name:"F — Interiors", duration:5, crashOptions:[{duration:5,cost:0},{duration:4,cost:80},{duration:3,cost:140}] },
+        "G": { name:"G — Commissioning", duration:1, crashOptions:[{duration:1,cost:0}] }
+      },
+      precedences: [
+        {from:"A",to:"B"},{from:"A",to:"C"},{from:"B",to:"D"},{from:"C",to:"D"},
+        {from:"D",to:"E"},{from:"C",to:"F"},{from:"E",to:"G"},{from:"F",to:"G"}
+      ]
+    };
+    this.writeEditors();
+    this.computeBaseline();
+    this.enumeration=null; this.vcg=null; this.select={mode:'knee', choiceIdx:null};
+  },
+
+  writeEditors: function(){
+    el('activitiesJson').value = JSON.stringify(this.data.activities, null, 2);
+    el('precedencesJson').value = JSON.stringify(this.data.precedences, null, 2);
+  },
+
+  applyEdits: function(){
+    var acts = JSON.parse(el('activitiesJson').value);
+    var preds = JSON.parse(el('precedencesJson').value);
+    this.data = { activities: acts, precedences: preds };
+    this.validateData(this.data);
+    this.computeBaseline();
+    this.enumeration=null; this.vcg=null; this.select={mode:'knee', choiceIdx:null};
+    this.note('Data parsed and validated.');
+  },
+
+  validateData: function(data){
+    var errs=[], ids;
+    if (!data || typeof data!=='object') errs.push('Data object missing.');
+    if (!data.activities || typeof data.activities!=='object' || byKey(data.activities).length===0) errs.push('No activities.');
+    if (!data.precedences || Object.prototype.toString.call(data.precedences)!=='[object Array]') errs.push('Precedences must be an array.');
+
+    ids = byKey(data.activities||{});
+    for (var i=0;i<ids.length;i++){
+      var id=ids[i], a=data.activities[id];
+      if (typeof a.duration!=='number' || !(a.duration>=0)) errs.push('Activity '+id+': invalid duration.');
+      if (!a.crashOptions || Object.prototype.toString.call(a.crashOptions)!=='[object Array]' || a.crashOptions.length===0){
+        data.activities[id].crashOptions=[{duration:a.duration, cost:0}];
+      }
+      var first=a.crashOptions[0];
+      if (!first || first.cost!==0 || first.duration!==a.duration) errs.push('Activity '+id+': first crash option must be baseline {duration:'+a.duration+', cost:0}.');
+      for (var j=0;j<a.crashOptions.length;j++){
+        var o=a.crashOptions[j];
+        if (typeof o.duration!=='number' || typeof o.cost!=='number') errs.push('Activity '+id+' option '+j+': duration/cost must be numbers.');
+      }
+    }
+    for (i=0;i<(data.precedences||[]).length;i++){
+      var e=data.precedences[i];
+      if (!e || typeof e.from!=='string' || typeof e.to!=='string') errs.push('Precedence '+i+': must have string {from,to}.');
+      if (ids.indexOf(e.from)===-1) errs.push('Precedence '+i+': from "'+e.from+'" not in activities.');
+      if (ids.indexOf(e.to)===-1) errs.push('Precedence '+i+': to "'+e.to+'" not in activities.');
+      if (e.from===e.to) errs.push('Precedence '+i+': self-loop "'+e.from+'".');
+    }
+    if (!this.isDAG(ids, data.precedences||[])) errs.push('Precedence graph has a cycle.');
+    if (errs.length){ for(i=0;i<errs.length;i++) log('ERR: '+errs[i]); throw new Error('Validation failed. See Diagnostics.'); }
+  },
+
+  isDAG: function(ids, edges){
+    var indeg={}, succs={}, i;
+    for(i=0;i<ids.length;i++){ indeg[ids[i]]=0; succs[ids[i]]=[]; }
+    for(i=0;i<edges.length;i++){ var e=edges[i]; succs[e.from].push(e.to); indeg[e.to]++; }
+    var q=[], count=0;
+    for(i=0;i<ids.length;i++){ if (indeg[ids[i]]===0) q.push(ids[i]); }
+    while(q.length){ var u=q.shift(); count++; var s=succs[u]; for(var j=0;j<s.length;j++){ var v=s[j]; indeg[v]--; if (indeg[v]===0) q.push(v); } }
+    return count===ids.length;
+  },
+
+  // CPM
+  computeBaseline: function(){
+    var acts=this.data.activities, preds=this.data.precedences, durations={}, k;
+    for(k in acts) if (acts.hasOwnProperty(k)) durations[k]=acts[k].duration;
+    this.baseline = CPM.compute({ activities:acts, precedences:preds, durations:durations });
+  },
+
+  // Enumeration & Frontier
+  enumerateFrontier: function(){
+    var combos = enumerateCombos(this.data);
+    if (!combos.length) throw new Error('No crash portfolios were generated.');
+    var map={}, i;
+    for(i=0;i<combos.length;i++){
+      var c=combos[i], key=c.cost.toFixed(6);
+      if (!map[key] || c.finish < map[key].finish) map[key]={cost:c.cost, finish:c.finish, idx:i};
+    }
+    var arr=[], k;
+    for(k in map) if (map.hasOwnProperty(k)) arr.push(map[k]);
+    arr.sort(function(a,b){ return a.cost-b.cost; });
+    var frontier=[], best=Infinity;
+    for(i=0;i<arr.length;i++){ var p=arr[i]; if (p.finish < best){ frontier.push(p); best=p.finish; } }
+    if (!frontier.length) throw new Error('Frontier is empty; check crash menus.');
+    var kneeIdx = findKnee(frontier);
+    this.enumeration = { combos:combos, frontier:frontier, kneeIdx:kneeIdx };
+    this.select = { mode:'knee', choiceIdx: frontier[kneeIdx].idx };
+    this.note('Enumerated '+combos.length+' portfolios; frontier size '+frontier.length+'.');
+  },
+
+  // VCG
+  optimizeVCG: function(){
+    var v = parseFloat(el('inputV').value || '0');
+    if (!this.enumeration) this.enumerateFrontier();
+    var combos=this.enumeration.combos;
+    var baseFinish=this.baseline.finish;
+    var bestIdx=-1, bestW=-Infinity, i;
+    for(i=0;i<combos.length;i++){
+      var c=combos[i], W = v*(baseFinish - c.finish) - c.cost;
+      if (W > bestW){ bestW=W; bestIdx=i; }
+    }
+    if (bestIdx<0) throw new Error('VCG optimization failed to find a feasible allocation.');
+    var chosen=combos[bestIdx], payments={}, acts=byKey(this.data.activities);
+    for(i=0;i<acts.length;i++){
+      var aid=acts[i], bestWithout=-Infinity, j;
+      for(j=0;j<combos.length;j++){
+        var c2=combos[j], opt=c2.choice[aid];
+        if (opt && opt.optionIdx===0){
+          var w = v*(baseFinish - c2.finish) - c2.cost;
+          if (w > bestWithout) bestWithout = w;
+        }
+      }
+      if (!isFinite(bestWithout)) bestWithout=0;
+      var costExclI = chosen.cost - chosen.choice[aid].cost;
+      var wWithI_forOthers = v*(baseFinish - chosen.finish) - costExclI;
+      var payment = Math.max(0, bestWithout - wWithI_forOthers);
+      payments[aid]=payment;
+    }
+    this.vcg = { v:v, bestIdx:bestIdx, welfare:bestW, payments:payments };
+    this.select = { mode:'vcg', choiceIdx: bestIdx };
+    this.note('Optimized for VCG welfare and computed payments.');
+  },
+
+  // Rendering
+  renderAll: function(){
+    try { this.renderStatus(); this.renderBaselineGantt(); this.renderOptimGantt(); this.renderFrontier(); this.renderAllocTable(); this.updateLabels(); }
+    catch(e){ this.error(e); }
+  },
+
+  renderStatus: function(){
+    var row=el('statusRow'); row.innerHTML='';
+    function pill(text){ var d=document.createElement('div'); d.className='pill'; d.textContent=text; return d; }
+    if (this.baseline) row.appendChild(pill('Baseline: '+this.baseline.finish+' wks'));
+    if (this.enumeration){ row.appendChild(pill('Portfolios: '+this.enumeration.combos.length)); row.appendChild(pill('Frontier: '+this.enumeration.frontier.length)); }
+    if (this.select && this.select.choiceIdx!=null) row.appendChild(pill('Chosen idx: '+this.select.choiceIdx));
+  },
+
+  updateLabels: function(){
+    el('lblBaseline').textContent = this.baseline ? (this.baseline.finish + ' weeks') : '—';
+    if (this.enumeration){
+      var knee = this.enumeration.frontier[this.enumeration.kneeIdx];
+      el('lblKnee').textContent = knee ? ('budget '+fmt(knee.cost)+', makespan '+knee.finish) : '—';
+    } else el('lblKnee').textContent='—';
+
+    if (this.select.choiceIdx!=null && this.enumeration){
+      var c = this.enumeration.combos[this.select.choiceIdx];
+      el('lblAlloc').textContent = 'cost '+fmt(c.cost)+', makespan '+c.finish;
+    } else el('lblAlloc').textContent='—';
+
+    if (this.vcg){
+      var paySum=0, k; for(k in this.vcg.payments) if (this.vcg.payments.hasOwnProperty(k)) paySum+=this.vcg.payments[k];
+      el('lblVCG').textContent = 'v='+fmt(this.vcg.v)+', chosen #'+this.vcg.bestIdx;
+      el('lblPayments').textContent = fmt(paySum);
+      el('lblWelfare').textContent = fmt(this.vcg.welfare);
+    } else { el('lblVCG').textContent='—'; el('lblPayments').textContent='—'; el('lblWelfare').textContent='—'; }
+  },
+
+  renderBaselineGantt: function(){
+    var wrap=el('ganttBaseline'); wrap.innerHTML=''; if (!this.baseline) return;
+    var critSet={}, i; for(i=0;i<this.baseline.crit.length;i++) critSet[this.baseline.crit[i]] = true;
+    var tasks=[], ids=byKey(this.data.activities);
+    for(i=0;i<ids.length;i++){ var id=ids[i]; tasks.push({ id:id, name:(this.data.activities[id].name||id), es:this.baseline.ES[id], ef:this.baseline.EF[id], dur:this.data.activities[id].duration, crit: !!critSet[id] }); }
+    tasks.sort(function(a,b){ return (a.es-b.es) || (a.id<b.id?-1:1); });
+    var svg=makeSVG(wrap, this.baseline.finish, tasks, 'Baseline '+this.baseline.finish+' weeks'); wrap.appendChild(svg);
+  },
+
+  renderOptimGantt: function(){
+    var wrap=el('ganttOptimized'); wrap.innerHTML=''; if (!this.enumeration || this.select.choiceIdx==null) return;
+    var c = this.enumeration.combos[this.select.choiceIdx];
+    var critSet={}, i; for(i=0;i<c.crit.length;i++) critSet[c.crit[i]] = true;
+    var tasks=[], ids=byKey(this.data.activities);
+    for(i=0;i<ids.length;i++){ var id=ids[i]; tasks.push({ id:id, name:(this.data.activities[id].name||id), es:c.ES[id], ef:c.EF[id], dur:c.durations[id], crit: !!critSet[id] }); }
+    tasks.sort(function(a,b){ return (a.es-b.es) || (a.id<b.id?-1:1); });
+    var svg=makeSVG(wrap, c.finish, tasks, 'Optimized '+c.finish+' weeks'); wrap.appendChild(svg);
+  },
+
+  renderFrontier: function(){
+    var wrap=el('frontierChart'); wrap.innerHTML=''; if (!this.enumeration) return;
+    var frontier=this.enumeration.frontier, kneeIdx=this.enumeration.kneeIdx;
+    var W = wrap.clientWidth || 600, H = wrap.clientHeight || 240;
+    var pad={l:42,r:12,t:16,b:28};
+    var i, minCost=Infinity, maxCost=-Infinity, minT=Infinity, maxT=-Infinity;
+    for(i=0;i<frontier.length;i++){ var p=frontier[i]; if (p.cost<minCost) minCost=p.cost; if (p.cost>maxCost) maxCost=p.cost; if (p.finish<minT) minT=p.finish; if (p.finish>maxT) maxT=p.finish; }
+    var xScale=function(c){ var denom=(maxCost-minCost)||1; return pad.l + (W-pad.l-pad.r) * ((c-minCost)/denom); };
+    var yScale=function(t){ var denom=(maxT-minT)||1; return pad.t + (H-pad.t-pad.b) * (1 - ((t-minT)/denom)); };
+    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('viewBox', '0 0 '+W+' '+H);
+    for(i=0;i<=5;i++){ var x=pad.l+(W-pad.l-pad.r)*i/5, y=pad.t+(H-pad.t-pad.b)*i/5; line(svg,x,pad.t,x,H-pad.b,'gridline'); line(svg,pad.l,y,W-pad.r,y,'gridline'); }
+    text(svg, pad.l, H-6, 'Cost', 'small'); text(svg, 4, pad.t+10, 'Makespan', 'small');
+    for(i=1;i<frontier.length;i++){ var x1=xScale(frontier[i-1].cost), y1=yScale(frontier[i-1].finish), x2=xScale(frontier[i].cost), y2=yScale(frontier[i].finish); line(svg,x1,y1,x2,y2,'line'); }
+    for(i=0;i<frontier.length;i++){
+      (function(i){
+        var p=frontier[i], cx=xScale(p.cost), cy=yScale(p.finish);
+        var dot=circle(cx,cy, i===kneeIdx?5:4, i===kneeIdx?'knee-dot':'dot');
+        dot.addEventListener('mouseenter', function(ev){ showTip(ev, 'Budget '+fmt(p.cost)+' → '+p.finish+' weeks'); });
+        dot.addEventListener('mouseleave', hideTip);
+        dot.addEventListener('click', function(){ App.select.mode='knee'; App.select.choiceIdx=p.idx; App.renderAll(); });
+        svg.appendChild(dot);
+      })(i);
+    }
+    wrap.appendChild(svg);
+  },
+
+  renderAllocTable: function(){
+    var wrap=el('allocTableWrap'); wrap.innerHTML=''; if (!this.enumeration || this.select.choiceIdx==null) return;
+    var c = this.enumeration.combos[this.select.choiceIdx];
+    var tbl=document.createElement('table');
+    var thead=document.createElement('thead');
+    thead.innerHTML='<tr><th>Activity</th><th>Chosen duration</th><th>Crash cost</th><th>Option #</th><th>ES</th><th>EF</th><th>LS</th><th>LF</th><th>Float</th><th>Critical?</th><th>VCG payment</th></tr>';
+    tbl.appendChild(thead);
+    var tbody=document.createElement('tbody');
+    var ids=byKey(this.data.activities), i;
+    for(i=0;i<ids.length;i++){
+      var aid=ids[i], opt=c.choice[aid], crit=(c.crit.indexOf(aid)!==-1), pay=this.vcg?fmt(this.vcg.payments[aid]||0):'—';
+      var row=document.createElement('tr');
+      row.innerHTML = '<td>'+aid+'</td><td>'+opt.duration+'</td><td>'+fmt(opt.cost)+'</td><td>'+opt.optionIdx+'</td>' +
+        '<td>'+fmt(c.ES[aid])+'</td><td>'+fmt(c.EF[aid])+'</td><td>'+fmt(c.LS[aid])+'</td><td>'+fmt(c.LF[aid])+'</td><td>'+fmt(c.floats[aid])+'</td>' +
+        '<td>'+(crit?'<span class="badge">critical</span>':'')+'</td><td>'+pay+'</td>';
+      tbody.appendChild(row);
+    }
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+  },
+
+  // Pipeline
+  runAll: function(){
+    var self=this;
+    clearLog();
+    try { this.computeBaseline(); this.renderAll(); } catch(e){ this.error(e); return; }
+    setTimeout(function(){
+      try { self.enumerateFrontier(); self.renderAll(); } catch(e){ self.error(e); return; }
+      setTimeout(function(){
+        try { self.optimizeVCG(); self.select={mode:'vcg', choiceIdx:self.vcg.bestIdx}; self.renderAll(); self.renderExplainers(); }
+        catch(e){ self.error(e); }
+      }, 200);
+    }, 200);
+  },
+
+  // Import/Export
+  exportCSV: function(){
+    if (!this.baseline) throw new Error('Nothing to export yet.');
+    var rows=[], i, ids=byKey(this.data.activities), critB={}, k;
+    for(i=0;i<this.baseline.crit.length;i++) critB[this.baseline.crit[i]]=1;
+    rows.push(['Mode','Activity','Name','Duration','ES','EF','LS','LF','Float','Critical']);
+    for(i=0;i<ids.length;i++){
+      var id=ids[i];
+      rows.push(['baseline', id, (this.data.activities[id].name||id), this.data.activities[id].duration,
+        this.baseline.ES[id], this.baseline.EF[id], this.baseline.LS[id], this.baseline.LF[id], this.baseline.floats[id], critB[id]?1:0]);
+    }
+    if (this.enumeration && this.select.choiceIdx!=null){
+      var c=this.enumeration.combos[this.select.choiceIdx], critO={}, j;
+      for(j=0;j<c.crit.length;j++) critO[c.crit[j]]=1;
+      for(i=0;i<ids.length;i++){
+        var id2=ids[i], opt=c.choice[id2];
+        rows.push(['optimized', id2, (this.data.activities[id2].name||id2), opt.duration,
+          c.ES[id2], c.EF[id2], c.LS[id2], c.LF[id2], c.floats[id2], critO[id2]?1:0]);
+      }
+    }
+    var csv=''; for(i=0;i<rows.length;i++){ csv+=rows[i].join(',')+'\n'; }
+    var blob=new Blob([csv], {type:'text/csv'}); var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='ptx_schedules.csv'; a.click(); URL.revokeObjectURL(url);
+  },
+
+  downloadJSON: function(){
+    var obj = deepCopy(this.data);
+    var blob = new Blob([JSON.stringify(obj,null,2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='ptx_dataset.json'; a.click(); URL.revokeObjectURL(url);
+  },
+
+  importJSON: function(evt){
+    var file = evt.target.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try {
+        var obj = JSON.parse(reader.result);
+        App.data = obj; App.validateData(App.data);
+        App.writeEditors(); App.computeBaseline(); App.enumeration=null; App.vcg=null; App.select={mode:'knee', choiceIdx:null};
+        App.renderAll(); App.renderExplainers(); App.note('Imported and validated JSON.');
+      } catch(e){ App.error(e); }
+    };
+    reader.onerror = function(){ App.error('File read error.'); };
+    reader.readAsText(file);
+  },
+
+  // Explainers (new)
+  explainers: [
+    {t:"What PTS is", b:"Treat every crash choice as a market good. The project office purchases lead-time from activities—discrete options like B 5→4 at 70; 5→3 at 160—to minimize makespan subject to a budget, holding CPM precedence fixed."},
+    {t:"CPM baseline & the critical polytope", b:"Forward/backward pass defines earliest/latest times and zero-float arcs. Options are priced by their externality on finish time and on the evolving critical set, not by raw duration deltas."},
+    {t:"Crash menus as combinatorial goods", b:"Menus list discrete {duration, cost, risk} with increasing marginal costs. Because precedence couples options, value lives in bundles rather than single local moves."},
+    {t:"One-shot procurement objective", b:"Maximize v×(weeks saved) − cost (optionally with a budget cap). v is your value-of-time (cost-of-delay per week). Output is one option per activity (a crash portfolio)."},
+    {t:"Truth-telling via VCG", b:"Clarke-pivot payments price each option by its externality on others, making truthful menus a dominant strategy under standard assumptions (quasi-linear utilities, no collusion)."},
+    {t:"Prices of time vs. duals", b:"VCG-derived prices act like shadow prices near the chosen solution but are grounded in discrete, auditable options rather than a continuous relaxation."},
+    {t:"Budget↦duration frontier", b:"Compute the Pareto frontier; pick a knee by max distance to the endpoints chord when asked for the 'biggest bite for the buck'."},
+    {t:"Audit trail & re-baseline", b:"Export chosen options (IDs, costs) with ES/EF/LS/LF; that change set becomes your governed re-baseline and flows straight into EV and risk."},
+    {t:"Risk handling", b:"Attach risk to options (e.g., P80 finish impact). Penalize risk via adjusted cost or solve scenario sets and pick robust bundles at your percentile target."},
+    {t:"Computation in practice", b:"Enumerate for small menus; otherwise use MILP/CP-SAT (binary pick-per-activity + CPM linearization) or RCPSP heuristics when resources bind."},
+    {t:"Data discipline", b:"Require credible options with method/resource evidence and enforce increasing marginal costs; document non-crashable floors to avoid phantom supply."},
+    {t:"Limits & caveats", b:"VCG is not budget-balanced; hard budget caps weaken incentive guarantees—treat payments as signals then. Resource couplings and collusion require model extensions and audits."},
+    {t:"Calibrating v and B", b:"Set v from cost-of-delay (revenue/carrying costs/week) or infer it from prior decisions on the frontier; use B for caps or let v choose the welfare optimum."},
+    {t:"Adoption playbook", b:"Start with the top twenty near-critical activities; publish frontier + chosen knee; track realized slippage vs. paid price to learn crash elasticity."},
+    {t:"Minimal math", b:"W(·)= v·(T0−T(·)) − Cost(·). Clarke pivot p_i equals 'others best welfare if i were baseline' minus 'others welfare with i at the chosen bundle'."},
+    {t:"Why it’s different", b:"PTS replaces bilateral bargaining with an institution that prices externalities on the critical path structure—explaining not only what to crash but why."}
+  ],
+
+  specExcerpt: "Project Time Exchange (PTS) treats crashing as a market: each activity posts discrete crash options (weeks saved vs cost/risk), and controls “buys” the bundle that shrinks the critical path fastest within a budget on the current CPM network. We clear with a truth‑telling (VCG‑style) rule to set fair “prices of time,” produce a budget‑duration frontier, and emit an auditable re‑baseline you can drop straight into CPM/EV and risk—pilot it on your top twenty near‑critical tasks to learn real crash elasticity. Treat duration reductions (“crashes”) as combinatorial goods: each activity offers discrete, credible crash options (weeks saved ↦ cost, risk). The program office runs a one‑shot procurement auction to buy lead‑time that minimizes the project makespan subject to a budget, clearing with a Vickrey–Clarke–Groves (VCG) rule to align local incentives with global schedule value; the market internalizes each option’s externality on the critical polytope. Outcome: a budget‑feasible, strategy‑proof crash portfolio that yields a frontier of (spend ↦ time) with proofs of optimality and truthful bidding in the ideal model; in practice, you can approximate this with MILP or enumerative search on crash menus.",
+
+  renderExplainers: function(){
+    // Render spec excerpt
+    var specHost = el('specExcerpt');
+    if (specHost) { specHost.textContent = this.specExcerpt; }
+    // Render explainers list
+    var host = el('explainList'); if (!host) return;
+    host.innerHTML = '';
+    for (var i=0;i<this.explainers.length;i++){
+      var card = document.createElement('div'); card.className='card';
+      var h = document.createElement('h4'); h.textContent = (i+1)+') '+this.explainers[i].t;
+      var p = document.createElement('p'); p.textContent = this.explainers[i].b;
+      card.appendChild(h); card.appendChild(p); host.appendChild(card);
+    }
+  },
+
+  // Notifications
+  note: function(msg){ this.pushStatus('INFO: '+msg, 'ok'); log('INFO: '+msg); hideErrorBanner(); },
+  error: function(err){ var msg=(err && err.message)?err.message:String(err); this.pushStatus('ERR: '+msg, 'err'); log('ERR: '+msg); showErrorBanner(msg); if (window.console && console.error) console.error(err); },
+  pushStatus: function(msg, cls){
+    var row=el('statusRow'); var div=document.createElement('div'); div.className='pill '+(cls==='err'?'error':'success'); div.textContent=msg; row.appendChild(div);
+    setTimeout(function(){ if (div.parentNode) div.parentNode.removeChild(div); }, 6000);
+  }
+};
+
+// Global error hook
+window.onerror = function(message, source, lineno, colno, error){
+  var msg = 'JS Error: '+message+' at '+source+':'+lineno+':'+colno;
+  showErrorBanner(msg);
+  log(msg);
+  return false;
+};
+
+// Init
+window.onload = function(){ App.init(); };
+</script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Project Schedule Network Simulator</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; background: #f9f9f9; color: #333; }
+    h2 { font-size: 1.25em; margin-bottom: 0.5em; }
+    #controls button { margin: 0.2em 0.5em 0.2em 0; }
+    #timeline { border: 1px solid #ccc; background: #fff; margin-top: 1em; }
+    .note { font-size: 0.9em; color: #555; margin-top: 0.5em; }
+  </style>
+</head>
+<body>
+
+<h2>Project Schedule Network Simulator</h2>
+<div id="description">
+  <p><strong>What is this?</strong> This app visualizes a project schedule as a network of tasks with dependencies. It highlights the <em>critical path</em> – the sequence of tasks that determine the project’s finish date. By experimenting with delays, you can see how local changes impact the overall schedule.</p>
+  <p><strong>How to use?</strong> Each task is shown with its duration and dependencies. Click the “Add Delay” buttons to extend a task’s duration (simulating an unexpected delay of 1 time unit). The chart below updates instantly: bars represent task durations on a timeline, and red bars mark tasks on the current critical path. Dependency lines connect tasks (from each task’s finish to its dependents’ start). Try delaying different tasks and observe how the critical path and project completion date change.</p>
+</div>
+
+<div id="controls"></div>
+<canvas id="timeline" width="600" height="180"></canvas>
+<p class="note">Lawrence Rowland, built with ChatGPT assistance</p>
+
+<script>
+  // Define the project tasks and dependencies
+  const tasks = [
+    { id: "A", duration: 2, deps: [] },             // Task A (start task)
+    { id: "B", duration: 3, deps: [] },             // Task B (another start task)
+    { id: "C", duration: 4, deps: ["A"] },          // Task C depends on A
+    { id: "D", duration: 2, deps: ["A", "B"] },     // Task D depends on A and B
+    { id: "E", duration: 1, deps: ["C", "D"] },     // Task E depends on C and D
+    { id: "F", duration: 4, deps: ["D"] },          // Task F depends on D
+    { id: "G", duration: 0, deps: ["E", "F"] }      // Task G depends on E and F (end milestone)
+  ];
+  // Create a quick lookup by task id
+  const taskById = {};
+  tasks.forEach(t => taskById[t.id] = t);
+
+  // Build the controls UI with buttons for each task
+  const controlsDiv = document.getElementById('controls');
+  const durationSpans = {};  // to update displayed durations
+  tasks.forEach(task => {
+    const line = document.createElement('div');
+    line.style.marginBottom = '4px';
+    // Task label and duration
+    const label = document.createElement('span');
+    label.textContent = `Task ${task.id} (Duration: `;
+    const durSpan = document.createElement('span');
+    durSpan.id = `dur-${task.id}`;
+    durSpan.textContent = task.duration;
+    durationSpans[task.id] = durSpan;
+    const labelClose = document.createElement('span');
+    labelClose.textContent = ')';
+    // Delay button
+    const btn = document.createElement('button');
+    btn.textContent = `Add Delay to ${task.id}`;
+    btn.onclick = () => { addDelay(task.id); };
+    // Append elements
+    line.appendChild(label);
+    line.appendChild(durSpan);
+    line.appendChild(labelClose);
+    line.appendChild(document.createTextNode(' '));  // space before button
+    line.appendChild(btn);
+    controlsDiv.appendChild(line);
+  });
+
+  const canvas = document.getElementById('timeline');
+  const ctx = canvas.getContext('2d');
+
+  // Calculate and draw the schedule chart
+  function updateChart() {
+    // 1. Compute earliest start/finish times via a topological sort
+    const startTimes = {};
+    const finishTimes = {};
+    const unscheduled = tasks.slice();  // copy list
+    let progress = true;
+    while (unscheduled.length && progress) {
+      progress = false;
+      for (let i = 0; i < unscheduled.length; i++) {
+        const t = unscheduled[i];
+        // check if all dependencies have finish times
+        if (t.deps.every(depId => finishTimes.hasOwnProperty(depId))) {
+          // earliest start is max finish of deps (or 0 if none)
+          const es = t.deps.length ? Math.max(...t.deps.map(d => finishTimes[d])) : 0;
+          startTimes[t.id] = es;
+          finishTimes[t.id] = es + t.duration;
+          unscheduled.splice(i, 1);
+          progress = true;
+          i--;  // adjust index after removal
+        }
+      }
+      if (!progress && unscheduled.length) {
+        console.error("Cyclic dependency or scheduling error");
+        break;
+      }
+    }
+    // Determine project finish time (max finish of tasks with no dependents)
+    const dependentsMap = {};
+    tasks.forEach(t => dependentsMap[t.id] = []);
+    tasks.forEach(t => {
+      t.deps.forEach(depId => {
+        dependentsMap[depId].push(t.id);
+      });
+    });
+    const endTasks = tasks.filter(t => dependentsMap[t.id].length === 0);
+    const projectFinish = Math.max(...endTasks.map(t => finishTimes[t.id] || 0));
+
+    // 2. Compute critical path (tasks with zero slack) via longest path analysis
+    // Compute longest path depth (duration to project end) for each task using recursion
+    const depthCache = {};
+    function getDepth(taskId) {
+      if (depthCache[taskId] !== undefined) return depthCache[taskId];
+      const task = taskById[taskId];
+      const children = dependentsMap[taskId] || [];
+      if (children.length === 0) {
+        depthCache[taskId] = task.duration;
+      } else {
+        const maxChildDepth = Math.max(...children.map(childId => getDepth(childId)));
+        depthCache[taskId] = task.duration + maxChildDepth;
+      }
+      return depthCache[taskId];
+    }
+    tasks.forEach(t => getDepth(t.id));  // fill depthCache
+    // A task is critical if (earliest start + depth == project finish)
+    const criticalTasks = tasks
+      .filter(t => startTimes[t.id] + depthCache[t.id] === projectFinish)
+      .map(t => t.id);
+
+    // 3. Draw the chart (dependency lines + task bars)
+    // Adjust canvas size if needed to fit new timeline
+    const pxPerUnit = 30;
+    const leftMargin = 60;
+    const rowHeight = 20;
+    const barHeight = 10;
+    const totalWidth = leftMargin + projectFinish * pxPerUnit + 50;
+    const totalHeight = tasks.length * rowHeight + 20;
+    canvas.width = totalWidth;
+    canvas.height = totalHeight;
+    ctx.clearRect(0, 0, totalWidth, totalHeight);
+    ctx.font = "12px sans-serif";
+    ctx.textBaseline = "middle";
+
+    // Draw dependency connector lines (behind bars)
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    tasks.forEach((task, index) => {
+      const taskYCenter = 10 + index * rowHeight + rowHeight/2;
+      // for each dependency of this task, draw line from dep finish to this task start
+      task.deps.forEach(depId => {
+        const depIndex = tasks.findIndex(t => t.id === depId);
+        if (depIndex === -1) return;
+        const depYCenter = 10 + depIndex * rowHeight + rowHeight/2;
+        const depX = leftMargin + (finishTimes[depId] || 0) * pxPerUnit;
+        const taskX = leftMargin + (startTimes[task.id] || 0) * pxPerUnit;
+        ctx.beginPath();
+        ctx.moveTo(depX, depYCenter);
+        ctx.lineTo(taskX, taskYCenter);
+        ctx.stroke();
+      });
+    });
+    ctx.setLineDash([]); // solid lines for bars
+
+    // Draw task bars and labels
+    tasks.forEach((task, index) => {
+      const y = 10 + index * rowHeight;  // top of this row
+      const xStart = leftMargin + (startTimes[task.id] || 0) * pxPerUnit;
+      const xFinish = leftMargin + (finishTimes[task.id] || 0) * pxPerUnit;
+      const barW = (finishTimes[task.id] - (startTimes[task.id] || 0)) * pxPerUnit;
+      const barY = y + (rowHeight - barHeight) / 2;
+      // Bar color: red if critical, blue if not
+      ctx.fillStyle = criticalTasks.includes(task.id) ? "#e63737" : "#4e79a7";
+      ctx.fillRect(xStart, barY, barW, barHeight);
+      // Draw task label to the left
+      ctx.fillStyle = "#000";
+      ctx.fillText(`Task ${task.id}`, 5, y + rowHeight/2);
+      // Draw duration text inside bar (optional: when bar is wide enough)
+      if (barW > 20) {
+        ctx.fillStyle = "#fff";
+        ctx.fillText(`${task.duration}`, xStart + barW/2, y + rowHeight/2);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        // reset align for next usage
+        ctx.textAlign = "start";
+        ctx.textBaseline = "middle";
+      }
+    });
+    // (Project finish time could be indicated if needed, e.g., a line or text, but omitted for simplicity)
+  }
+
+  // Add delay to a task and update everything
+  function addDelay(taskId) {
+    taskById[taskId].duration += 1;
+    // Update duration display text
+    durationSpans[taskId].textContent = taskById[taskId].duration;
+    updateChart();
+  }
+
+  // Initial render on page load
+  updateChart();
+</script>
+
+</body>
+</html>

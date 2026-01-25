@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PTS Explainer — Project Time Exchange</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root {
+      --bg:#0e1122;
+      --panel:#151939;
+      --panel-2:#101433;
+      --muted:#8ea0c8;
+      --text:#e9eef6;
+      --accent:#a7e0a0;
+      --accent2:#f7d774;
+      --critical:#ff8a8a;
+      --grid:#2b315a;
+      --shadow:rgba(0,0,0,0.36);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Segoe UI,Roboto,Arial,sans-serif}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1200px;margin:0 auto;padding:24px}
+    header{background:var(--panel);border-radius:16px;padding:20px 24px;box-shadow:0 12px 28px var(--shadow);display:flex;flex-direction:column;gap:10px}
+    header .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    .tag{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--grid);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--muted)}
+    .hero{display:grid;grid-template-columns:1.2fr 0.8fr;gap:18px;margin-top:12px}
+    .hero-card{background:var(--panel-2);border-radius:14px;border:1px solid var(--grid);padding:16px;box-shadow:0 10px 22px var(--shadow)}
+    .hero h1{margin:0;font-size:28px}
+    .hero p{margin:6px 0 0 0;line-height:1.5;color:#d7def0}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .btn{display:inline-block;background:#232951;color:var(--text);border:1px solid var(--grid);border-radius:10px;padding:8px 12px;font-weight:600}
+    .btn.accent{background:#2c5a3b;border-color:#2c5a3b;color:#dff7e0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:20px}
+    .card{background:var(--panel);border-radius:14px;padding:16px;border:1px solid var(--grid);box-shadow:0 8px 20px var(--shadow)}
+    h2{margin:0 0 10px 0;font-size:20px;color:var(--accent2)}
+    h3{margin:0 0 6px 0;font-size:16px;color:var(--accent)}
+    p{margin:6px 0 0 0;line-height:1.55;color:#e2e8f5}
+    ul{margin:8px 0 0 20px;padding:0;color:#e2e8f5}
+    li{margin:6px 0}
+    .quote{border-left:3px solid var(--accent2);padding-left:12px;margin-top:8px;color:#dce4f7}
+    pre{background:#0f132c;border:1px solid var(--grid);border-radius:10px;padding:12px;overflow:auto;color:#dbe6ff}
+    code{color:#dbe6ff}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .callout{background:#15351f;border:1px solid #2c5a3b;color:#dff7e0;border-radius:12px;padding:12px}
+    .footer{margin:28px 0 12px 0;text-align:center;color:var(--muted);font-size:12px}
+    @media (max-width: 900px){
+      .hero{grid-template-columns:1fr}
+      .two-col{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="top">
+        <div>
+          <div class="tag">Project Time Exchange · Explainer · v1</div>
+        </div>
+        <div class="btns">
+          <a class="btn" href="project_time_exchange.html">Back to PTX App</a>
+          <a class="btn accent" href="#pilot">Jump to Pilot Recipe</a>
+        </div>
+      </div>
+      <div class="hero">
+        <div class="hero-card">
+          <h1>Project Time Exchange (PTS) — Explainer for Project Controls</h1>
+          <p><strong>Project Time Exchange (PTS)</strong> treats “crash” choices as a market: each activity posts discrete, credible options (weeks saved ↦ cost/risk) and project controls <strong>buys</strong> a bundle that shrinks the <em>current</em> CPM critical path fastest for the money. We clear with a VCG‑style rule to set fair “prices of time,” trace out a budget↦duration frontier, and emit an auditable re‑baseline you can drop straight into CPM/EV/risk to learn real crash elasticity on your top near‑critical tasks.</p>
+          <div class="callout" style="margin-top:12px;">
+            <strong>Outcome:</strong> a clear spend‑vs‑weeks‑saved frontier, a VCG‑efficient allocation, and a defensible audit trail for governance.
+          </div>
+        </div>
+        <div class="hero-card">
+          <h3>Market metaphor (one diagram)</h3>
+          <pre>Crash menus (per activity)  ──►  Mechanism (VCG-style clearing)  ──►  Allocation + Payments  ──►  Re-baseline
+[ (d,c) pairs, risks ]            pick x to maximize W_v               p_i = externality_i        CPM/EV/risk update</pre>
+          <p>Each activity “offers” duration reductions; the mechanism buys the bundle whose externality on the critical polytope yields the biggest global time save for the spend.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="grid" style="margin-top:20px;">
+      <div class="card">
+        <h2>Explainers for a project‑controls audience</h2>
+        <h3>1) What is being optimized?</h3>
+        <p>We pick one option per activity from its crash menu and recompute CPM; the objective is <strong>welfare</strong>:</p>
+        <pre>W_v(x) := v · (T_0 - T(x)) - C(x)</pre>
+        <p>where <code>T_0</code> is baseline makespan, <code>T(x)</code> the post‑crash makespan (longest path), <code>C(x)</code> total crash cost, and <code>v</code> your value of time (cost‑of‑delay per week). Maximizing <code>W_v</code> gives the <strong>VCG‑efficient</strong> allocation.</p>
+        <h3>2) Why VCG‑style clearing?</h3>
+        <p>VCG pays/charges agents by their <strong>externality</strong> (the difference they make to others at the efficient solution), so <strong>truth‑telling</strong> is a dominant strategy under quasilinear utilities when we select the welfare‑maximizing allocation. Practically, VCG prices reveal the <em>shadow price of time</em> at each activity (not a single uniform rate).</p>
+      </div>
+      <div class="card">
+        <h2>Budget versus efficiency (nuance)</h2>
+        <p>A hard <strong>budget constraint</strong> (<code>Σ C(x) ≤ B</code>) can break exact VCG truthfulness; the classical guarantee holds when we maximize welfare without a hard cap. Controls has two clean choices:</p>
+        <ul>
+          <li>Run the <strong>welfare</strong> model with <code>v</code> tuned from cost‑of‑delay (Lagrangian form).</li>
+          <li>Run a <strong>budget‑feasible</strong> knapsack/MILP—still gives a frontier, but payments are advisory (prices‑as‑signals) rather than incentive‑compatible.</li>
+        </ul>
+        <h3>Objects you already know, just recast</h3>
+        <ul>
+          <li><strong>Crash menu</strong> for activity <code>i</code>: discrete options <code>o ∈ O_i</code> with <code>(d_io, c_io, r_io)</code>.</li>
+          <li><strong>Selection</strong> <code>x_io ∈ {0,1}</code>, <code>Σ_o x_io = 1</code> per activity.</li>
+          <li><strong>Schedule map</strong> <code>T(x)</code>: CPM recompute on chosen durations; critical set = zero‑float tasks.</li>
+          <li><strong>Frontier</strong>: minimal <code>T</code> achievable at each spend level; we often pick the “knee.”</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Computation path you can audit</h2>
+        <p>Start with <strong>enumeration</strong> on small menus; scale up by MILP/CP‑SAT (time‑cost trade‑off with longest‑path constraints) or by local search that only explores <strong>near‑critical</strong> neighborhoods. Every trial is:</p>
+        <pre>set durations → CPM forward/backward → record (cost, makespan) → retain Pareto‑optimal points</pre>
+        <h3>Where the value comes from (controls‑level)</h3>
+        <ul>
+          <li><strong>Transparency:</strong> an auditable re‑baseline with floats/ES/EF/LS/LF for governance.</li>
+          <li><strong>Prioritization:</strong> per‑activity “price of time” steers coaching, procurement, and vendor asks.</li>
+          <li><strong>Learning:</strong> repeated runs reveal <strong>elasticity</strong>—which menus consistently “clear” and which are bluff.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Risk, feasibility, and guardrails</h2>
+        <p>Attach risk tags to each option (confidence intervals on duration, quality, or rework); filter menus against <strong>permit/resource gates</strong> and contractual minima before the mechanism runs. Keep a <strong>no‑deficit</strong> rule and reserve a management buffer so payments don’t suggest over‑buying time you can’t safely integrate.</p>
+        <h3>Integration points (no re‑plumb)</h3>
+        <ul>
+          <li><strong>CPM/EV:</strong> publish the chosen durations and floats as a new baseline; EV curves use the updated plan.</li>
+          <li><strong>Risk:</strong> feed distributional crash effects into your Monte Carlo; treat VCG prices as scenario weights.</li>
+          <li><strong>Change control:</strong> decisions and payments are explained by externalities; that’s board‑ready traceability.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>How to set <code>v</code> (value of time)</h2>
+        <p>Back‑solve from <strong>cost‑of‑delay</strong>: <code>v = ΔNPV or liquidated damages ÷ weeks</code> on the governing milestone (revenue start, LD exposure, slot loss). When in doubt, sweep <code>v</code> to generate a <strong>welfare curve</strong> and pick the stable region where the chosen portfolio doesn’t churn.</p>
+        <h3 id="pilot">Pilot recipe (two sprints)</h3>
+        <p>Pick ~20 <strong>near‑critical</strong> activities (low float or high path count), ask each owner for 2–3 credible menu points, then run PTS weekly for two cycles. Track: spend vs weeks saved; churn in the critical set; and whether VCG “prices” match your gut on contractor leverage—adjust menus where promises proved illusory.</p>
+      </div>
+      <div class="card">
+        <h2>Externality on the critical polytope</h2>
+        <p>The current schedule is the <strong>maximum</strong> over many path sums; your crash on task <code>i</code> only helps if it perturbs that max. VCG internalizes this: it rewards options that actually <strong>move the max</strong>, not just shorten a non‑binding path.</p>
+        <h3>Failure modes (and how to pre‑empt them)</h3>
+        <ul>
+          <li><strong>Non‑credible menus</strong> → require evidence (method, crew plan, historical yield) and cap per‑period crash.</li>
+          <li><strong>Budget‑only governance</strong> → if you must hard‑cap, treat prices as diagnostic rather than incentive‑compatible.</li>
+          <li><strong>Hidden couplings</strong> (resources, calendars) → extend to RCPSP or disallow conflicting options jointly.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Minimal math you can paste into a note</h2>
+        <pre>Choose x ∈ {0,1}^{|O_1|+⋯+|O_n|},  Σ_{o∈O_i} x_io = 1
+C(x) = Σ_{i,o} c_io x_io,  T(x) = CPM_LongestPath({d_io x_io})
+Welfare:  max_x  v · (T_0 - T(x)) - C(x)    (VCG‑truthful)</pre>
+        <h3>Payments in one sentence</h3>
+        <p>Each activity’s charge/credit <code>p_i</code> equals the <strong>harm</strong> (or benefit) its presence causes to everyone else’s welfare—i.e., the gap between the best welfare when <code>i</code> is forced to baseline and the others’ welfare at the chosen allocation.</p>
+      </div>
+      <div class="card">
+        <h2>What you keep from “classic crashing”</h2>
+        <p>All of it—PTS is a wrapper: same CPM graph, same time‑cost menus, just a <strong>mechanism</strong> that picks consistently and explains <em>why</em> (prices, externalities, knee).</p>
+        <h3>Visual thumbprint (ASCII Gantt + frontier)</h3>
+        <pre>Baseline CP:  A──B──D──E──G
+               \ C ─┘  \ F ─┘         Frontier:  spend → makespan
+Crash buys ↓ where bars are red (zero float)      ●──●──●─●  (knee)</pre>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:20px;">
+      <h2>Salient matter (and correctness note)</h2>
+      <div class="quote">
+        <p><em>“Treat crashing as a market; each activity posts discrete options; controls buys the bundle that shrinks the critical path fastest.”</em> <strong>Retained.</strong></p>
+        <p><em>“Clear with VCG to set fair prices of time; produce the budget‑duration frontier; auditable re‑baseline.”</em> <strong>Retained.</strong></p>
+        <p><em>“Crashes are combinatorial goods; externalities are on the critical polytope; outcome is strategy‑proof with proofs in the ideal model; MILP/enumeration in practice.”</em> <strong>Retained and emphasized.</strong></p>
+        <p><strong>Nuance on strategy‑proof + budget:</strong> VCG’s strategy‑proofness holds when we maximize welfare; a hard budget cap is not, in general, VCG‑truthful—use <code>v</code> (Lagrangian) for truthfulness, and treat budget‑feasible runs as diagnostics/pricing signals.</p>
+      </div>
+    </section>
+
+    <div class="footer">PTS Explainer Page · Built for the Project Time Exchange app</div>
+  </div>
+</body>
+</html>

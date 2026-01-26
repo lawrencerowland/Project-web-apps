@@ -54,6 +54,7 @@
   <header>
     <h1>Counterfactual Program Steering — Structural Causal Model + Influence Diagram (Interactive)</h1>
     <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="pill" onclick="openExplainer('overview')">Overview explainer</button>
       <button class="pill" onclick="openExplainer('simple')">Simple explainer</button>
       <button class="pill" onclick="openExplainer('mid')">Mid explainer</button>
       <button class="pill" onclick="openExplainer('full')">Full explainer</button>
@@ -76,6 +77,7 @@
     <aside class="panel">
       <h2>Controls</h2>
       <div class="flex" style="margin:6px 0 10px 0; gap:8px; flex-wrap:wrap;">
+        <button id="explainerOverview" class="pill" title="Cause-and-effect overview">Overview explainer</button>
         <button id="explainerSimple" class="pill" title="Plain-English summary">Simple explainer</button>
         <button id="explainerMid" class="pill" title="Manager + analyst view">Mid explainer</button>
         <button id="explainerFull" class="pill" title="Technical details and assumptions">Full explainer</button>
@@ -421,6 +423,12 @@ function getDeltas(){
 
 // -------- Explainer content (three levels) --------
 const EXPLAINERS = {
+  overview: `
+  <h3 style="margin:0 0 8px; color:var(--accent)">Overview</h3>
+  <p>Counterfactual Program Steering builds a simple cause-and-effect map of your project drivers (staffing, automation, WIP, etc.) so we can see what truly changes outcomes, not just what’s correlated.</p>
+  <p>We then simulate “what-if” scenarios (e.g., more automation, fewer items in progress) to forecast impact on throughput, lead time, and quality, ranking them by overall value.</p>
+  <p>This lets us target the highest-value, lowest-uncertainty interventions first, and design small, safe-to-fail trials where uncertainty is greatest.</p>
+  `,
   simple: `
   <h3 style="margin:0 0 8px; color:var(--accent)">In one minute</h3>
   <p>This tool helps you choose which policy to try next. It learns how your delivery system behaves from data (staffing, automation, WIP, etc.), then runs <em>what‑if</em> simulations where we pretend to change one thing at a time (like raising automation) and see how throughput, lead time, and quality would change on average. The bar chart compares the expected payoff of each option, so you can pick the intervention with the best trade‑off before you spend money or time.</p>
@@ -474,6 +482,7 @@ function openExplainer(kind){
 
 // Wire buttons for explainers & app controls
 window.addEventListener('load', ()=>{
+  document.getElementById('explainerOverview')?.addEventListener('click', ()=>openExplainer('overview'));
   document.getElementById('explainerSimple')?.addEventListener('click', ()=>openExplainer('simple'));
   document.getElementById('explainerMid')?.addEventListener('click', ()=>openExplainer('mid'));
   document.getElementById('explainerFull')?.addEventListener('click', ()=>openExplainer('full'));

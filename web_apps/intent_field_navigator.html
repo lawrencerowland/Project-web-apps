@@ -40,6 +40,13 @@
     input[type="range"] { width: 100%; }
     .intent-slider { margin: 6px 0 10px; }
     .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .explainer-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .explainer-buttons button.active { background: #111827; color: #fff; border-color: #111827; }
+    .explainer-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: #f9fafb; }
+    .explainer-card h3 { margin: 0 0 6px; font-size: 14px; }
+    .explainer-card ul { margin: 0; padding-left: 18px; font-size: 12.5px; color: #111827; }
+    .explainer-card li { margin-bottom: 6px; }
+    .explainer-card p { margin: 0; font-size: 12.5px; color: #111827; }
   </style>
   <!-- CSV parsing and charts -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -111,6 +118,15 @@
 
     <section class="panel">
       <h2>Dashboard</h2>
+      <div class="panel" style="margin-bottom:12px;">
+        <h3>Explainers</h3>
+        <div class="explainer-buttons" role="tablist" aria-label="Intent Field Navigator explainers">
+          <button type="button" class="explainer-btn active" data-explainer="overview" role="tab" aria-selected="true">IFN Overview</button>
+          <button type="button" class="explainer-btn" data-explainer="architecture" role="tab" aria-selected="false">Architecture &amp; Flow</button>
+          <button type="button" class="explainer-btn" data-explainer="value" role="tab" aria-selected="false">Value, Feasibility &amp; Working Model</button>
+        </div>
+        <div id="explainerContent" class="explainer-card" role="tabpanel" aria-live="polite"></div>
+      </div>
       <div class="grid2">
         <div class="panel">
           <h3>Coverage vs Target Prior</h3>
@@ -203,6 +219,40 @@
     };
 
     const STOP = new Set(("a,an,the,and,or,of,for,to,from,with,into,at,by,on,be,is,are,was,were,as,that,this,these,those,it,its,in,out,over,under,up,down,not,no,yes,if,then,else,when,while,which,who,whom,whose,can,could,should,would,may,might,will,just,than,so,such,via,per,each,any,all,more,most,less,least,also,about,across,among,between,within,without,against,after,before,above,below".split(",")));
+    const EXPLAINERS = {
+      overview: {
+        title: "Intent Field Navigator (IFN)",
+        body: `
+          <ul>
+            <li>Reimagines portfolio steering as a <strong>vector field</strong> that continuously aligns live work artifacts with strategic intents.</li>
+            <li>Treats intents (resilience, usability, scale, ecosystem) as "sources" generating directional influence over WBS, tickets, OKRs, experiments.</li>
+            <li>Aims to surface alignment gaps and over-saturated intents before effort is spent, preventing silent divergence.</li>
+          </ul>
+        `
+      },
+      architecture: {
+        title: "IFN Architecture & Flow",
+        body: `
+          <ul>
+            <li><strong>Intent Codex</strong>: curated, version-controlled strategic intents expressed in natural language + ontology tags.</li>
+            <li><strong>Live Work Harvest</strong>: ingest issues, commits, risks, documents; normalise via embeddings/TF-IDF over intent codex.</li>
+            <li><strong>Field Solver</strong>: compute similarity tensor + graph Laplacian to produce directional field strengths per work item.</li>
+            <li><strong>Guidance Layer</strong>: dashboards, nudges, and backlog reshaping that rebalance field strengths across squads.</li>
+            <li><strong>Learning Loop</strong>: reinforcement from delivery outcomes refines intent weights, making strategy execution adaptive.</li>
+          </ul>
+        `
+      },
+      value: {
+        title: "IFN Value, Feasibility & Working Model",
+        body: `
+          <ul>
+            <li><strong>Value</strong>: gives C-suites and PMOs a quantifiable “intent coverage” view, enabling capital deployment where strategic pull is weakest.</li>
+            <li><strong>Feasibility</strong>: leverages existing textual artifacts and open-source NLP tooling; integrates with GitHub/Jira/Notion APIs.</li>
+            <li><strong>Surprise/Innovation</strong>: reframes strategy alignment as geometric flow, enabling simulation of intent perturbations.</li>
+          </ul>
+        `
+      }
+    };
 
     function tokenize(text) {
       if (!text) return [];
@@ -263,6 +313,17 @@
       a.href = url; a.download = filename; a.style.display="none";
       document.body.appendChild(a); a.click();
       setTimeout(()=>{ URL.revokeObjectURL(url); document.body.removeChild(a); }, 0);
+    }
+
+    function renderExplainer(key) {
+      const config = EXPLAINERS[key] || EXPLAINERS.overview;
+      const content = document.getElementById("explainerContent");
+      content.innerHTML = `<h3>${config.title}</h3>${config.body}`;
+      document.querySelectorAll(".explainer-btn").forEach(btn => {
+        const active = btn.dataset.explainer === key;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+      });
     }
 
     // ------------------------ CSV ingestion ------------------------
@@ -914,6 +975,11 @@
     }
 
     // ------------------------ Event wiring ------------------------
+    document.querySelectorAll(".explainer-btn").forEach(btn => {
+      btn.addEventListener("click", () => renderExplainer(btn.dataset.explainer));
+    });
+    renderExplainer("overview");
+
     document.getElementById('topK').addEventListener('input', (e)=>{
       const v = parseInt(e.target.value,10);
       State.params.topK = v;

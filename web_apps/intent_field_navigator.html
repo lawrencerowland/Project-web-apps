@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Intent Field Navigator (CSV-first)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    :root { --gap: 12px; --pad: 14px; --border: #e4e7eb; --muted:#6b7280; --bg:#fafafa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; background: #fff; color: #111827; }
+    header { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--bg); }
+    header h1 { margin: 0; font-size: 18px; }
+    header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    main { padding: 16px 20px; display: grid; grid-template-columns: 320px 1fr; gap: var(--gap); }
+    .panel { border: 1px solid var(--border); border-radius: 8px; padding: var(--pad); background: #fff; }
+    .panel h2 { margin: 0 0 8px; font-size: 15px; }
+    .panel h3 { margin: 18px 0 8px; font-size: 14px; }
+    label { font-size: 12px; color: #374151; display: block; margin: 10px 0 4px; }
+    input[type="file"] { width: 100%; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+    .controls { display: grid; gap: 8px; }
+    button { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); background: #f3f4f6; cursor: pointer; font-size: 13px; }
+    button.primary { background: #111827; color: #fff; border-color: #111827; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .kv { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .small { font-size: 12px; color: var(--muted); }
+    .bad { color: #b91c1c; }
+    .good { color: #065f46; }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+    th { background: #f9fafb; position: sticky; top: 0; z-index: 1; }
+    .pill { display: inline-block; padding: 2px 6px; border-radius: 999px; border: 1px solid var(--border); margin: 1px 4px 1px 0; font-size: 11px; color: #374151;}
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--gap); }
+    .muted { color: var(--muted); }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; background: #f9fafb; border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+    footer { padding: 16px 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; }
+    .slider { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+    input[type="range"] { width: 100%; }
+    .intent-slider { margin: 6px 0 10px; }
+    .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  </style>
+  <!-- CSV parsing and charts -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Intent Field Navigator — CSV-first, client-side</h1>
+    <p>Load CSVs → compute soft alignment, coverage vs. target prior, entropy, nudges → export results. No servers, no APIs.</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>1) Data</h2>
+      <label>Intents CSV</label>
+      <input id="intentsFile" type="file" accept=".csv"/>
+      <label>Work Items CSV</label>
+      <input id="workFile" type="file" accept=".csv"/>
+      <label>Outcomes CSV (optional)</label>
+      <input id="outcomesFile" type="file" accept=".csv"/>
+
+      <div class="controls" style="margin-top:14px;">
+        <button id="loadBtn" class="primary">Load CSVs</button>
+        <button id="demoBtn">Load Demo Data</button>
+      </div>
+
+      <h2 style="margin-top:18px;">2) Parameters</h2>
+      <div class="slider">
+        <label>Top-K edges per item (graph sparsity)</label>
+        <input id="topK" type="range" min="1" max="8" value="3"/>
+        <div id="topKVal" class="small">3</div>
+      </div>
+      <div class="slider">
+        <label>Ambiguity epsilon for nudges (Δ top-2)</label>
+        <input id="epsilon" type="range" min="1" max="20" value="8"/>
+        <div id="epsilonVal" class="small">0.08</div>
+      </div>
+      <div class="slider">
+        <label>Tag boost (Jaccard factor)</label>
+        <input id="tagBoost" type="range" min="0" max="30" value="13"/>
+        <div id="tagBoostVal" class="small">1.30</div>
+      </div>
+      <div class="slider">
+        <label>Learning rate η (multiplicative weights)</label>
+        <input id="eta" type="range" min="1" max="50" value="10"/>
+        <div id="etaVal" class="small">0.10</div>
+      </div>
+      <div class="controls">
+        <button id="recomputeBtn" class="primary" disabled>Recompute</button>
+        <button id="learnBtn" disabled>Update Weights from Outcomes</button>
+      </div>
+
+      <h3>Exports</h3>
+      <div class="controls">
+        <button id="exportAlign" disabled>Export: intent_alignment_report.csv</button>
+        <button id="exportMatches" disabled>Export: ranked_matches.csv</button>
+        <button id="exportNudges" disabled>Export: nudge_recommendations.csv</button>
+        <button id="exportCoverage" disabled>Export: coverage_summary.csv</button>
+        <button id="exportGraph" disabled>Export: graph_edges.csv</button>
+      </div>
+
+      <h3>CSV Schemas</h3>
+      <div class="code">
+        intents.csv: intent_id,name,description,tags,target_weight,active<br/>
+        work_items.csv: item_id,title,description,tags,type,status,squad,effort,url<br/>
+        outcomes.csv (optional): item_id,outcome,lead_time,defect_rate,realized_intent
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Dashboard</h2>
+      <div class="grid2">
+        <div class="panel">
+          <h3>Coverage vs Target Prior</h3>
+          <canvas id="coverageChart" height="180"></canvas>
+        </div>
+        <div class="panel">
+          <h3>Coverage Gap (actual − target)</h3>
+          <canvas id="gapChart" height="180"></canvas>
+        </div>
+      </div>
+
+      <div class="grid3" style="margin-top:12px;">
+        <div class="panel">
+          <h3>Ambiguity (entropy) histogram</h3>
+          <canvas id="entropyChart" height="160"></canvas>
+        </div>
+        <div class="panel">
+          <h3>Graph roughness (Laplacian)</h3>
+          <div id="roughness" class="kv">
+            <div class="small">Lower is smoother; spikes suggest inconsistent labeling</div>
+            <div id="roughnessVal" class="small"></div>
+          </div>
+          <h3 style="margin-top:10px;">Intent Weight Sliders (counterfactual)</h3>
+          <div id="intentSliders"></div>
+          <div class="small">Adjust and click “Recompute” to simulate perturbations; weights renormalize on import/learn.</div>
+        </div>
+        <div class="panel">
+          <h3>Totals</h3>
+          <div id="totals" class="small"></div>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:12px;">
+        <div class="panel">
+          <h3>Top Ambiguous Items</h3>
+          <div class="table-wrap" style="max-height:240px;">
+            <table id="ambigTable">
+              <thead><tr><th>Item</th><th>Squad</th><th>Entropy</th><th>Top-2 p</th><th>Tags</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Nudge Recommendations</h3>
+          <div class="table-wrap" style="max-height:240px;">
+            <table id="nudgeTable">
+              <thead><tr><th>Item</th><th>From → To</th><th>Δgap (est.)</th><th>Δp</th><th>Effort</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:12px;">
+        <h3>Ranked Matches (per item)</h3>
+        <div class="table-wrap" style="max-height:320px;">
+          <table id="matchTable">
+            <thead><tr><th>Item</th><th>Top Intent</th><th>p(top)</th><th>Top-3</th><th>Title</th><th>Squad</th><th>Tags</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer>
+    Built for offline, reproducible steering: load CSVs, tune parameters, export decisions. All computation stays in your browser.
+  </footer>
+
+  <script>
+    // ------------------------ Utilities ------------------------
+    const State = {
+      intents: [],      // [{intent_id, name, description, tags[], target_weight, active}]
+      items: [],        // [{item_id, title, description, tags[], type, status, squad, effort, url}]
+      outcomes: [],     // [{item_id, outcome, lead_time, defect_rate, realized_intent}]
+      vocab: new Map(), // token -> index
+      idf: [],          // array
+      vecIntents: {},   // intent_id -> Float64Array
+      vecItems: {},     // item_id -> Float64Array
+      sim: [],          // 2D [i][j] = similarity item i to intent j
+      probs: [],        // 2D [i][j] normalized "pull" per item across intents
+      coverage: {},     // intent_id -> coverage (weighted by effort)
+      gaps: {},         // intent_id -> delta (actual - target)
+      totals: { items:0, efforts:0, intents:0 },
+      charts: { coverage:null, gap:null, entropy:null },
+      params: { topK:3, epsilon:0.08, tagBoost:1.30, eta:0.10 },
+      sliders: {},      // intent_id -> slider DOM
+      lastExport: { align:[], matches:[], nudges:[], coverage:[], edges:[] }
+    };
+
+    const STOP = new Set(("a,an,the,and,or,of,for,to,from,with,into,at,by,on,be,is,are,was,were,as,that,this,these,those,it,its,in,out,over,under,up,down,not,no,yes,if,then,else,when,while,which,who,whom,whose,can,could,should,would,may,might,will,just,than,so,such,via,per,each,any,all,more,most,less,least,also,about,across,among,between,within,without,against,after,before,above,below".split(",")));
+
+    function tokenize(text) {
+      if (!text) return [];
+      const toks = text.toLowerCase()
+        .replace(/[^a-z0-9\s\-_/+#.]/g, " ")
+        .split(/[\s\/+_.-]+/g)
+        .filter(t => t && !STOP.has(t) && t.length > 1);
+      return toks;
+    }
+
+    function parseTags(raw) {
+      if (!raw) return [];
+      return raw.split(/[;,]/g).map(s => s.trim().toLowerCase()).filter(Boolean);
+    }
+
+    function jaccard(a, b) {
+      const A = new Set(a), B = new Set(b);
+      if (A.size === 0 && B.size === 0) return 0;
+      let inter = 0;
+      A.forEach(x => { if (B.has(x)) inter++; });
+      const uni = A.size + B.size - inter;
+      return uni === 0 ? 0 : inter / uni;
+    }
+
+    function dot(a,b){ let s=0; for(let i=0;i<a.length;i++) s += a[i]*b[i]; return s; }
+    function norm(a){ return Math.sqrt(dot(a,a)); }
+    function cosine(a,b){ const na=norm(a), nb=norm(b); if(na===0||nb===0) return 0; return dot(a,b)/(na*nb); }
+
+    function softmaxPos(arr) {
+      // stable softmax over nonnegative inputs; if all zero, return uniform
+      const maxv = Math.max(...arr);
+      const exps = arr.map(v => Math.exp(v - maxv));
+      const s = exps.reduce((acc,x)=>acc+x,0);
+      if (!isFinite(s) || s===0) return arr.map(_=>1/arr.length);
+      return exps.map(x => x/s);
+    }
+
+    function entropy(p) {
+      // normalized entropy in [0,1] using log(K) denominator
+      const K = p.length;
+      let H = 0;
+      for (const x of p) if (x>0) H += -x * Math.log(x);
+      const Hmax = Math.log(K);
+      return Hmax===0?0: H / Hmax;
+    }
+
+    function downloadCSV(filename, rows) {
+      const escape = (v) => {
+        if (v==null) return "";
+        const s = String(v);
+        if (/[,"\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+        return s;
+      };
+      const csv = rows.map(r => r.map(escape).join(",")).join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.style.display="none";
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); document.body.removeChild(a); }, 0);
+    }
+
+    // ------------------------ CSV ingestion ------------------------
+    function parseCSVFile(file) {
+      return new Promise((resolve, reject) => {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (res)=> resolve(res.data),
+          error: reject
+        });
+      });
+    }
+
+    async function loadCSVs(files) {
+      const [intentsRows, itemsRows, outcomesRows] = await Promise.all([
+        files.intents ? parseCSVFile(files.intents) : Promise.resolve([]),
+        files.work ? parseCSVFile(files.work) : Promise.resolve([]),
+        files.outcomes ? parseCSVFile(files.outcomes) : Promise.resolve([])
+      ]);
+
+      // Intents
+      State.intents = intentsRows.map(r => {
+        const w = parseFloat(r.target_weight);
+        return {
+          intent_id: String(r.intent_id || "").trim(),
+          name: r.name || "",
+          description: r.description || "",
+          tags: parseTags(r.tags || ""),
+          target_weight: isFinite(w) ? Math.max(0, w) : NaN,
+          active: String(r.active||"1").trim().toLowerCase() !== "0"
+        };
+      }).filter(x=>x.intent_id);
+
+      // Items
+      State.items = itemsRows.map(r => {
+        const e = parseFloat(r.effort);
+        return {
+          item_id: String(r.item_id || "").trim(),
+          title: r.title || "",
+          description: r.description || "",
+          tags: parseTags(r.tags || ""),
+          type: r.type || "",
+          status: r.status || "",
+          squad: r.squad || "",
+          effort: isFinite(e) ? Math.max(0, e) : 1,
+          url: r.url || ""
+        };
+      }).filter(x=>x.item_id);
+
+      // Outcomes
+      State.outcomes = outcomesRows.map(r => {
+        const o = parseFloat(r.outcome), lt = parseFloat(r.lead_time), d = parseFloat(r.defect_rate);
+        return {
+          item_id: String(r.item_id || "").trim(),
+          outcome: isFinite(o) ? o : NaN,
+          lead_time: isFinite(lt) ? lt : NaN,
+          defect_rate: isFinite(d) ? d : NaN,
+          realized_intent: r.realized_intent ? String(r.realized_intent).trim() : ""
+        };
+      }).filter(x=>x.item_id);
+
+      normalizeIntentWeights();
+      renderIntentSliders();
+      computeAll();
+    }
+
+    function normalizeIntentWeights() {
+      // Use provided target_weight if valid; else uniform over active intents
+      const active = State.intents.filter(x=>x.active);
+      let sumW = 0, any = false;
+      for (const it of active) {
+        if (isFinite(it.target_weight)) { sumW += it.target_weight; any = true; }
+      }
+      if (!any || sumW<=0) {
+        const w = 1/Math.max(1, active.length);
+        for (const it of State.intents) if (it.active) it.target_weight = w;
+      } else {
+        for (const it of State.intents) if (it.active) it.target_weight = it.target_weight / sumW;
+      }
+    }
+
+    // ------------------------ Vectorization ------------------------
+    function buildVocabulary() {
+      State.vocab.clear();
+      const docs = [];
+      for (const it of State.intents) {
+        if (!it.active) continue;
+        const toks = tokenize(it.name + " " + it.description).concat(
+          // amplify intent tags by repeating them
+          it.tags.flatMap(t => [t,t,t])
+        );
+        docs.push(toks);
+      }
+      for (const wi of State.items) {
+        const toks = tokenize(wi.title + " " + wi.description).concat(
+          wi.tags.flatMap(t => [t,t]) // lighter boost than intents
+        );
+        docs.push(toks);
+      }
+      // DF counts
+      const df = new Map();
+      docs.forEach(tokens => {
+        const seen = new Set(tokens);
+        seen.forEach(tok => df.set(tok, (df.get(tok)||0)+1));
+      });
+      // Build vocab (sorted for determinism)
+      const tokens = Array.from(df.keys()).sort();
+      tokens.forEach((tok, idx) => State.vocab.set(tok, idx));
+      // IDF
+      const N = docs.length;
+      State.idf = new Float64Array(State.vocab.size);
+      tokens.forEach((tok, idx) => {
+        const dfi = df.get(tok) || 1;
+        State.idf[idx] = Math.log((N + 1) / (dfi + 1)) + 1.0;
+      });
+    }
+
+    function vectorize(text, tags, intent=false) {
+      const toks = tokenize(text).slice();
+      // Tag weighting: Jaccard appears later in similarity; here we add mild repetition
+      const amplified = intent ? tags.flatMap(t=>[t,t,t]) : tags.flatMap(t=>[t,t]);
+      const all = toks.concat(amplified);
+      const v = new Float64Array(State.vocab.size);
+      // term frequency
+      for (const tok of all) {
+        const idx = State.vocab.get(tok);
+        if (idx!=null) v[idx] += 1;
+      }
+      // tf-idf
+      for (let i=0;i<v.length;i++) {
+        if (v[i]>0) v[i] = (1 + Math.log(v[i])) * State.idf[i];
+      }
+      return v;
+    }
+
+    function buildVectors() {
+      State.vecIntents = {};
+      State.vecItems = {};
+      for (const it of State.intents) {
+        if (!it.active) continue;
+        State.vecIntents[it.intent_id] = vectorize((it.name||"")+" "+(it.description||""), it.tags, true);
+      }
+      for (const wi of State.items) {
+        State.vecItems[wi.item_id] = vectorize((wi.title||"")+" "+(wi.description||""), wi.tags, false);
+      }
+    }
+
+    // ------------------------ Similarities and Field ------------------------
+    function computeSimilarities() {
+      const intents = State.intents.filter(x=>x.active);
+      const I = State.items.length, J = intents.length;
+      State.sim = Array.from({length:I}, ()=> new Float64Array(J));
+      for (let i=0;i<I;i++) {
+        const wi = State.items[i];
+        const v = State.vecItems[wi.item_id];
+        for (let j=0;j<J;j++) {
+          const it = intents[j];
+          const u = State.vecIntents[it.intent_id];
+          let s = cosine(v, u);
+          // Tag Jaccard boost
+          const jac = jaccard(wi.tags, it.tags);
+          s = s * (1 + State.params.tagBoost * jac);
+          // Clamp to [0, Infinity)
+          State.sim[i][j] = Math.max(0, s);
+        }
+      }
+    }
+
+    function sparsifyAndNormalize() {
+      // Keep topK per item; zeros elsewhere; then produce per-item probabilities (softmax)
+      const intents = State.intents.filter(x=>x.active);
+      const I = State.items.length, J = intents.length;
+      const K = Math.min(State.params.topK, J);
+      State.probs = Array.from({length:I}, ()=> new Float64Array(J).fill(0));
+      for (let i=0;i<I;i++) {
+        const row = Array.from(State.sim[i]).map((v, j)=>({v,j}));
+        row.sort((a,b)=> b.v - a.v);
+        const kept = row.slice(0,K);
+        const keptVals = kept.map(o=> Math.max(0, o.v));
+        const p = softmaxPos(keptVals);
+        for (let t=0;t<kept.length;t++) {
+          State.probs[i][kept[t].j] = p[t];
+        }
+      }
+    }
+
+    function computeCoverageAndGaps() {
+      const intents = State.intents.filter(x=>x.active);
+      const I = State.items.length, J = intents.length;
+      // Coverage = sum_i effort_i * p_ij
+      const cov = new Float64Array(J).fill(0);
+      let totalEffort = 0;
+      for (let i=0;i<I;i++) {
+        const eff = Math.max(0, State.items[i].effort || 1);
+        totalEffort += eff;
+        for (let j=0;j<J;j++) cov[j] += eff * State.probs[i][j];
+      }
+      // Normalize to fraction of total effort
+      const total = cov.reduce((a,x)=>a+x,0) || 1;
+      const covPct = cov.map(x=> x/total);
+      // Gaps
+      const gaps = covPct.map((x,j)=> x - intents[j].target_weight);
+      State.coverage = {}; State.gaps = {};
+      for (let j=0;j<J;j++) {
+        State.coverage[intents[j].intent_id] = covPct[j];
+        State.gaps[intents[j].intent_id] = gaps[j];
+      }
+      State.totals = { items: I, efforts: totalEffort, intents: J };
+      return { covPct, gaps };
+    }
+
+    function computeEntropyList() {
+      const intents = State.intents.filter(x=>x.active);
+      const I = State.items.length, J = intents.length;
+      const ent = new Float64Array(I).fill(0);
+      for (let i=0;i<I;i++) ent[i] = entropy(Array.from(State.probs[i]));
+      return ent;
+    }
+
+    function computeGraphEdges() {
+      // Return bipartite edges: item_i -> intent_j with weight = probs[i][j]; keep nonzero entries
+      const intents = State.intents.filter(x=>x.active);
+      const edges = [];
+      for (let i=0;i<State.items.length;i++) {
+        for (let j=0;j<intents.length;j++) {
+          const w = State.probs[i][j];
+          if (w>0) {
+            edges.push({
+              src: State.items[i].item_id,
+              dst: intents[j].intent_id,
+              weight: w
+            });
+          }
+        }
+      }
+      return edges;
+    }
+
+    function computeGraphRoughness() {
+      // A simple Laplacian roughness: sum over edges w*(f_i - g_j)^2
+      // where f_i = p(top intent) of item i, g_j = target_weight(intent j)
+      // This is a proxy; lower means smoother alignment between probabilities and priors.
+      const intents = State.intents.filter(x=>x.active);
+      const J = intents.length;
+      const topP = [];
+      for (let i=0;i<State.items.length;i++) {
+        const arr = Array.from(State.probs[i]);
+        topP.push(Math.max(...arr));
+      }
+      const F = topP;
+      const G = intents.map(it => it.target_weight);
+      let s = 0, m = 0;
+      for (let i=0;i<State.items.length;i++) {
+        for (let j=0;j<J;j++) {
+          const w = State.probs[i][j];
+          if (w>0) { s += w * Math.pow(F[i] - G[j], 2); m += w; }
+        }
+      }
+      return m>0 ? s/m : 0;
+    }
+
+    // ------------------------ Nudges ------------------------
+    function computeNudges() {
+      const intents = State.intents.filter(x=>x.active);
+      const J = intents.length;
+      const gapByIdx = intents.map(it => State.gaps[it.intent_id] || 0);
+      const over = new Set(intents.filter((_,j)=>gapByIdx[j]>0).map(it=>it.intent_id));
+      const under = new Set(intents.filter((_,j)=>gapByIdx[j]<0).map(it=>it.intent_id));
+      const eps = State.params.epsilon;
+
+      const nudges = [];
+      for (let i=0;i<State.items.length;i++) {
+        const p = Array.from(State.probs[i]);
+        const sorted = p.map((v,j)=>({j,v})).sort((a,b)=>b.v-a.v);
+        const [a,b] = [sorted[0], sorted[1] || {j:sorted[0].j, v:0}];
+        const from = intents[a.j].intent_id;
+        const to = intents[b.j].intent_id;
+        const diff = a.v - b.v;
+        if (over.has(from) && under.has(to) && diff <= eps) {
+          // Estimated gap improvement: limited by available over-coverage, under-coverage, and marginal mass
+          const deltaFrom = gapByIdx[a.j];
+          const deltaTo = -gapByIdx[b.j];
+          const eff = Math.max(0, State.items[i].effort || 1);
+          const movable = Math.min(a.v - b.v/2, a.v); // conservative local move
+          const impact = Math.min(deltaFrom, deltaTo, movable * eff);
+          if (impact > 0) {
+            nudges.push({
+              item_id: State.items[i].item_id,
+              from_name: intents[a.j].name,
+              to_name: intents[b.j].name,
+              delta_gap: impact,
+              delta_p: diff,
+              effort: eff
+            });
+          }
+        }
+      }
+      nudges.sort((x,y)=> y.delta_gap - x.delta_gap);
+      return nudges;
+    }
+
+    // ------------------------ Learning loop ------------------------
+    function applyLearningUpdate() {
+      if (!State.outcomes.length) return;
+      // Compute per-intent average score over items whose argmax intent == that intent
+      const intents = State.intents.filter(x=>x.active);
+      const J = intents.length;
+
+      // Build item -> argmax intent idx mapping
+      const argmax = [];
+      for (let i=0;i<State.items.length;i++) {
+        const p = Array.from(State.probs[i]);
+        let bestJ = 0, bestV = p[0];
+        for (let j=1;j<J;j++) if (p[j]>bestV){ bestV = p[j]; bestJ=j; }
+        argmax[i] = bestJ;
+      }
+
+      // Outcomes index by item_id
+      const outMap = new Map();
+      for (const o of State.outcomes) outMap.set(o.item_id, o);
+
+      // Score: normalize positive outcome; penalize lead time and defect_rate if present
+      // score = z(outcome) - 0.5*z(lead_time) - 0.5*z(defect)
+      const valsO = [], valsL = [], valsD = [];
+      for (const o of State.outcomes) {
+        if (isFinite(o.outcome)) valsO.push(o.outcome);
+        if (isFinite(o.lead_time)) valsL.push(o.lead_time);
+        if (isFinite(o.defect_rate)) valsD.push(o.defect_rate);
+      }
+      function z(v, arr, invert=false) {
+        if (!isFinite(v) || !arr.length) return 0;
+        const m = arr.reduce((a,x)=>a+x,0)/arr.length;
+        const s = Math.sqrt(arr.reduce((a,x)=>a+(x-m)*(x-m),0)/arr.length) || 1;
+        const z = (v - m)/s;
+        return invert ? -z : z;
+      }
+
+      const perIntent = intents.map(_=>({sum:0, n:0}));
+      for (let i=0;i<State.items.length;i++) {
+        const wi = State.items[i];
+        const o = outMap.get(wi.item_id);
+        if (!o) continue;
+        const s = z(o.outcome, valsO, false) + 0.0
+                + 0.5 * z(o.lead_time, valsL, true)
+                + 0.5 * z(o.defect_rate, valsD, true);
+        const j = argmax[i];
+        perIntent[j].sum += s; perIntent[j].n += 1;
+      }
+      const avg = perIntent.map(x => x.n ? x.sum/x.n : 0);
+      const meanAvg = avg.reduce((a,x)=>a+x,0)/avg.length;
+
+      // Multiplicative weights update on target priors
+      const eta = State.params.eta;
+      let Z = 0;
+      for (let j=0;j<intents.length;j++) {
+        const w = intents[j].target_weight;
+        const upd = w * (1 + eta * (avg[j] - meanAvg));
+        intents[j].target_weight = Math.max(0, upd);
+        Z += intents[j].target_weight;
+      }
+      if (Z<=0) {
+        const u = 1/intents.length;
+        for (let j=0;j<intents.length;j++) intents[j].target_weight = u;
+      } else {
+        for (let j=0;j<intents.length;j++) intents[j].target_weight /= Z;
+      }
+      renderIntentSliders(); // reflect changes
+    }
+
+    // ------------------------ Rendering ------------------------
+    function ensureCharts(intents, cov, gaps, entHist) {
+      const labels = intents.map(it=>it.name);
+      const covPct = cov.map(x=> x*100);
+      const tgtPct = intents.map(it => it.target_weight * 100);
+      const ctx1 = document.getElementById('coverageChart');
+      const ctx2 = document.getElementById('gapChart');
+      const ctx3 = document.getElementById('entropyChart');
+
+      if (State.charts.coverage) State.charts.coverage.destroy();
+      if (State.charts.gap) State.charts.gap.destroy();
+      if (State.charts.entropy) State.charts.entropy.destroy();
+
+      State.charts.coverage = new Chart(ctx1, {
+        type: 'bar',
+        data: { labels,
+          datasets: [
+            { label: 'Actual %', data: covPct },
+            { label: 'Target %', data: tgtPct }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true, ticks: { callback:(v)=>v+'%' } } }
+        }
+      });
+
+      State.charts.gap = new Chart(ctx2, {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Gap (pp)', data: gaps.map(x=> x*100) }] },
+        options: {
+          responsive: true,
+          plugins: { legend: { display:false } },
+          scales: { y: { beginAtZero: true, ticks: { callback:(v)=>v+'%' } } }
+        }
+      });
+
+      State.charts.entropy = new Chart(ctx3, {
+        type: 'bar',
+        data: { labels: entHist.labels, datasets: [{ label: 'Items', data: entHist.counts }] },
+        options: {
+          responsive: true,
+          plugins: { legend: { display:false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    function renderIntentSliders() {
+      const wrap = document.getElementById('intentSliders');
+      wrap.innerHTML = '';
+      State.sliders = {};
+      const active = State.intents.filter(x=>x.active);
+      for (const it of active) {
+        const div = document.createElement('div');
+        div.className = 'intent-slider';
+        const lab = document.createElement('div');
+        lab.innerHTML = `<strong>${it.name}</strong> <span class="small muted">(${it.intent_id})</span> <span class="small">target_weight: ${(it.target_weight*100).toFixed(1)}%</span>`;
+        const slider = document.createElement('input');
+        slider.type = 'range'; slider.min = 0; slider.max = 100; slider.value = Math.round(it.target_weight*100);
+        slider.oninput = (e) => {
+          const val = parseInt(e.target.value,10)/100;
+          it.target_weight = val;
+          // renormalize across all active on slide end?
+        };
+        slider.onchange = (e) => {
+          // Renormalize all active after user change
+          const act = State.intents.filter(x=>x.active);
+          let s=0; for (const k of act) s += k.target_weight;
+          if (s<=0){ const u=1/act.length; for (const k of act) k.target_weight = u; }
+          else for (const k of act) k.target_weight /= s;
+          renderIntentSliders(); // refresh labels
+        };
+        div.appendChild(lab); div.appendChild(slider);
+        wrap.appendChild(div);
+        State.sliders[it.intent_id] = slider;
+      }
+    }
+
+    function renderTables(nudges, entropies, intents) {
+      // Ambiguity table
+      const ambigBody = document.querySelector('#ambigTable tbody');
+      const rowsA = [];
+      const entries = State.items.map((wi,i)=>({i, H: entropies[i]})).sort((a,b)=> b.H - a.H).slice(0,50);
+      for (const e of entries) {
+        const i = e.i;
+        const wi = State.items[i];
+        const p = Array.from(State.probs[i]);
+        const sorted = p.map((v,j)=>({j,v})).sort((a,b)=>b.v-a.v);
+        const top2 = sorted.slice(0,2).map(o=> `${intents[o.j].name} ${(o.v*100).toFixed(1)}%`).join(" · ");
+        rowsA.push(`<tr>
+          <td><strong>${wi.item_id}</strong><div class="small muted">${wi.title || ''}</div></td>
+          <td>${wi.squad || ''}</td>
+          <td>${e.H.toFixed(3)}</td>
+          <td>${top2}</td>
+          <td>${wi.tags.map(t=>`<span class="pill">${t}</span>`).join('')}</td>
+        </tr>`);
+      }
+      ambigBody.innerHTML = rowsA.join('');
+
+      // Nudges
+      const nudgeBody = document.querySelector('#nudgeTable tbody');
+      const rowsN = nudges.slice(0,50).map(n => {
+        return `<tr>
+          <td><strong>${n.item_id}</strong></td>
+          <td>${n.from_name} → ${n.to_name}</td>
+          <td>${(n.delta_gap*100).toFixed(2)} pp</td>
+          <td>${n.delta_p.toFixed(3)}</td>
+          <td>${n.effort}</td>
+        </tr>`;
+      });
+      nudgeBody.innerHTML = rowsN.join('');
+
+      // Matches
+      const matchBody = document.querySelector('#matchTable tbody');
+      const rowsM = [];
+      for (let i=0;i<State.items.length;i++) {
+        const wi = State.items[i];
+        const p = Array.from(State.probs[i]);
+        const sorted = p.map((v,j)=>({j,v})).sort((a,b)=>b.v-a.v);
+        const top = sorted[0], top3 = sorted.slice(0,3).map(o=> `${intents[o.j].name} ${(o.v*100).toFixed(1)}%`).join(" · ");
+        rowsM.push(`<tr>
+          <td><strong>${wi.item_id}</strong></td>
+          <td>${intents[top.j].name}</td>
+          <td>${(top.v*100).toFixed(1)}%</td>
+          <td>${top3}</td>
+          <td>${wi.title || ''}</td>
+          <td>${wi.squad || ''}</td>
+          <td>${wi.tags.map(t=>`<span class="pill">${t}</span>`).join('')}</td>
+        </tr>`);
+      }
+      matchBody.innerHTML = rowsM.join('');
+    }
+
+    function renderTotals(roughness) {
+      document.getElementById('roughnessVal').textContent = roughness.toFixed(4);
+      const t = State.totals;
+      document.getElementById('totals').innerHTML = `
+        <div>Items: <strong>${t.items}</strong></div>
+        <div>Total effort: <strong>${t.efforts}</strong></div>
+        <div>Active intents: <strong>${t.intents}</strong></div>
+      `;
+    }
+
+    function entHistogram(entropies) {
+      // 10 bins [0,1)
+      const B = 10;
+      const counts = Array(B).fill(0);
+      for (const h of entropies) {
+        const idx = Math.min(B-1, Math.floor(h * B));
+        counts[idx]++;
+      }
+      const labels = Array(B).fill(0).map((_,i)=>`${(i*0.1).toFixed(1)}–${((i+1)*0.1).toFixed(1)}`);
+      return { labels, counts };
+    }
+
+    // ------------------------ Exports ------------------------
+    function buildExports(covPct, gaps) {
+      const intents = State.intents.filter(x=>x.active);
+      // Alignment report per item
+      const align = [["item_id","top_intent","p_top","entropy","effort","squad","title","tags"]];
+      const matches = [["item_id","intent_id","intent_name","probability"]];
+      for (let i=0;i<State.items.length;i++) {
+        const wi = State.items[i];
+        const p = Array.from(State.probs[i]);
+        const sorted = p.map((v,j)=>({j,v})).sort((a,b)=>b.v-a.v);
+        const top = sorted[0];
+        align.push([
+          wi.item_id,
+          intents[top.j].intent_id,
+          top.v.toFixed(6),
+          entropy(p).toFixed(6),
+          wi.effort,
+          wi.squad,
+          wi.title,
+          wi.tags.join(";")
+        ]);
+        for (const o of sorted) {
+          matches.push([
+            wi.item_id,
+            intents[o.j].intent_id,
+            intents[o.j].name,
+            o.v.toFixed(6)
+          ]);
+        }
+      }
+      // Nudges
+      const nudges = [["item_id","from_intent","to_intent","delta_gap_estimate","delta_p","effort"]];
+      const recs = computeNudges();
+      for (const n of recs) {
+        nudges.push([n.item_id, n.from_name, n.to_name, n.delta_gap.toFixed(6), n.delta_p.toFixed(6), n.effort]);
+      }
+      // Coverage summary
+      const coverage = [["intent_id","name","target_weight","actual_coverage","gap"]];
+      for (let j=0;j<intents.length;j++) {
+        coverage.push([
+          intents[j].intent_id,
+          intents[j].name,
+          intents[j].target_weight.toFixed(6),
+          covPct[j].toFixed(6),
+          gaps[j].toFixed(6)
+        ]);
+      }
+      // Graph edges
+      const edgesRows = [["source","target","weight","type"]];
+      const edges = computeGraphEdges();
+      for (const e of edges) edgesRows.push([e.src, e.dst, e.weight.toFixed(6), "item→intent"]);
+
+      State.lastExport = { align, matches, nudges, coverage, edges: edgesRows };
+    }
+
+    // ------------------------ Orchestration ------------------------
+    function computeAll() {
+      buildVocabulary();
+      buildVectors();
+      computeSimilarities();
+      sparsifyAndNormalize();
+      const intents = State.intents.filter(x=>x.active);
+      const { covPct, gaps } = computeCoverageAndGaps();
+      const ent = computeEntropyList();
+      const rough = computeGraphRoughness();
+      renderTotals(rough);
+      ensureCharts(intents, covPct, gaps, entHistogram(ent));
+      const nudges = computeNudges();
+      renderTables(nudges, ent, intents);
+      buildExports(covPct, gaps);
+
+      // Enable buttons
+      document.getElementById('recomputeBtn').disabled = false;
+      document.getElementById('learnBtn').disabled = State.outcomes.length ? false : true;
+      document.getElementById('exportAlign').disabled = false;
+      document.getElementById('exportMatches').disabled = false;
+      document.getElementById('exportNudges').disabled = false;
+      document.getElementById('exportCoverage').disabled = false;
+      document.getElementById('exportGraph').disabled = false;
+    }
+
+    // ------------------------ Demo data ------------------------
+    function demoCSVs() {
+      // A tiny synthetic world with 4 intents and ~12 items
+      const intents = [
+        ["intent_id","name","description","tags","target_weight","active"],
+        ["RES","Resilience","Reliability, fault-tolerance, graceful degradation","reliability;resilience;uptime;failover",0.35,1],
+        ["USE","Usability","Friction reduction, accessibility, UX polish","ux;usability;accessibility;onboarding",0.25,1],
+        ["SCL","Scale","Throughput, latency, horizontal scaling, cost-efficiency","performance;latency;throughput;scale",0.25,1],
+        ["ECO","Ecosystem","Integrations, APIs, partnerships, docs","integration;api;docs;partner",0.15,1]
+      ];
+      const work = [
+        ["item_id","title","description","tags","type","status","squad","effort","url"],
+        ["W1","Retry & backoff for ingest","Add exponential backoff and idempotent retries to ingest pipeline","reliability;failover","task","ready","Core",3,""] ,
+        ["W2","Latency SLO for read path","Instrument p95/99, budget policy and alerts","latency;observability;slo","epic","in-progress","Core",5,""] ,
+        ["W3","OAuth2 partner sandbox","Partner sandbox + token refresh flows","integration;oauth;partner","epic","ready","Platform",5,""] ,
+        ["W4","Empty-state onboarding","Rewrite empty-state; reduce first-run confusion","onboarding;ux;copy","task","in-review","Growth",2,""] ,
+        ["W5","Shard registry caching","Reduce registry hot spots with client caches","throughput;scale;caching","task","ready","Core",3,""] ,
+        ["W6","Docs: webhooks & retries","Author robust delivery patterns section","docs;webhooks;retry","task","ready","Docs",1,""] ,
+        ["W7","Keyboard shortcuts","Accelerators for power users","usability;accessibility","task","ready","Growth",1,""] ,
+        ["W8","Async batch export","Background export with resumable checkpoints","scale;throughput;batch","epic","ready","Platform",5,""] ,
+        ["W9","WCAG color pass","Fix low-contrast components","accessibility;ux","task","ready","Growth",2,""] ,
+        ["W10","Partner status callbacks","Add callback endpoints and examples","api;callback;docs;integration","task","ready","Platform",2,""] ,
+        ["W11","Circuit breaker for upstream","Trip and shed load to protect core","resilience;throttle;fail-fast","task","ready","Core",3,""] ,
+        ["W12","Product tour v2","Contextual tips during first session","onboarding;ux;tour","task","ready","Growth",2,""]
+      ];
+      const outcomes = [
+        ["item_id","outcome","lead_time","defect_rate","realized_intent"],
+        ["W3",0.6,18,0.02,"ECO"],
+        ["W4",0.4,8,0.01,"USE"],
+        ["W5",0.5,21,0.03,"SCL"],
+        ["W6",0.3,5,0.00,"ECO"],
+        ["W8",0.55,30,0.04,"SCL"],
+        ["W9",0.25,7,0.00,"USE"]
+      ];
+      const toBlob = arr => new Blob([arr.map(r=>r.join(",")).join("\n")],{type:"text/csv"});
+      return {
+        intents: new File([toBlob(intents)], "intents.csv", {type:"text/csv"}),
+        work: new File([toBlob(work)], "work_items.csv", {type:"text/csv"}),
+        outcomes: new File([toBlob(outcomes)], "outcomes.csv", {type:"text/csv"})
+      };
+    }
+
+    // ------------------------ Event wiring ------------------------
+    document.getElementById('topK').addEventListener('input', (e)=>{
+      const v = parseInt(e.target.value,10);
+      State.params.topK = v;
+      document.getElementById('topKVal').textContent = v;
+    });
+    document.getElementById('epsilon').addEventListener('input', (e)=>{
+      const v = parseInt(e.target.value,10)/100;
+      State.params.epsilon = v;
+      document.getElementById('epsilonVal').textContent = v.toFixed(2);
+    });
+    document.getElementById('tagBoost').addEventListener('input', (e)=>{
+      const v = parseInt(e.target.value,10)/10;
+      State.params.tagBoost = v;
+      document.getElementById('tagBoostVal').textContent = v.toFixed(2);
+    });
+    document.getElementById('eta').addEventListener('input', (e)=>{
+      const v = parseInt(e.target.value,10)/100;
+      State.params.eta = v;
+      document.getElementById('etaVal').textContent = v.toFixed(2);
+    });
+
+    document.getElementById('loadBtn').addEventListener('click', async ()=>{
+      const intentsFile = document.getElementById('intentsFile').files[0];
+      const workFile = document.getElementById('workFile').files[0];
+      const outcomesFile = document.getElementById('outcomesFile').files[0];
+      if (!intentsFile || !workFile) {
+        alert("Please choose intents.csv and work_items.csv; outcomes.csv is optional.");
+        return;
+      }
+      await loadCSVs({intents:intentsFile, work:workFile, outcomes:outcomesFile});
+    });
+
+    document.getElementById('demoBtn').addEventListener('click', async ()=>{
+      const files = demoCSVs();
+      await loadCSVs(files);
+    });
+
+    document.getElementById('recomputeBtn').addEventListener('click', ()=>{
+      computeAll();
+    });
+
+    document.getElementById('learnBtn').addEventListener('click', ()=>{
+      applyLearningUpdate();
+      computeAll();
+    });
+
+    document.getElementById('exportAlign').addEventListener('click', ()=>{
+      downloadCSV("intent_alignment_report.csv", State.lastExport.align);
+    });
+    document.getElementById('exportMatches').addEventListener('click', ()=>{
+      downloadCSV("ranked_matches.csv", State.lastExport.matches);
+    });
+
+    document.getElementById('exportNudges').addEventListener('click', ()=>{
+      downloadCSV("nudge_recommendations.csv", State.lastExport.nudges);
+    });
+
+    document.getElementById('exportCoverage').addEventListener('click', ()=>{
+      downloadCSV("coverage_summary.csv", State.lastExport.coverage);
+    });
+
+    document.getElementById('exportGraph').addEventListener('click', ()=>{
+      downloadCSV("graph_edges.csv", State.lastExport.edges);
+    });
+  </script>
+</body>
+</html>

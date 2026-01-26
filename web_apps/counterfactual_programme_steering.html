@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Counterfactual Program Steering (SCM + Influence Diagram) — Interactive</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #111723;
+      --ink: #e6eefb;
+      --muted: #a8b3c9;
+      --accent: #9ad1ff;
+      --ok: #74d99f;
+      --warn: #ffd166;
+      --bad: #ef476f;
+      --grid: #233043;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(circle at 20% 0%, #0f1725, #0b0f14 40%);
+      color: var(--ink);
+    }
+    header { padding: 16px 20px; border-bottom: 1px solid var(--grid); position: sticky; top: 0; backdrop-filter: blur(6px); background: rgba(11,15,20,0.7); z-index: 5; }
+    h1 { margin: 0; font-size: 20px; letter-spacing: 0.2px; }
+    .wrap { display: grid; grid-template-columns: 320px 1fr; gap: 16px; padding: 16px; }
+    .panel { background: var(--panel); border: 1px solid var(--grid); border-radius: 12px; padding: 14px; }
+    .panel h2 { margin: 0 0 8px; font-size: 16px; color: var(--accent); }
+    label { display: block; margin: 10px 0 6px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    input[type="number"], select { width: 100%; background: #0c131d; color: var(--ink); border: 1px solid var(--grid); padding: 8px 10px; border-radius: 8px; }
+    input[type="range"] { width: 100%; }
+    button { background: #1a2638; color: var(--ink); border: 1px solid var(--grid); padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+    button.primary { background: #19324d; border-color: #274867; }
+    .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .kpi { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: baseline; font-variant-numeric: tabular-nums; }
+    .kpi div.label { color: var(--muted); font-size: 12px; }
+    .kpi div.value { font-size: 18px; }
+    .kpi.good { color: var(--ok); }
+    .kpi.bad { color: var(--bad); }
+    .muted { color: var(--muted); }
+    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background: #0c131d; border: 1px solid var(--grid); padding: 8px 10px; border-radius: 8px; overflow: auto; }
+    .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .pill { padding: 6px 10px; border: 1px solid var(--grid); border-radius: 999px; font-size: 12px; background: #121a27; }
+    footer { padding: 10px 16px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--grid); }
+    .hint { font-size: 12px; color: var(--muted); }
+    .sep { height: 1px; background: var(--grid); margin: 10px 0; }
+  </style>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Counterfactual Program Steering — Structural Causal Model + Influence Diagram (Interactive)</h1>
+    <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="pill" onclick="openExplainer('simple')">Simple explainer</button>
+      <button class="pill" onclick="openExplainer('mid')">Mid explainer</button>
+      <button class="pill" onclick="openExplainer('full')">Full explainer</button>
+      <button class="pill" onclick="document.getElementById('selfTests').open=true; runSelfTests();">Run self tests</button>
+    </div>
+  </header>
+
+  <!-- Explainer Modal -->
+  <div id="explainerModal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter: blur(4px); z-index:9999;">
+    <div class="modal-card" style="max-width:840px; width:92%; margin:4vh auto; background: var(--panel); border:1px solid var(--grid); border-radius:14px; box-shadow:0 10px 40px rgba(0,0,0,0.4);">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--grid);">
+        <div style="font-weight:600; color:var(--accent)">Counterfactual Program Steering — Explainer</div>
+        <button id="closeExplainer" style="background:#1a2638; border:1px solid var(--grid); color:var(--ink); padding:6px 10px; border-radius:8px; cursor:pointer;">Close</button>
+      </div>
+      <div id="explainerContent" style="padding:16px; max-height:70vh; overflow:auto; line-height:1.5;"></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <aside class="panel">
+      <h2>Controls</h2>
+      <div class="flex" style="margin:6px 0 10px 0; gap:8px; flex-wrap:wrap;">
+        <button id="explainerSimple" class="pill" title="Plain-English summary">Simple explainer</button>
+        <button id="explainerMid" class="pill" title="Manager + analyst view">Mid explainer</button>
+        <button id="explainerFull" class="pill" title="Technical details and assumptions">Full explainer</button>
+      </div>
+
+      <label>Policy preset</label>
+      <select id="preset">
+        <option value="baseline">Baseline (observe only)</option>
+        <option value="auto_up">do(automation += 0.15)</option>
+        <option value="fte_plus2">do(staffing += 2)</option>
+        <option value="wip_minus2">do(wip_limit -= 2)</option>
+        <option value="custom">Custom…</option>
+      </select>
+
+      <div id="customBox" style="display:none;">
+        <label>Δ Automation (−0.5…+0.5)</label>
+        <input type="range" id="dA" min="-0.5" max="0.5" step="0.01" value="0" />
+        <div class="flex"><span class="pill">Current: <span id="dA_val">0.00</span></span></div>
+
+        <label>Δ Staffing FTE (−10…+10)</label>
+        <input type="range" id="dS" min="-10" max="10" step="1" value="0" />
+        <div class="flex"><span class="pill">Current: <span id="dS_val">0</span> FTE</span></div>
+
+        <label>Δ WIP Limit (−10…+10)</label>
+        <input type="range" id="dW" min="-10" max="10" step="1" value="0" />
+        <div class="flex"><span class="pill">Current: <span id="dW_val">0</span></span></div>
+      </div>
+
+      <div class="sep"></div>
+      <label>Monte Carlo samples</label>
+      <input type="number" id="mcN" value="1000" min="50" max="20000" />
+
+      <div class="sep"></div>
+      <div class="row">
+        <button class="primary" id="runBtn">Run Policy</button>
+        <button id="compareBtn">Compare All</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+
+      <div class="sep"></div>
+      <h2>Data</h2>
+      <input type="file" id="fileInput" accept=".csv" />
+      <div class="hint">Optional: upload CSV with columns: <span class="code">week,S,A,W,U,R,T,L,D</span></div>
+      <div style="height:8px"></div>
+      <button id="useSynthetic">Use Synthetic Sample</button>
+
+      <div class="sep"></div>
+      <h2>KPI (Expected)</h2>
+      <div class="kpi"><div class="label">Throughput (items/wk)</div><div class="value" id="kpiT">—</div></div>
+      <div class="kpi"><div class="label">Lead time (days)</div><div class="value" id="kpiL">—</div></div>
+      <div class="kpi"><div class="label">Defects / item</div><div class="value" id="kpiD">—</div></div>
+      <div class="kpi"><div class="label">Utility U = 2T − 0.03L − 1.5D</div><div class="value" id="kpiU">—</div></div>
+
+      <div class="sep"></div>
+      <details>
+        <summary>Model sketch</summary>
+        <div class="hint">
+          SCM variables: staffing S, automation A, WIP limit W, unplanned U, rework R, throughput T, lead time L, defects D. Fitted linear structural equations from data; counterfactuals via do()-interventions on {S,A,W} and propagated expectations. L ≈ k·W/T (Little). Monte Carlo adds residual noise.
+        </div>
+      </details>
+    </aside>
+
+    <main class="panel">
+      <h2>Results</h2>
+      <div class="grid2">
+        <div id="chart1" style="height:320px;"></div>
+        <div id="chart2" style="height:320px;"></div>
+      </div>
+      <div class="grid2" style="margin-top:12px;">
+        <div id="chart3" style="height:320px;"></div>
+        <div id="chart4" style="height:320px;"></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px;">
+        <h2>Policy Comparison (Expected Utility)</h2>
+        <div id="chartPolicies" style="height:340px;"></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px;">
+        <h2>Data Preview</h2>
+        <pre id="dataPreview" class="code" style="max-height:220px;"></pre>
+      </div>
+
+      <details id="selfTests" class="panel" style="margin-top:12px;">
+        <summary>Self tests (parseCSV, OLS, Monte Carlo)</summary>
+        <div class="flex" style="margin:8px 0;">
+          <button id="btnRunTests" class="pill">Run self tests</button>
+        </div>
+        <pre id="testOutput" class="code" style="max-height:260px;"></pre>
+      </details>
+    </main>
+  </div>
+
+  <footer>
+    <div>Tip: Upload your real backlog telemetry to re-fit the SCM and recompute counterfactuals. The synthetic dataset approximates a year of weekly releases.</div>
+  </footer>
+
+<script>
+// ------------------------- Utility helpers -------------------------
+function parseCSV(text) {
+  // Robust split for both Windows (CRLF) and Unix (LF) newlines
+  const lines = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(",").map(s => s.trim());
+  const rows = lines.slice(1).map(line => line.split(",").map(s => s.trim()));
+  const data = rows.map(r => Object.fromEntries(r.map((v,i)=>[headers[i], Number(v)])));
+  return { headers, data };
+}
+
+function previewData(data, limit=10) {
+  const cols = Object.keys(data[0]||{});
+  const head = cols.join(", ");
+  const lines = data.slice(0,limit).map(row => cols.map(c => row[c]).join(", "));
+  return [head, ...lines].join("\n");
+}
+
+// OLS: y = X b + e ; return {coef, sigma, yhat, resid}
+function ols(Y, X) {
+  // X: n x p matrix (with leading 1s column included by caller), Y: n vector
+  const n = Y.length, p = X[0].length;
+  // Compute X'X and X'Y
+  const XtX = Array.from({length:p}, ()=>Array(p).fill(0));
+  const XtY = Array(p).fill(0);
+  for (let i=0;i<n;i++){
+    for (let j=0;j<p;j++){
+      XtY[j] += X[i][j]*Y[i];
+      for (let k=0;k<p;k++) XtX[j][k] += X[i][j]*X[i][k];
+    }
+  }
+  // Solve (X'X) b = X'Y via Gaussian elimination with partial pivoting
+  const A = XtX.map((row,i)=>[...row, XtY[i]]);
+  for (let i=0;i<p;i++){
+    let maxRow = i; let maxVal = Math.abs(A[i][i]);
+    for (let r=i+1;r<p;r++){ if (Math.abs(A[r][i])>maxVal){ maxVal = Math.abs(A[r][i]); maxRow = r; }}
+    if (maxRow!==i){ const tmp=A[i]; A[i]=A[maxRow]; A[maxRow]=tmp; }
+    const pivot = A[i][i] || 1e-12;
+    for (let c=i;c<=p;c++) A[i][c] /= pivot;
+    for (let r=0;r<p;r++) if (r!==i){
+      const f = A[r][i];
+      for (let c=i;c<=p;c++) A[r][c] -= f*A[i][c];
+    }
+  }
+  const b = A.map(row=>row[p]);
+  const yhat = Array(n).fill(0).map((_,i)=>X[i].reduce((s,xj,j)=>s+xj*b[j],0));
+  const resid = Y.map((y,i)=>y - yhat[i]);
+  const rss = resid.reduce((s,v)=>s+v*v,0);
+  const sigma2 = rss / Math.max(1, n-p);
+  return { coef:b, sigma: Math.sqrt(Math.max(0,sigma2)), yhat, resid };
+}
+
+function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+
+// ---------------------- Synthetic dataset -------------------------
+function generateSynthetic(nWeeks=52, seed=42){
+  let rng = mulberry32(seed);
+  let data=[];
+  let S = 10; // FTE
+  let A = 0.35; // automation level [0..1]
+  let W = 10; // WIP limit
+  for (let week=1; week<=nWeeks; week++){
+    const U = Math.max(0, 0.8 + 0.4*(rng()-0.5)); // unplanned work rate
+    const R = Math.max(0, 0.7*U + 0.5*(1-A) + 0.1*(rng()-0.5));
+    const T = Math.max(0.1, 1.0 + 0.45*S + 2.2*A - 0.9*U - 0.8*R - 0.05*Math.max(0, W-10) + 0.2*(rng()-0.5));
+    const L = clamp(5.0 * (W / Math.max(T,0.1)) * (1.0 + 0.05*(rng()-0.5)), 1, 60);
+    const D = Math.max(0, 0.015 + 0.008*U + 0.007*R - 0.01*A + 0.0005*T + 0.002*(rng()-0.5));
+    data.push({week, S, A, W, U, R, T, L, D});
+    if (week%8===0){ A = clamp(A + 0.02*(rng()-0.4), 0.1, 0.9); }
+    if (week%13===0){ S = clamp(S + (rng()<0.5?1:-1), 6, 18); }
+    if (week%10===0){ W = clamp(W + (rng()<0.6?-1:1), 6, 16); }
+  }
+  return data;
+}
+
+function mulberry32(a) {
+  return function() {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+// ---------------------- Model fitting (SCM) -----------------------
+// Structural equations (linear):
+//   R  ~ c0 + c1*U + c2*A + c3*W + c4*S
+//   T  ~ a0 + a1*S + a2*A + a3*U + a4*R + a5*W
+//   L  ≈ k * W / T  (k fitted via OLS on L ~ W/T)
+//   D  ~ d0 + d1*U + d2*R + d3*A + d4*T
+// We fit via OLS from provided data.
+
+function fitSCM(data){
+  function build(yExpr, xExprs){
+    const Y = data.map(yExpr);
+    const X = data.map(row => [1, ...xExprs.map(f=>f(row))]);
+    return ols(Y, X);
+  }
+
+  const fitR = build(r=>r.R, [r=>r.U, r=>r.A, r=>r.W, r=>r.S]);
+  const fitT = build(r=>r.T, [r=>r.S, r=>r.A, r=>r.U, r=>r.R, r=>r.W]);
+  const fitK = build(r=>r.L, [r=> r.W/Math.max(r.T,1e-6) ]); // L = b0 + b1*(W/T)
+  const fitD = build(r=>r.D, [r=>r.U, r=>r.R, r=>r.A, r=>r.T]);
+
+  return {
+    Rcoef: { c0:fitR.coef[0], c1:fitR.coef[1], c2:fitR.coef[2], c3:fitR.coef[3], c4:fitR.coef[4] }, R_sigma: fitR.sigma,
+    Tcoef: { a0:fitT.coef[0], a1:fitT.coef[1], a2:fitT.coef[2], a3:fitT.coef[3], a4:fitT.coef[4], a5:fitT.coef[5] }, T_sigma: fitT.sigma,
+    Kcoef: { b0:fitK.coef[0], b1:fitK.coef[1] }, K_sigma: fitK.sigma,
+    Dcoef: { d0:fitD.coef[0], d1:fitD.coef[1], d2:fitD.coef[2], d3:fitD.coef[3], d4:fitD.coef[4] }, D_sigma: fitD.sigma,
+  };
+}
+
+function forwardExpectations(model, context){
+  const {S,A,W,U} = context;
+  const R = model.Rcoef.c0 + model.Rcoef.c1*U + model.Rcoef.c2*A + model.Rcoef.c3*W + model.Rcoef.c4*S;
+  const T = model.Tcoef.a0 + model.Tcoef.a1*S + model.Tcoef.a2*A + model.Tcoef.a3*U + model.Tcoef.a4*R + model.Tcoef.a5*W;
+  const L = Math.max(0.1, model.Kcoef.b0 + model.Kcoef.b1 * (W / Math.max(1e-6, T)) );
+  const D = model.Dcoef.d0 + model.Dcoef.d1*U + model.Dcoef.d2*R + model.Dcoef.d3*A + model.Dcoef.d4*T;
+  return {R,T,L,D};
+}
+
+function monteCarlo(model, base, deltas, U_mean, N){
+  const results = [];
+  for (let i=0;i<N;i++){
+    const S = base.S + deltas.dS;
+    const A = clamp(base.A + deltas.dA, 0, 1);
+    const W = Math.max(1, base.W + deltas.dW);
+    const U = Math.max(0, U_mean + 0.25 * randn());
+    const Rdet = model.Rcoef.c0 + model.Rcoef.c1*U + model.Rcoef.c2*A + model.Rcoef.c3*W + model.Rcoef.c4*S;
+    const R = Math.max(0, Rdet + model.R_sigma * randn());
+    const Tdet = model.Tcoef.a0 + model.Tcoef.a1*S + model.Tcoef.a2*A + model.Tcoef.a3*U + model.Tcoef.a4*R + model.Tcoef.a5*W;
+    const T = Math.max(0.05, Tdet + model.T_sigma * randn());
+    const Ldet = Math.max(0.1, model.Kcoef.b0 + model.Kcoef.b1 * (W / Math.max(1e-6, T)) );
+    const L = Math.max(0.1, Ldet + model.K_sigma * 0.2 * randn());
+    const Ddet = model.Dcoef.d0 + model.Dcoef.d1*U + model.Dcoef.d2*R + model.Dcoef.d3*A + model.Dcoef.d4*T;
+    const D = Math.max(0, Ddet + model.D_sigma * 0.5 * randn());
+    const Uti = 2*T - 0.03*L - 1.5*D;
+    results.push({S,A,W,U,R,T,L,D,Uti});
+  }
+  return summarize(results);
+}
+
+function summarize(arr){
+  function mean(vs){ return vs.reduce((s,v)=>s+v,0)/vs.length; }
+  function std(vs){ const m=mean(vs); return Math.sqrt(mean(vs.map(v=> (v-m)**2 ))); }
+  const m = k => mean(arr.map(o=>o[k]));
+  const s = k => std(arr.map(o=>o[k]));
+  return { n: arr.length, mean:{S:m('S'),A:m('A'),W:m('W'),U:m('U'),R:m('R'),T:m('T'),L:m('L'),D:m('D'),Uti:m('Uti')},
+           std:{S:s('S'),A:s('A'),W:s('W'),U:s('U'),R:s('R'),T:s('T'),L:s('L'),D:s('D'),Uti:s('Uti')},
+           samples: arr };
+}
+
+function randn(){
+  // Box-Muller
+  let u=0,v=0; while(u===0) u=Math.random(); while(v===0) v=Math.random();
+  return Math.sqrt(-2.0*Math.log(u))*Math.cos(2.0*Math.PI*v);
+}
+
+// ---------------------- Visualization -----------------------------
+function updateKPI(s){
+  const fmt = (x, d=2)=> (Math.round(x*10**d)/10**d).toFixed(d);
+  document.getElementById('kpiT').textContent = fmt(s.mean.T);
+  document.getElementById('kpiL').textContent = fmt(s.mean.L);
+  document.getElementById('kpiD').textContent = fmt(s.mean.D, 4);
+  document.getElementById('kpiU').textContent = fmt(s.mean.Uti, 3);
+}
+
+function plotDistributions(summary, baseline){
+  const keys = ['T','L','D'];
+  const titles = {T:'Throughput', L:'Lead time', D:'Defects / item'};
+  const charts = ['chart1','chart2','chart3'];
+  for (let i=0;i<keys.length;i++){
+    const k = keys[i];
+    const vals = summary.samples.map(o=>o[k]);
+    const data = [{ type:'histogram', x: vals, opacity: 0.75, name:'Policy' }];
+    if (baseline){ data.push({ type:'histogram', x: baseline.samples.map(o=>o[k]), opacity: 0.4, name:'Baseline' }); }
+    Plotly.newPlot(charts[i], data, { paper_bgcolor:'transparent', plot_bgcolor:'transparent',
+      font:{color:'#e6eefb'}, legend:{orientation:'h'}, margin:{l:40,r:10,t:30,b:40},
+      xaxis:{gridcolor:'#233043'}, yaxis:{gridcolor:'#233043'}, title: titles[k] });
+  }
+  Plotly.newPlot('chart4', [
+      {type:'box', y: summary.samples.map(o=>o.Uti), name:'Policy'},
+      ...(baseline ? [{type:'box', y: baseline.samples.map(o=>o.Uti), name:'Baseline'}] : [])
+    ],
+    { paper_bgcolor:'transparent', plot_bgcolor:'transparent', font:{color:'#e6eefb'}, legend:{orientation:'h'}, margin:{l:40,r:10,t:30,b:40}, yaxis:{gridcolor:'#233043'}, title:'Utility'});
+}
+
+function plotPolicyComparison(resultsMap){
+  const names = Object.keys(resultsMap);
+  const means = names.map(n => resultsMap[n].mean.Uti);
+  const errs = names.map(n => resultsMap[n].std.Uti);
+  Plotly.newPlot('chartPolicies', [{ type:'bar', x:names, y:means, error_y:{type:'data', array:errs, visible:true} }],
+    { paper_bgcolor:'transparent', plot_bgcolor:'transparent', font:{color:'#e6eefb'}, margin:{l:40,r:10,t:40,b:80}, xaxis:{gridcolor:'#233043'}, yaxis:{gridcolor:'#233043', title:'Expected Utility'} });
+}
+
+// ---------------------- App State & Handlers ----------------------
+let DATA = [];
+let MODEL = null;
+let BASE = null; // baseline means
+
+function computeBase(data){
+  const mean = (k)=> data.reduce((s,r)=>s+r[k],0)/data.length;
+  return { S:mean('S'), A:mean('A'), W:mean('W'), U:mean('U') };
+}
+
+function setData(data){
+  DATA = data;
+  document.getElementById('dataPreview').textContent = previewData(DATA, 14);
+  MODEL = fitSCM(DATA);
+  BASE = computeBase(DATA);
+}
+
+function runPolicy(){
+  const N = Number(document.getElementById('mcN').value) || 1000;
+  const base = BASE; const Umean = DATA.reduce((s,r)=>s+r.U,0)/DATA.length;
+  const deltas = getDeltas();
+  const baseline = monteCarlo(MODEL, base, {dS:0,dA:0,dW:0}, Umean, N);
+  const policy = monteCarlo(MODEL, base, deltas, Umean, N);
+  updateKPI(policy);
+  plotDistributions(policy, baseline);
+  plotPolicyComparison({ Baseline: baseline, Policy: policy });
+}
+
+function compareAll(){
+  const N = Number(document.getElementById('mcN').value) || 1000;
+  const base = BASE; const Umean = DATA.reduce((s,r)=>s+r.U,0)/DATA.length;
+  const baseline = monteCarlo(MODEL, base, {dS:0,dA:0,dW:0}, Umean, N);
+  const m1 = monteCarlo(MODEL, base, {dS:0,dA:0.15,dW:0}, Umean, N);
+  const m2 = monteCarlo(MODEL, base, {dS:2,dA:0,dW:0}, Umean, N);
+  const m3 = monteCarlo(MODEL, base, {dS:0,dA:0,dW:-2}, Umean, N);
+  plotPolicyComparison({Baseline: baseline, 'do(A+=0.15)': m1, 'do(S+=2)': m2, 'do(WIP−=2)': m3});
+  updateKPI(m1); // show one as focus
+  plotDistributions(m1, baseline);
+}
+
+function getDeltas(){
+  const preset = document.getElementById('preset').value;
+  if (preset==='auto_up') return {dS:0,dA:0.15,dW:0};
+  if (preset==='fte_plus2') return {dS:2,dA:0,dW:0};
+  if (preset==='wip_minus2') return {dS:0,dA:0,dW:-2};
+  if (preset==='custom'){
+    return { dA: Number(document.getElementById('dA').value||0), dS: Number(document.getElementById('dS').value||0), dW: Number(document.getElementById('dW').value||0)};
+  }
+  return {dS:0,dA:0,dW:0};
+}
+
+// -------- Explainer content (three levels) --------
+const EXPLAINERS = {
+  simple: `
+  <h3 style="margin:0 0 8px; color:var(--accent)">In one minute</h3>
+  <p>This tool helps you choose which policy to try next. It learns how your delivery system behaves from data (staffing, automation, WIP, etc.), then runs <em>what‑if</em> simulations where we pretend to change one thing at a time (like raising automation) and see how throughput, lead time, and quality would change on average. The bar chart compares the expected payoff of each option, so you can pick the intervention with the best trade‑off before you spend money or time.</p>
+  <ul>
+    <li><b>Upload or use sample data</b> → the model fits relationships.</li>
+    <li><b>Pick a policy</b> (e.g., more automation) → we intervene on it.</li>
+    <li><b>See distributions</b> for throughput, lead time, defects, and a composite utility.</li>
+  </ul>
+  <p>Think of it as a flight simulator for program decisions.</p>
+  `,
+  mid: `
+  <h3 style="margin:0 0 8px; color:var(--accent)">How it works (manager + analyst)</h3>
+  <ol>
+    <li><b>Fit a causal skeleton.</b> We assume a directed graph: staffing (S), automation (A), and WIP limit (W) influence unplanned work (U), rework (R), throughput (T), lead time (L), and defects (D). We estimate linear structural equations from your telemetry.</li>
+    <li><b>Apply do‑interventions.</b> Choosing a policy like <code>do(A+=0.15)</code> sets A to a new level and propagates effects through the equations, breaking spurious correlations (that’s the point of <code>do()</code>).</li>
+    <li><b>Simulate uncertainty.</b> We Monte‑Carlo residual noise and exogenous U to get distributions for T, L, D. Lead time uses Little’s Law (roughly L ∝ W/T).</li>
+    <li><b>Rank by utility.</b> A tunable objective <code>U = 2T − 0.03L − 1.5D</code> summarizes trade‑offs. You can compare policies with error bars.</li>
+  </ol>
+  <p><b>Use</b>: start with “Compare All,” then tailor a custom policy; if two policies tie, pick the one with lower spread (execution risk) or run a small, time‑boxed experiment.</p>
+  <details style="margin-top:8px"><summary>What you can change</summary>
+    <ul>
+      <li>Weights in the utility function (edit inline in code if desired).</li>
+      <li>Which variables are exogenous/endogenous (extend the DAG and re‑fit).</li>
+      <li>Noise levels and priors for sensitivity analysis.</li>
+    </ul>
+  </details>
+  `,
+  full: `
+  <h3 style="margin:0 0 8px; color:var(--accent)">Technical explainer</h3>
+  <p><b>Model family.</b> Linear SCM with endogenous set {R, T, D} and semi‑structural L via Little’s Law; exogenous controls {S, A, W} and shock U. Estimation via OLS on weekly panel; residual standard deviations carried forward as stochastic terms. This is a pragmatic, identifiable core suitable for small‑n telemetry.</p>
+  <pre class="code" style="white-space:pre-wrap;">
+R := c0 + c1·U + c2·A + c3·W + c4·S + ε_R
+T := a0 + a1·S + a2·A + a3·U + a4·R + a5·W + ε_T
+L ≈ b0 + b1·(W/T) + ε_L   // Little’s‑law proxy
+D := d0 + d1·U + d2·R + d3·A + d4·T + ε_D
+U ~ N(\bar U, σ_U),  ε_* ~ N(0, σ_*^2)
+  </pre>
+  <p><b>Counterfactuals.</b> Policies are <code>do</code>‑interventions on {S, A, W}. For a given baseline context (mean S,A,W,U), we sample (U, ε) and forward‑solve the structural equations to obtain (R,T,L,D); the utility is <code>Uti = 2T − 0.03L − 1.5D</code>. We report means and spreads over N samples.</p>
+  <p><b>Assumptions/limits.</b> (i) DAG is correct up to omitted arrows (e.g., A→U). (ii) Linear response suffices locally. (iii) Little’s‑law scaling holds in the sampled regime. (iv) No strong simultaneity beyond R→T captured. Violations can be addressed by: adding instruments/lagged terms, switching to GLMs, or using nonparametric SCMs.</p>
+  <p><b>Identifiability note.</b> Because we intervene directly on S,A,W, back‑door adjustment is not required for those edges; but causal sufficiency for T and D depends on R and U capturing major confounding. If your data has richer observables (e.g., arrival rate λ, service variability), extend state and re‑fit.</p>
+  <p><b>Next steps.</b> Add EVPI/VOPI calculations over a probe set, DAG visualization with do‑calculus checks, and policy constraints (budget, SLA) via multi‑objective ranking or constrained optimization.</p>
+  `
+};
+
+function openExplainer(kind){
+  const modal = document.getElementById('explainerModal');
+  const box = document.getElementById('explainerContent');
+  box.innerHTML = EXPLAINERS[kind] || '<p>No content.</p>';
+  modal.style.display = 'block';
+}
+
+// Wire buttons for explainers & app controls
+window.addEventListener('load', ()=>{
+  document.getElementById('explainerSimple')?.addEventListener('click', ()=>openExplainer('simple'));
+  document.getElementById('explainerMid')?.addEventListener('click', ()=>openExplainer('mid'));
+  document.getElementById('explainerFull')?.addEventListener('click', ()=>openExplainer('full'));
+
+  const closeBtn = document.getElementById('closeExplainer');
+  if (closeBtn) closeBtn.addEventListener('click', (e)=>{ e.stopPropagation(); document.getElementById('explainerModal').style.display='none'; });
+
+  const modalEl = document.getElementById('explainerModal');
+  modalEl.addEventListener('click', (e)=>{ if(e.target===modalEl){ modalEl.style.display='none'; }});
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ document.getElementById('explainerModal').style.display='none'; }});
+
+  document.getElementById('btnRunTests')?.addEventListener('click', runSelfTests);
+
+  // Sliders display values
+  const dA = document.getElementById('dA');
+  const dS = document.getElementById('dS');
+  const dW = document.getElementById('dW');
+  if (dA) dA.addEventListener('input', ()=>{ document.getElementById('dA_val').textContent = Number(dA.value).toFixed(2); });
+  if (dS) dS.addEventListener('input', ()=>{ document.getElementById('dS_val').textContent = String(dS.value); });
+  if (dW) dW.addEventListener('input', ()=>{ document.getElementById('dW_val').textContent = String(dW.value); });
+
+  // Use synthetic button
+  document.getElementById('useSynthetic')?.addEventListener('click', ()=>{ setData(generateSynthetic(52,42)); runPolicy(); });
+});
+
+// File upload
+ document.getElementById('fileInput').addEventListener('change', (e)=>{
+   const file = e.target.files[0]; if (!file) return;
+   const reader = new FileReader();
+   reader.onload = () => {
+     try {
+       const {headers, data} = parseCSV(reader.result);
+       const need = ['week','S','A','W','U','R','T','L','D'];
+       const ok = need.every(k=> headers.includes(k));
+       if (!ok){ alert('CSV must include columns: ' + need.join(',')); return; }
+       setData(data);
+       runPolicy();
+     } catch(err){
+       alert('Failed to parse CSV: ' + err.message);
+     }
+   };
+   reader.readAsText(file);
+ });
+
+// Buttons
+ document.getElementById('runBtn').addEventListener('click', runPolicy);
+ document.getElementById('compareBtn').addEventListener('click', compareAll);
+ document.getElementById('resetBtn').addEventListener('click', ()=>{
+   document.getElementById('preset').value='baseline';
+   document.getElementById('customBox').style.display='none';
+   document.getElementById('dA').value=0; document.getElementById('dS').value=0; document.getElementById('dW').value=0; 
+   document.getElementById('dA_val').textContent='0.00';
+   document.getElementById('dS_val').textContent='0';
+   document.getElementById('dW_val').textContent='0';
+   if (DATA.length>0) runPolicy();
+ });
+
+const presetEl = document.getElementById('preset');
+const customBox = document.getElementById('customBox');
+presetEl.addEventListener('change', ()=>{
+  customBox.style.display = (presetEl.value==='custom') ? 'block' : 'none';
+});
+
+// ---------------------- Self Tests -------------------------------
+function runSelfTests(){
+  const out = [];
+  const ok = (name)=> out.push(`✅ ${name}`);
+  const fail = (name,e)=> out.push(`❌ ${name} — ${e.message}`);
+  try {
+    // Test 1: parseCSV handles LF
+    const csv1 = 'week,S,A\n1,10,0.5';
+    const r1 = parseCSV(csv1);
+    if (r1.headers[0]!== 'week' || r1.data.length!==1) throw new Error('bad headers/rows for LF');
+    ok('parseCSV LF');
+  } catch(e){ fail('parseCSV LF', e); }
+
+  try {
+    // Test 2: parseCSV handles CRLF
+    const csv2 = 'week,S,A\r\n1,11,0.6\r\n2,12,0.7';
+    const r2 = parseCSV(csv2);
+    if (r2.data.length!==2) throw new Error('CRLF row count mismatch');
+    ok('parseCSV CRLF');
+  } catch(e){ fail('parseCSV CRLF', e); }
+
+  try {
+    // Test 3: OLS recovers linear relation y=2+3x
+    const X = []; const Y = [];
+    for (let i=0;i<10;i++){ const x=i; X.push([1, x]); Y.push(2+3*x); }
+    const fit = ols(Y, X);
+    const [b0,b1] = fit.coef;
+    if (Math.abs(b0-2)>1e-9 || Math.abs(b1-3)>1e-9) throw new Error(`coef mismatch: [${b0}, ${b1}]`);
+    ok('OLS exact recovery');
+  } catch(e){ fail('OLS exact recovery', e); }
+
+  try {
+    // Test 4: Monte Carlo returns finite stats
+    const data = generateSynthetic(12, 7);
+    setData(data);
+    const model = fitSCM(data);
+    const base = computeBase(data);
+    const s = monteCarlo(model, base, {dS:1,dA:0.1,dW:-1}, data.reduce((a,r)=>a+r.U,0)/data.length, 200);
+    if (!isFinite(s.mean.T) || !isFinite(s.mean.L) || !isFinite(s.mean.D)) throw new Error('NaNs in summary');
+    ok('Monte Carlo finite stats');
+  } catch(e){ fail('Monte Carlo finite stats', e); }
+
+  try {
+    // Test 5: parseCSV trailing newline tolerant
+    const csv3 = 'week,S\n1,5\n';
+    const r3 = parseCSV(csv3);
+    if (r3.data.length!==1) throw new Error('Trailing newline mishandled');
+    ok('parseCSV trailing newline');
+  } catch(e){ fail('parseCSV trailing newline', e); }
+
+  try {
+    // Test 6: forwardExpectations produces finite numbers
+    const d = generateSynthetic(8, 3);
+    const m = fitSCM(d);
+    const base = computeBase(d);
+    const f = forwardExpectations(m, base);
+    if (![f.R,f.T,f.L,f.D].every(Number.isFinite)) throw new Error('Non-finite forward expectations');
+    ok('forwardExpectations finite');
+  } catch(e){ fail('forwardExpectations finite', e); }
+
+  document.getElementById('testOutput').textContent = out.join('\n');
+}
+
+// Boot
+setData(generateSynthetic(52, 42));
+runPolicy();
+</script>
+</body>
+</html>

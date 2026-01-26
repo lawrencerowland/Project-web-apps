@@ -43,3 +43,4 @@
 41,scenario_barrier_proof_fca_lattice,"Scenario × barrier × proof FCA lattice for causal coverage and gap analysis.",ChatGPT,GPT-5.2-Codex,"risk, fca, lattice, visualization, safety",,
 42,critical-path-spotter,"Critical path spotter for project schedules with dependency delays.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, critical_path, visualization",,
 43,project_time_exchange,"Project Time Exchange app for CPM crash menus, budget frontiers, and VCG-style optimization.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, optimization, visualization",,
+44,counterfactual_programme_steering,"Interactive counterfactual program steering dashboard with SCM-based policy simulation and influence diagram explainers.",ChatGPT,GPT-5.2-Codex,"causal, simulation, decision_support, visualization",,

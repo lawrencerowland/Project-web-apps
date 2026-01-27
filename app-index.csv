@@ -46,3 +46,5 @@
 44,counterfactual_programme_steering,"Interactive counterfactual program steering dashboard with SCM-based policy simulation and influence diagram explainers.",ChatGPT,GPT-5.2-Codex,"causal, simulation, decision_support, visualization",,
 45,intent_field_navigator,"CSV-first intent field navigator for alignment, coverage, entropy, and nudges.",ChatGPT,GPT-5.2-Codex,"intent, alignment, csv, analytics, visualization",,
 46,living-graph-transform-system,"Living graph-transform rescheduler with rewrite rules, ES/EF scheduling, and Cytoscape-based propagation log.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, graph, visualization, simulation",,
+
+47,animal_crossing_codesign,"Interactive monotone co-design timeline for UK motorway wildlife crossings.",ChatGPT,GPT-5.2-Codex,"transport, ecology, codesign, visualization",,

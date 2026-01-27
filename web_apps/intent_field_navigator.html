@@ -124,6 +124,7 @@
           <button type="button" class="explainer-btn active" data-explainer="overview" role="tab" aria-selected="true">IFN Overview</button>
           <button type="button" class="explainer-btn" data-explainer="architecture" role="tab" aria-selected="false">Architecture &amp; Flow</button>
           <button type="button" class="explainer-btn" data-explainer="value" role="tab" aria-selected="false">Value, Feasibility &amp; Working Model</button>
+          <button type="button" class="explainer-btn" data-explainer="improvements" role="tab" aria-selected="false">ChatGPT Improvements</button>
         </div>
         <div id="explainerContent" class="explainer-card" role="tabpanel" aria-live="polite"></div>
       </div>
@@ -249,6 +250,18 @@
             <li><strong>Value</strong>: gives C-suites and PMOs a quantifiable “intent coverage” view, enabling capital deployment where strategic pull is weakest.</li>
             <li><strong>Feasibility</strong>: leverages existing textual artifacts and open-source NLP tooling; integrates with GitHub/Jira/Notion APIs.</li>
             <li><strong>Surprise/Innovation</strong>: reframes strategy alignment as geometric flow, enabling simulation of intent perturbations.</li>
+          </ul>
+        `
+      },
+      improvements: {
+        title: "ChatGPT Suggested Improvements",
+        body: `
+          <ul>
+            <li><strong>Intent simplex &amp; priors</strong>: model intents on a probability simplex with target_weight priors; item-level soft assignments live in barycentric coordinates. Entropy flags underspecified items; KL-divergence to the prior yields coverage gap diagnostics.</li>
+            <li><strong>Field construction</strong>: apply TF-IDF over concatenated text + ontology tags (tag weight boosts); similarities become edge weights; a bipartite graph provides a Laplacian smoothness score (roughness) to detect spiky misalignment.</li>
+            <li><strong>Guidance heuristic</strong>: find a minimal set of reassignments via local, epsilon-bounded swaps (items whose top-2 intents are close) from over-saturated to under-saturated sources; rank by expected gap reduction × effort.</li>
+            <li><strong>Learning loop</strong>: optional outcomes.csv yields a conservative multiplicative-weights update of target_weight (bandit-style, eta-controlled), then renormalizes; counterfactual sliders sandbox perturbations without touching the priors.</li>
+            <li><strong>Provenance &amp; export</strong>: alignment report, ranked matches, nudges, coverage summary, and graph edges export to CSV for decision records and review.</li>
           </ul>
         `
       }

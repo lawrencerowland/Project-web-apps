@@ -45,3 +45,4 @@
 43,project_time_exchange,"Project Time Exchange app for CPM crash menus, budget frontiers, and VCG-style optimization.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, optimization, visualization",,
 44,counterfactual_programme_steering,"Interactive counterfactual program steering dashboard with SCM-based policy simulation and influence diagram explainers.",ChatGPT,GPT-5.2-Codex,"causal, simulation, decision_support, visualization",,
 45,intent_field_navigator,"CSV-first intent field navigator for alignment, coverage, entropy, and nudges.",ChatGPT,GPT-5.2-Codex,"intent, alignment, csv, analytics, visualization",,
+46,living-graph-transform-system,"Living graph-transform rescheduler with rewrite rules, ES/EF scheduling, and Cytoscape-based propagation log.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, graph, visualization, simulation",,

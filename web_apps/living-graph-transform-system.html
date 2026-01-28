@@ -57,6 +57,55 @@
     font:12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   }
 
+  /* Explainer modal */
+  .modal{
+    position:fixed;
+    inset:0;
+    background:rgba(3,7,18,0.78);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    z-index:40;
+  }
+  .modal.open{display:flex}
+  .modal-card{
+    max-width:860px;
+    width:100%;
+    background:#0f1629;
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:16px;
+    padding:18px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.55);
+  }
+  .modal-card header{
+    background:transparent;
+    border:none;
+    padding:0;
+    margin-bottom:10px;
+  }
+  .modal-card h2{
+    font-size:18px;
+    margin:0 0 4px;
+  }
+  .modal-card .meta{
+    color:var(--muted);
+    font-size:12px;
+  }
+  .modal-card .content{
+    max-height:60vh;
+    overflow:auto;
+    padding-right:6px;
+  }
+  .btn.ghost{
+    border-color:rgba(255,255,255,0.2);
+    font-size:12px;
+  }
+  .btn.grid{
+    width:100%;
+    text-align:left;
+  }
+
   /* Cytoscape selection styling handled via classes */
 </style>
 </head>
@@ -68,6 +117,24 @@
   </header>
 
   <aside>
+    <div class="panel">
+      <div class="row" style="margin-bottom:8px">
+        <label>Living graph feature plan</label>
+        <span class="small">Open any explainer</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px">
+        <button class="btn grid" data-explainer="primer">Primer: reversible graph rewrites</button>
+        <button class="btn grid" data-explainer="why">Why this beats logs</button>
+        <button class="btn grid" data-explainer="model">Minimal data model</button>
+        <button class="btn grid" data-explainer="governance">Governance hooks</button>
+        <button class="btn grid" data-explainer="ux">Digital twin diff UX</button>
+        <button class="btn grid" data-explainer="rules">Rule design pattern</button>
+        <button class="btn grid" data-explainer="storage">Storage &amp; verification</button>
+        <button class="btn grid" data-explainer="pilot">Pilot plan for your stack</button>
+        <button class="btn grid" data-explainer="deliverables">Next‑week demo deliverables</button>
+        <button class="btn grid" data-explainer="coda">Tangential coda</button>
+      </div>
+    </div>
     <!-- View / mode -->
     <div class="panel">
       <div class="row small">
@@ -237,6 +304,19 @@
   <main class="panel" style="padding:8px">
     <div id="cy"></div>
   </main>
+</div>
+
+<div class="modal" id="explainerModal" aria-hidden="true" role="dialog" aria-labelledby="explainerTitle">
+  <div class="modal-card">
+    <header>
+      <h2 id="explainerTitle">Explainer</h2>
+      <div class="meta" id="explainerSubtitle"></div>
+    </header>
+    <div class="content" id="explainerBody"></div>
+    <div class="row" style="margin-top:12px;justify-content:flex-end">
+      <button class="btn ghost" id="closeExplainer">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- Cytoscape.js -->
@@ -412,6 +492,130 @@
   const msNowEl     = document.getElementById('msNow');
   const maxSlipEl   = document.getElementById('maxSlip');
 
+  const explainerModal = document.getElementById('explainerModal');
+  const explainerTitle = document.getElementById('explainerTitle');
+  const explainerSubtitle = document.getElementById('explainerSubtitle');
+  const explainerBody = document.getElementById('explainerBody');
+  const closeExplainer = document.getElementById('closeExplainer');
+  const explainerButtons = document.querySelectorAll('[data-explainer]');
+
+  const EXPLAINERS = {
+    primer: {
+      title: 'Primer (plain terms)',
+      subtitle: 'Reversible graph rewrite system for a digital twin.',
+      body: `
+        <p><strong>Graph:</strong> nodes = assets, actors, or artifacts; edges = relationships like flows, dependencies, or contracts.</p>
+        <p><strong>Rewrite rule:</strong> a small pattern you match and replace (e.g., “Split WorkPackage A into A1/A2; redirect dependencies”).</p>
+        <p><strong>Reversible:</strong> every rule has an inverse; applying forward + inverse nets identity. That gives you lineage plus provable diffs.</p>
+        <div class="small" style="margin-top:10px">
+          Think of each change as a tiny, explainable move rather than a single opaque reschedule.
+        </div>
+      `
+    },
+    why: {
+      title: 'Why this beats logs',
+      subtitle: 'Diff-as-morphism governance + deterministic replay.',
+      body: `
+        <ul>
+          <li><strong>Diff as morphism:</strong> every change is the composition of rule receipts; governance checks that composition against policy.</li>
+          <li><strong>Lineage first:</strong> any element shows its ancestry (rule chain that created it) and obligations (policies consulted).</li>
+          <li><strong>Deterministic replay:</strong> “What happened?” becomes a click-through movie, not narrative notes.</li>
+        </ul>
+      `
+    },
+    model: {
+      title: 'Minimal data model',
+      subtitle: 'The smallest set of objects to support receipts + replay.',
+      body: `
+        <ul>
+          <li><strong>Graph:</strong> typed nodes/edges, versioned state.</li>
+          <li><strong>Rule:</strong> LHS pattern, RHS construction, pre/post-conditions, policy hooks.</li>
+          <li><strong>Receipt:</strong> RuleID, actor, timestamp, inputs, outputs, policy decisions, hash of LHS/RHS.</li>
+          <li><strong>Trace:</strong> ordered list of Receipts; <code>State_t = apply(Trace[0..t], State_0)</code>.</li>
+        </ul>
+      `
+    },
+    governance: {
+      title: 'Governance hooks (where compliance lives)',
+      subtitle: 'Pre-conditions, obligations, and stakeholder projections.',
+      body: `
+        <ul>
+          <li><strong>Pre-conditions:</strong> “H&amp;S review present”, “RACI owner exists”, “contract cap not exceeded”.</li>
+          <li><strong>Obligation tags:</strong> attach CDM / NEC clause / retention class to receipts.</li>
+          <li><strong>Selective projection:</strong> produce stakeholder views (risk, commercial, H&amp;S) by filtering receipts + subgraphs.</li>
+        </ul>
+      `
+    },
+    ux: {
+      title: 'Digital twin diff UX',
+      subtitle: 'Timeline scrub, edge diffs, and explain-this-node.',
+      body: `
+        <ul>
+          <li><strong>Timeline scrubber:</strong> drag to any <em>t</em> to materialize <code>State_t</code>.</li>
+          <li><strong>Edge-diff overlay:</strong> green = added, red = removed, amber = rewired; click opens receipt card.</li>
+          <li><strong>Explain this node:</strong> show proof-of-change chain (receipts as a path).</li>
+          <li><strong>Policy pane:</strong> show satisfied/failed checks with links to documents.</li>
+        </ul>
+      `
+    },
+    rules: {
+      title: 'Rule design pattern (sketch)',
+      subtitle: 'Small, invertible rewrites with pre/post checks.',
+      body: `
+        <pre class="mini" style="white-space:pre-wrap">rule SplitWorkPackage(A):
+  match: Node(A:type=WP) with edges deps_in, deps_out
+  require: approvals.contains("PM"); risk_register(A).status != "red"
+  rewrite:
+    create A1,A2:type=WP; partition scope(A) -> (A1,A2)
+    rewire deps_out based on new WBS split
+  post: baseline.delta.cost <= threshold
+  inverse: MergeWorkPackage(A1,A2)</pre>
+        <p class="small">Inverse rules can be generated automatically so replay and undo are provably correct.</p>
+      `
+    },
+    storage: {
+      title: 'Storage & verification',
+      subtitle: 'Receipts that are content-addressed, signed, and replayable.',
+      body: `
+        <ul>
+          <li><strong>Content-address receipts:</strong> hash of LHS/RHS + metadata.</li>
+          <li><strong>Sign receipts:</strong> actor key; append to immutable trace (Merkle-linked).</li>
+          <li><strong>Determinism:</strong> rules are pure; graph state is the only input, so replay is exact.</li>
+        </ul>
+      `
+    },
+    pilot: {
+      title: 'How to pilot in your stack',
+      subtitle: 'A staged plan that doesn’t disrupt existing features.',
+      body: `
+        <ol>
+          <li><strong>Scope:</strong> pick 3–5 rules (Split/Merge WP, Retire Asset, Reroute Dependency, Change Contractor).</li>
+          <li><strong>Adapter:</strong> map SharpCloud/yFiles/Graphistry items to a typed graph; keep canonical state in a small graph store.</li>
+          <li><strong>Receipts first:</strong> implement receipt logger before UI; assert invertibility and replay on CI.</li>
+          <li><strong>Projections:</strong> build one “Risk” and one “Commercial” projection from the same receipts.</li>
+          <li><strong>Policy stubs:</strong> start with boolean checks; upgrade to policy DB callouts later.</li>
+        </ol>
+      `
+    },
+    deliverables: {
+      title: 'Deliverables you can show next week',
+      subtitle: 'Minimal demo scope with maximum clarity.',
+      body: `
+        <ul>
+          <li>A tiny graph demo with timeline scrubber, node “explain”, and a rule-receipt JSON export.</li>
+          <li>A 1-page “Rule Receipt Spec” + 3 sample receipts (split, reroute, retire) forming a composed diff.</li>
+        </ul>
+      `
+    },
+    coda: {
+      title: 'Tangential coda',
+      subtitle: 'Category-theoretic framing in one line.',
+      body: `
+        <p>This reframes the program as a category of states and reversible morphisms. Auditing becomes functorial.</p>
+      `
+    }
+  };
+
   function logLine(msg){
     const t = new Date();
     const stamp = t.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
@@ -419,6 +623,31 @@
     div.textContent = `[${stamp}] ${msg}`;
     logEl.prepend(div);
   }
+
+  function openExplainer(key){
+    const item = EXPLAINERS[key];
+    if(!item) return;
+    explainerTitle.textContent = item.title;
+    explainerSubtitle.textContent = item.subtitle;
+    explainerBody.innerHTML = item.body;
+    explainerModal.classList.add('open');
+    explainerModal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeExplainerModal(){
+    explainerModal.classList.remove('open');
+    explainerModal.setAttribute('aria-hidden', 'true');
+  }
+
+  explainerButtons.forEach(btn => {
+    btn.addEventListener('click', () => openExplainer(btn.dataset.explainer));
+  });
+  closeExplainer.addEventListener('click', closeExplainerModal);
+  explainerModal.addEventListener('click', (event) => {
+    if(event.target === explainerModal){
+      closeExplainerModal();
+    }
+  });
 
   // -----------------------------
   // Selection handlers

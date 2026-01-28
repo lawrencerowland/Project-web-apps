@@ -1,0 +1,1090 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CSPL — Chrono‑Speculative Portfolio Loom</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* ===========================
+       CSPL: Chrono‑Speculative Portfolio Loom
+       Single-file interactive prototype (vanilla JS + Canvas + SVG icons)
+       =========================== */
+
+    :root{
+      --bg: #0e1014;
+      --panel: #141820;
+      --panel-2: #0f1320;
+      --ink: #e9eef7;
+      --muted: #a9b4c7;
+      --accent: #83d0ff;
+      --accent-2:#c7ff83;
+      --danger:#ff7a7a;
+      --ok:#70e080;
+      --grid:#222838;
+      --chip:#1e2533;
+      --card:#171c27;
+      --policy:#6c63ff;
+      --market:#ff6f61;
+      --tech:#2dcb70;
+      --pos:#26c281;
+      --neg:#e74c3c;
+      --warn:#f0b35a;
+      --shadow: 0 8px 24px rgba(0,0,0,0.35);
+      --radius: 10px;
+      --radius-sm: 7px;
+      --radius-xs: 5px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif;
+      background: var(--bg); color: var(--ink); line-height: 1.35;
+    }
+    header{
+      position: sticky; top:0; z-index: 10;
+      background: linear-gradient(180deg, rgba(20,24,32,0.85), rgba(20,24,32,0.65));
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid #1f2433;
+    }
+    .hdr{
+      max-width: 1400px; margin: 0 auto; padding: 14px 18px; display:flex; gap:18px; align-items: center;
+    }
+    .logo{ display:flex; gap:10px; align-items:center; font-weight:700; letter-spacing:0.3px;}
+    .logo svg{width:28px;height:28px;}
+    .hdr .actions{ margin-left:auto; display:flex; gap:8px; align-items:center;}
+    .btn{
+      background: var(--chip); border:1px solid #2a3143; color: var(--ink);
+      border-radius: var(--radius-xs); padding:8px 10px; font-weight:600; cursor:pointer;
+    }
+    .btn:hover{ filter: brightness(1.1); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{ background: linear-gradient(180deg, #1f2a3f, #1a2334); border-color:#2b3a57; }
+    .btn.ghost{ background: transparent; border-color:#2a3143; }
+    .btn.small{ padding:6px 8px; font-weight:600; font-size: 12px; }
+
+    main{
+      max-width: 1400px; margin: 18px auto; padding: 0 18px;
+      display:grid; grid-template-columns: 330px 1fr 360px; gap: 16px; align-items: stretch;
+    }
+
+    /* Panels */
+    .panel{
+      background: var(--panel); border: 1px solid #1e2433; border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow: hidden; display:flex; flex-direction: column; min-height: 220px;
+    }
+    .panel h2{ margin:0; padding:12px 14px; font-size: 14px; letter-spacing:0.3px;
+      border-bottom:1px solid #1f2433; background: linear-gradient(180deg, #151b28,#121828); color:#cfe1ff;}
+    .panel .body{ padding: 10px 12px; overflow:auto; }
+    .panel .foot{ padding: 10px 12px; border-top:1px solid #1f2433; background: var(--panel-2); }
+
+    /* Library list */
+    .searchbar{ display:flex; gap:8px; margin-bottom:10px; }
+    input[type="text"], input[type="date"], input[type="number"], select, textarea{
+      background: #0c101a; color: var(--ink); border:1px solid #2a3143; border-radius: var(--radius-xs); padding:8px;
+      width:100%;
+    }
+    textarea{ resize: vertical; min-height: 64px; }
+    .chips{ display:flex; gap:6px; flex-wrap: wrap; margin: 8px 0;}
+    .chip{
+      background: var(--chip); border:1px solid #2a3143; border-radius: 999px; padding: 5px 9px; font-size:12px; color: var(--muted);
+    }
+    .item{
+      border:1px solid #20273a; background: var(--card); border-radius: var(--radius);
+      padding:10px; margin-bottom: 8px; display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center;
+    }
+    .item h3{ margin:0; font-size: 14px;}
+    .item .meta{ font-size: 12px; color: var(--muted); }
+    .item .tag{ font-weight:700; }
+    .tag.policy{ color: var(--policy); }
+    .tag.market{ color: var(--market); }
+    .tag.tech{ color: var(--tech); }
+    .tog{ display:flex; align-items:center; gap:8px;}
+    .tog input[type="checkbox"]{ width:18px; height:18px; }
+
+    /* Viewer */
+    .viewer{ position: relative; display:flex; flex-direction: column; min-height: 520px;}
+    .canvas-wrap{ position:relative; height: 460px; border-bottom:1px solid #1f2433; }
+    canvas{ width:100%; height:100%; display:block; background: linear-gradient(180deg, #0d111a, #0d121b); }
+    .timeline-controls{
+      display:grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items:center; padding:10px; background: var(--panel-2);
+    }
+    .legend{ display:flex; gap:10px; flex-wrap: wrap; }
+    .legend .swatch{ display:inline-flex; gap:6px; align-items:center; }
+    .swatch i{ width:12px; height:12px; display:inline-block; border-radius: 2px; background: #888; }
+    .swatch .policy{ background: var(--policy); }
+    .swatch .market{ background: var(--market); }
+    .swatch .tech{ background: var(--tech); }
+    .swatch .pos{ background: var(--pos); }
+    .swatch .neg{ background: var(--neg); }
+
+    /* Atelier (right column) */
+    .metric{ display:grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items:center; margin: 8px 0;}
+    .bar{ height: 10px; background:#111621; border:1px solid #20273a; border-radius: 10px; overflow:hidden; position:relative;}
+    .bar span{ display:block; height:100%; background: linear-gradient(90deg, #2b86ff, #66ffe0); }
+    .bar .bad{ background: linear-gradient(90deg, #ff6a6a, #ffb17a); }
+    .bar .good{ background: linear-gradient(90deg, #66ff8a, #b3ffd1); }
+    .pill{ background:#0e1320; border:1px solid #28314a; border-radius:999px; padding:3px 8px; font-size:11px; color:var(--muted);}
+    .anchors{ display:flex; flex-direction: column; gap:8px; }
+    .anchor{
+      border:1px dashed #334; border-radius: var(--radius); padding:8px; background: #0f1422;
+      display:grid; grid-template-columns: 1fr auto; align-items: center; gap:10px;
+    }
+    .note{ color: var(--muted); font-size: 12px; }
+
+    /* Modals and helpers */
+    dialog{
+      border:1px solid #2a3143; border-radius: 10px; background: #0e1320; color: var(--ink); padding: 0; box-shadow: var(--shadow); width: min(720px, 92vw);
+    }
+    dialog::backdrop{ background: rgba(0,0,0,0.6); }
+    .modal-h{ padding: 10px 14px; border-bottom:1px solid #1e2433; font-weight:700; }
+    .modal-b{ padding: 12px 14px; }
+    .grid-2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .grid-3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+    .row{ display:flex; gap:10px; align-items:center; }
+    .hr{ height:1px; background:#1e2433; margin: 10px 0;}
+    .kbd{ font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; padding:2px 5px; border-radius: 4px; background:#0f1524; border:1px solid #28314a; color:#cfe1ff; }
+
+    /* Small screens */
+    @media (max-width: 1120px){
+      main{ grid-template-columns: 1fr; }
+      .viewer{ order: -1; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="hdr">
+      <div class="logo" title="Chrono‑Speculative Portfolio Loom">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#83d0ff" d="M4 3h2v18H4zM18 3h2v18h-2zM8 6h2v12H8zM14 6h2v12h-2z"/>
+        </svg>
+        <div>CSPL <span style="color:var(--muted);font-weight:600;">— Chrono‑Speculative Portfolio Loom</span></div>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="btnExport">Export Library</button>
+        <button class="btn ghost" id="btnImport">Import Library</button>
+        <button class="btn primary" id="btnAdd">Add Fibre</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left: Scenario Fibre Library -->
+    <section class="panel">
+      <h2>Scenario Fibre Library</h2>
+      <div class="body">
+        <div class="searchbar">
+          <input id="search" type="text" placeholder="Search fibres (name, tags, type) …" />
+          <select id="filterType" title="Filter by type">
+            <option value="">All types</option>
+            <option value="policy">Policy</option>
+            <option value="market">Market</option>
+            <option value="tech">Tech</option>
+          </select>
+        </div>
+        <div id="libList"></div>
+      </div>
+      <div class="foot">
+        <div class="note">
+          Tip: Toggle a fibre to weave it into the fabric. Click its name to adjust weights, effects, and lags.
+        </div>
+      </div>
+    </section>
+
+    <!-- Center: Viewer -->
+    <section class="panel viewer">
+      <h2>Temporal Weave & Resonance</h2>
+      <div class="canvas-wrap">
+        <canvas id="fabric"></canvas>
+      </div>
+      <div class="timeline-controls">
+        <div class="legend">
+          <span class="swatch"><i class="policy"></i>Policy</span>
+          <span class="swatch"><i class="market"></i>Market</span>
+          <span class="swatch"><i class="tech"></i>Tech</span>
+          <span class="swatch"><i class="pos"></i>Resonance</span>
+          <span class="swatch"><i class="neg"></i>Interference</span>
+          <span class="pill">Drag milestone lines to move them</span>
+        </div>
+        <div class="row">
+          <label class="pill">Start</label>
+          <input id="startDate" type="date" />
+        </div>
+        <div class="row">
+          <label class="pill">Horizon (months)</label>
+          <input id="horizon" type="number" min="6" max="120" step="1" />
+        </div>
+        <div class="row">
+          <label class="pill">Risk appetite</label>
+          <input id="risk" type="range" min="0" max="1" step="0.01" />
+          <span id="riskVal" class="pill">0.50</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Decision Atelier & Anchors -->
+    <section class="panel">
+      <h2>Decision Atelier & Delivery Anchors</h2>
+      <div class="body" id="atelier">
+        <div id="milestoneList"></div>
+        <div class="hr"></div>
+        <div class="row" style="justify-content:space-between;align-items:center;">
+          <div class="pill">Anchors (minimal viable commitments)</div>
+          <button class="btn small" id="btnAddMilestone">Add Milestone</button>
+        </div>
+        <div class="anchors" id="anchors"></div>
+        <div class="hr"></div>
+        <div class="note">Robustness = how invariant a commitment remains across the current top‑ranked fabrics under your risk appetite.</div>
+      </div>
+      <div class="foot">
+        <div class="row" style="gap:8px; flex-wrap:wrap;">
+          <button class="btn small" id="btnSwapSets">Try Fabric Swaps</button>
+          <button class="btn small" id="btnReset">Reset</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Fibre Editor Modal -->
+  <dialog id="dlg">
+    <div class="modal-h">Edit / Add Fibre</div>
+    <form method="dialog" class="modal-b" id="fForm">
+      <div class="grid-2">
+        <div>
+          <label>Name</label>
+          <input name="name" type="text" required />
+        </div>
+        <div>
+          <label>Type</label>
+          <select name="type" required>
+            <option value="policy">Policy</option>
+            <option value="market">Market</option>
+            <option value="tech">Tech</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-3">
+        <div>
+          <label>Trigger start</label>
+          <input name="start" type="date" required />
+        </div>
+        <div>
+          <label>Trigger end</label>
+          <input name="end" type="date" required />
+        </div>
+        <div>
+          <label>Confidence (0‑1)</label>
+          <input name="confidence" type="number" min="0" max="1" step="0.01" value="0.6" />
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="pill">Effect profile (−1 = relief, +1 = stress)</div>
+      <div class="grid-3">
+        <div><label>Cost</label><input name="e_cost" type="number" min="-1" max="1" step="0.05" value="0.0" /></div>
+        <div><label>Schedule</label><input name="e_schedule" type="number" min="-1" max="1" step="0.05" value="0.0" /></div>
+        <div><label>Quality</label><input name="e_quality" type="number" min="-1" max="1" step="0.05" value="0.0" /></div>
+      </div>
+      <div class="grid-3">
+        <div><label>Supply</label><input name="e_supply" type="number" min="-1" max="1" step="0.05" value="0.0" /></div>
+        <div><label>Regulatory</label><input name="e_regulatory" type="number" min="-1" max="1" step="0.05" value="0.0" /></div>
+        <div><label>Talent</label><input name="e_talent" type="number" min="-1" max="1" step="0.05" value="0.0" /></div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="pill">Second‑order effects (optional JSON)</div>
+      <textarea name="second" placeholder='[{"target":"<fibre-id>","lagMonths":3,"polarity":1,"strength":0.3}]'></textarea>
+
+      <div class="hr"></div>
+      <div class="row" style="justify-content:space-between;">
+        <div class="row" style="gap:6px">
+          <span class="pill">Weight</span>
+          <input name="weight" type="range" min="0" max="2" step="0.05" value="1" />
+          <span id="weightVal" class="pill">1.00</span>
+        </div>
+        <div class="row" style="gap:8px;">
+          <button value="cancel" class="btn">Cancel</button>
+          <button value="ok" class="btn primary">Save</button>
+        </div>
+      </div>
+      <input type="hidden" name="id" />
+    </form>
+  </dialog>
+
+  <!-- Import file input (hidden) -->
+  <input type="file" id="fileImport" accept="application/json" style="display:none;" />
+
+  <script>
+  /* ===========================================================
+     CSPL PROTOTYPE — Core concepts
+     - Fibres are typed shocks with time windows and effect vectors
+     - The Weave Engine contracts fibres over time and effect dimensions
+       to produce resonance (constructive) and interference (destructive)
+     - Milestones probe the field to compute robustness
+     - Anchors map pressure vectors to minimal viable commitments
+     =========================================================== */
+
+  // ---------- Utilities ----------
+  const fmt = new Intl.NumberFormat(undefined, {maximumFractionDigits:2});
+  const dateISO = d => (new Date(d)).toISOString().slice(0,10);
+  const clamp = (x,a,b)=> Math.max(a, Math.min(b,x));
+  const lerp = (a,b,t)=> a + (b-a)*t;
+  const monthsBetween = (a,b)=>{
+    const da = new Date(a), db = new Date(b);
+    return (db.getFullYear()-da.getFullYear())*12 + (db.getMonth()-da.getMonth());
+  };
+  const addMonths = (d, m)=>{
+    const nd = new Date(d); nd.setMonth(nd.getMonth() + m); return nd;
+  };
+  const id = ()=> Math.random().toString(36).slice(2,10);
+
+  // Effect dimensions; keep the order stable
+  const EFFECTS = ["cost","schedule","quality","supply","regulatory","talent"];
+
+  // ---------- Colors ----------
+  const TYPE_COLOR = { policy: getCss("--policy"), market: getCss("--market"), tech: getCss("--tech") };
+  function getCss(varName){ return getComputedStyle(document.documentElement).getPropertyValue(varName).trim(); }
+
+  // Blend helper (simple alpha compositing on sRGB)
+  function rgba(hex, alpha){
+    const c = hex.replace("#",""); const bigint = parseInt(c, 16);
+    const r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  // ---------- State & Persistence ----------
+  const State = {
+    library: [],
+    selected: new Set(),
+    weights: {}, // fibreId -> weight (default 1)
+    milestones: [],
+    startDate: new Date(localStorage.getItem("cspl_start") || "2025-01-01"),
+    horizon: +(localStorage.getItem("cspl_horizon") || 60),
+    risk: +(localStorage.getItem("cspl_risk") || 0.5),
+    effectWeights: {cost:1,schedule:1,quality:1,supply:1,regulatory:1,talent:1},
+  };
+
+  // Persistence
+  function saveState(){
+    localStorage.setItem("cspl_library", JSON.stringify(State.library));
+    localStorage.setItem("cspl_selected", JSON.stringify([...State.selected]));
+    localStorage.setItem("cspl_weights", JSON.stringify(State.weights));
+    localStorage.setItem("cspl_milestones", JSON.stringify(State.milestones));
+    localStorage.setItem("cspl_start", dateISO(State.startDate));
+    localStorage.setItem("cspl_horizon", String(State.horizon));
+    localStorage.setItem("cspl_risk", String(State.risk));
+  }
+  function loadState(){
+    const lib = localStorage.getItem("cspl_library");
+    const sel = localStorage.getItem("cspl_selected");
+    const wts = localStorage.getItem("cspl_weights");
+    const ms  = localStorage.getItem("cspl_milestones");
+    if(lib){ try{ State.library = JSON.parse(lib);}catch{} }
+    if(sel){ try{ State.selected = new Set(JSON.parse(sel)); }catch{} }
+    if(wts){ try{ State.weights = JSON.parse(wts);}catch{} }
+    if(ms){ try{ State.milestones = JSON.parse(ms);}catch{} }
+
+    // If empty, seed defaults
+    if(State.library.length === 0){ seedLibrary(); }
+    if(State.milestones.length === 0){
+      State.milestones = [
+        { id:id(), label:"M1: Architecture Freeze", date: dateISO(addMonths(State.startDate, 9)) },
+        { id:id(), label:"M2: Pilot Launch", date: dateISO(addMonths(State.startDate, 18)) },
+        { id:id(), label:"M3: Scale Decision", date: dateISO(addMonths(State.startDate, 30)) },
+      ];
+    }
+  }
+
+  function seedLibrary(){
+    const baseStart = new Date("2026-01-01");
+    State.library = [
+      mkFibre("AI Export Controls Tightening", "policy", addMonths(baseStart,3), addMonths(baseStart,12), 0.75,
+        {cost:0.1, schedule:0.2, quality:0.0, supply:0.4, regulatory:0.8, talent:0.3},
+        [{target:"Rare Earth Nationalization", lagMonths:3, polarity:1, strength:0.3}]
+      ),
+      mkFibre("Cloud Egress Price War", "market", addMonths(baseStart,0), addMonths(baseStart,11), 0.6,
+        {cost:-0.4, schedule:-0.05, quality:-0.05, supply:0.15, regulatory:0.05, talent:0.0},
+        []
+      ),
+      mkFibre("Rare Earth Nationalization", "policy", addMonths(baseStart,6), addMonths(baseStart,17), 0.7,
+        {cost:0.5, schedule:0.4, quality:0.0, supply:0.8, regulatory:0.3, talent:0.0},
+        []
+      ),
+      mkFibre("Solid‑State Battery Breakthrough", "tech", addMonths(baseStart,15), addMonths(baseStart,26), 0.65,
+        {cost:-0.2, schedule:-0.3, quality:-0.1, supply:-0.1, regulatory:0.0, talent:0.2},
+        []
+      ),
+      mkFibre("EU Data Residency Hardline", "policy", addMonths(baseStart,4), addMonths(baseStart,18), 0.7,
+        {cost:0.2, schedule:0.2, quality:0.1, supply:0.0, regulatory:0.7, talent:0.2},
+        []
+      ),
+      mkFibre("Maritime Chokepoint Disruption", "market", addMonths(baseStart,2), addMonths(baseStart,8), 0.8,
+        {cost:0.35, schedule:0.35, quality:0.0, supply:0.7, regulatory:0.1, talent:0.0},
+        []
+      ),
+      mkFibre("GPU Oversupply Correction", "market", addMonths(baseStart,10), addMonths(baseStart,20), 0.65,
+        {cost:-0.5, schedule:-0.1, quality:0.0, supply:-0.6, regulatory:0.0, talent:0.0},
+        []
+      ),
+      mkFibre("Open‑Source FM Leap", "tech", addMonths(baseStart,5), addMonths(baseStart,14), 0.6,
+        {cost:-0.15, schedule:-0.25, quality:-0.1, supply:0.0, regulatory:0.05, talent:-0.15},
+        [{target:"Workforce Organizing Wave", lagMonths:6, polarity:1, strength:0.2}]
+      ),
+      mkFibre("Insurance Premium Supercycle", "market", addMonths(baseStart,1), addMonths(baseStart,24), 0.6,
+        {cost:0.35, schedule:0.05, quality:0.0, supply:0.0, regulatory:0.0, talent:0.0},
+        []
+      ),
+      mkFibre("Workforce Organizing Wave", "policy", addMonths(baseStart,6), addMonths(baseStart,20), 0.65,
+        {cost:0.3, schedule:0.2, quality:0.0, supply:0.0, regulatory:0.1, talent:0.5},
+        []
+      ),
+      mkFibre("Green Subsidy Cliffs", "policy", addMonths(baseStart,8), addMonths(baseStart,22), 0.7,
+        {cost:0.6, schedule:0.2, quality:0.0, supply:0.0, regulatory:0.4, talent:0.0},
+        []
+      ),
+      mkFibre("Flagship Privacy Breach (Sectoral)", "market", addMonths(baseStart,9), addMonths(baseStart,12), 0.55,
+        {cost:0.1, schedule:0.05, quality:0.2, supply:0.0, regulatory:0.6, talent:0.1},
+        [{target:"EU Data Residency Hardline", lagMonths:2, polarity:1, strength:0.25}]
+      ),
+    ];
+
+    // Preselect a sensible starter set
+    State.selected = new Set([ State.library[0].id, State.library[2].id, State.library[5].id, State.library[10].id ]);
+  }
+
+  function mkFibre(name, type, start, end, confidence, effects, second){
+    return {
+      id: name, // human‑readable id is fine in prototype
+      name, type,
+      start: dateISO(start), end: dateISO(end),
+      confidence, weight: 1,
+      effects: {...{cost:0,schedule:0,quality:0,supply:0,regulatory:0,talent:0}, ...effects},
+      second: second || [],
+      tags: [],
+    };
+  }
+
+  // ---------- Rendering: Library ----------
+  const elLib = document.getElementById("libList");
+  const elSearch = document.getElementById("search");
+  const elFilterType = document.getElementById("filterType");
+
+  function renderLibrary(){
+    elLib.innerHTML = "";
+    const q = (elSearch.value||"").toLowerCase();
+    const fType = elFilterType.value;
+    const list = State.library
+      .filter(f => (!fType || f.type===fType))
+      .filter(f => [f.name, f.type, ...(f.tags||[])].join(" ").toLowerCase().includes(q))
+      .sort((a,b)=> a.type.localeCompare(b.type) || a.start.localeCompare(b.start));
+
+    for(const f of list){
+      const div = document.createElement("div"); div.className="item"; div.dataset.id = f.id;
+      const left = document.createElement("div");
+      const right = document.createElement("div");
+
+      const h = document.createElement("h3"); h.textContent = f.name; h.style.cursor="pointer";
+      h.onclick = ()=> openEditor(f.id);
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = `<span class="tag ${f.type}">${f.type}</span> · ${f.start} → ${f.end} · conf ${fmt.format(f.confidence)} · w ${fmt.format(State.weights[f.id] ?? f.weight ?? 1)}`;
+
+      left.appendChild(h); left.appendChild(meta);
+
+      const tog = document.createElement("label"); tog.className="tog";
+      const cb = document.createElement("input"); cb.type="checkbox"; cb.checked = State.selected.has(f.id);
+      cb.onchange = ()=>{ if(cb.checked) State.selected.add(f.id); else State.selected.delete(f.id); saveState(); refresh(); };
+      const sp = document.createElement("span"); sp.className="pill"; sp.textContent = "Weave";
+      tog.appendChild(cb); tog.appendChild(sp);
+
+      right.appendChild(tog);
+
+      div.appendChild(left); div.appendChild(right);
+      elLib.appendChild(div);
+    }
+  }
+
+  // ---------- Canvas & Weave Engine ----------
+  const canvas = document.getElementById("fabric");
+  const ctx = canvas.getContext("2d");
+
+  function resizeCanvas(){
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  // Compute time grid
+  function timeGrid(){
+    const months = State.horizon;
+    const start = new Date(State.startDate);
+    const ticks = [];
+    for(let m=0; m<=months; m++){
+      const d = addMonths(start, m);
+      ticks.push({m, date: d, iso: dateISO(d)});
+    }
+    return ticks;
+  }
+
+  // Triangular activation over window with soft shoulders (epistemic widening)
+  function phiForFibre(f){
+    const t0 = new Date(f.start), t1 = new Date(f.end);
+    const startM = monthsBetween(State.startDate, t0);
+    const endM   = monthsBetween(State.startDate, t1);
+    const mid = (startM + endM)/2;
+    const span = Math.max(2, endM - startM);
+    const widen = Math.ceil(Math.max(1, Math.round(0.15*span))); // epistemic softening
+    return (m)=>{
+      if(m < startM - widen || m > endM + widen) return 0;
+      // triangular with shoulders
+      const left = startM - widen, right = endM + widen;
+      const pos = (m - left) / (right - left);
+      const peakPos = (mid - left) / (right - left);
+      const val = pos <= peakPos ? (pos/peakPos) : ((1-pos)/(1-peakPos));
+      return clamp(val, 0, 1) * f.confidence * (State.weights[f.id] ?? f.weight ?? 1);
+    };
+  }
+
+  // Pairwise resonance/interference field
+  function computeField(){
+    const ticks = timeGrid();
+    const active = State.library.filter(f=> State.selected.has(f.id));
+    const phi = Object.fromEntries(active.map(f=> [f.id, phiForFibre(f)]));
+
+    // Precompute effect vectors ordered by EFFECTS
+    const V = Object.fromEntries(active.map(f => [f.id, EFFECTS.map(k=> f.effects[k] || 0)]));
+
+    const field = new Array(ticks.length).fill(0).map(()=>({pos:0,neg:0}));
+    const milestoneProbes = {}; // milestoneId -> {vec:[...], magnitude, robustness}
+    const pressureByMilestone = {};
+
+    // Second-order simple propagation (adds to activation of target with lag)
+    const extraActivation = {}; // targetId -> array over time
+    for(const f of active){
+      for(const s of (f.second||[])){
+        if(!extraActivation[s.target]) extraActivation[s.target] = new Array(ticks.length).fill(0);
+        for(const t of ticks){
+          const src = phi[f.id](t.m);
+          const tgtIndex = t.m + (s.lagMonths||0);
+          if(tgtIndex >=0 && tgtIndex < ticks.length){
+            extraActivation[s.target][tgtIndex] += src * (s.strength||0) * (s.polarity||1);
+          }
+        }
+      }
+    }
+
+    // Precompute activation per fibre over time (with second-order)
+    const act = {};
+    for(const f of active){
+      act[f.id] = ticks.map(t => clamp(phi[f.id](t.m) + (extraActivation[f.id]?.[t.m] || 0), 0, 2));
+    }
+
+    // Resonance/interference via dot-products across effects, per time slice
+    for(let ti=0; ti<ticks.length; ti++){
+      let pos = 0, neg = 0;
+      for(let i=0; i<active.length; i++){
+        const fi = active[i]; const ai = act[fi.id][ti]; if(ai===0) continue;
+        for(let j=i+1; j<active.length; j++){
+          const fj = active[j]; const aj = act[fj.id][ti]; if(aj===0) continue;
+          // dot product in effect space with appetite weighting
+          let dot = 0;
+          for(let k=0; k<EFFECTS.length; k++){
+            const w = State.effectWeights[EFFECTS[k]];
+            dot += (V[fi.id][k] * V[fj.id][k]) * w * w;
+          }
+          const s = dot * ai * aj;
+          if(s>=0) pos += s; else neg += -s;
+        }
+      }
+      field[ti].pos = pos;
+      field[ti].neg = neg;
+    }
+
+    // Milestone pressures
+    for(const ms of State.milestones){
+      const tIndex = clamp(monthsBetween(State.startDate, new Date(ms.date)), 0, ticks.length-1);
+      const vec = new Array(EFFECTS.length).fill(0);
+      for(const f of active){
+        const a = act[f.id][tIndex]; if(a===0) continue;
+        for(let k=0;k<EFFECTS.length;k++){
+          vec[k] += (f.effects[EFFECTS[k]]||0) * a;
+        }
+      }
+      // Weighted magnitude (risk appetite scales penalty on negative/positive)
+      let mag = 0;
+      for(let k=0;k<EFFECTS.length;k++){
+        const w = State.effectWeights[EFFECTS[k]];
+        mag += Math.abs(vec[k]) * w;
+      }
+      // Robustness: invert mag into [0,1], appetite‑sensitive
+      const appetite = State.risk; // 0 risk‑averse => harsh, 1 risk‑seeking => forgiving
+      const norm = mag / (active.length * 2 + 1e-6);
+      const rob = clamp(1 - (norm * (0.7 + 0.6*(1-appetite))), 0, 1);
+
+      milestoneProbes[ms.id] = { vec, magnitude: mag, robustness: rob, tIndex };
+      pressureByMilestone[ms.id] = vec;
+    }
+
+    return { ticks, active, field, act, milestoneProbes, pressureByMilestone };
+  }
+
+  // ---------- Drawing ----------
+  function draw(){
+    resizeCanvas();
+    const {ticks, active, field, act, milestoneProbes} = computeField();
+
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    const leftPad = 70, rightPad = 16, topPad = 26, bottomPad = 36;
+    const innerW = W - leftPad - rightPad;
+    const innerH = H - topPad - bottomPad;
+
+    ctx.clearRect(0,0,W,H);
+
+    // Background grid
+    ctx.save();
+    ctx.translate(leftPad, topPad);
+    ctx.strokeStyle = getCss("--grid");
+
+    // Vertical (time) grid
+    const months = ticks.length-1;
+    for(let m=0; m<=months; m++){
+      const x = innerW * (m/months);
+      ctx.lineWidth = (m%12===0)? 1.2 : ((m%3===0)? 0.8 : 0.6);
+      ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, innerH); ctx.stroke();
+      if(m%3===0){
+        const d = ticks[m].date;
+        ctx.fillStyle = "#92a0b8";
+        ctx.font = "11px ui-monospace, monospace";
+        ctx.fillText(`${d.getFullYear()}‑${String(d.getMonth()+1).padStart(2,"0")}`, x+2, innerH+16);
+      }
+    }
+
+    // Horizontal lanes (one per selected fibre)
+    const lanes = Math.max(1, active.length);
+    const laneH = innerH / lanes;
+
+    for(let i=0;i<lanes;i++){
+      const y = laneH * (i+0.5);
+      ctx.strokeStyle = "#1f2433"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(innerW,y); ctx.stroke();
+    }
+
+    // Label column
+    ctx.fillStyle = "#cfe1ff"; ctx.font = "12px system-ui, sans-serif";
+    for(let i=0;i<active.length;i++){
+      const y = topPad + laneH*(i+0.5) + 4;
+      ctx.textAlign = "right";
+      ctx.fillText(active[i].name.slice(0,22), leftPad-8, y);
+    }
+
+    // Resonance/Interference fields (underlay bands)
+    // Normalize for visualization
+    const maxPos = Math.max(1e-6, Math.max(...field.map(f=>f.pos)));
+    const maxNeg = Math.max(1e-6, Math.max(...field.map(f=>f.neg)));
+
+    for(let m=0; m<=months; m++){
+      const x = leftPad + innerW * (m/months);
+      // Draw as vertical translucent bands
+      const rp = field[m].pos / maxPos;
+      const rn = field[m].neg / maxNeg;
+      if(rp > 0.01){
+        ctx.fillStyle = "rgba(38, 194, 129, 0.12)";
+        ctx.fillRect(x, topPad, Math.max(1, innerW/months), innerH * rp);
+      }
+      if(rn > 0.01){
+        ctx.fillStyle = "rgba(231, 76, 60, 0.10)";
+        const h = innerH * rn;
+        ctx.fillRect(x, topPad + innerH - h, Math.max(1, innerW/months), h);
+      }
+    }
+
+    // Draw fibre activations as colored sine‑ribbons in their lanes
+    for(let i=0;i<active.length;i++){
+      const f = active[i];
+      const baseY = topPad + laneH*(i+0.5);
+      const color = TYPE_COLOR[f.type] || "#888";
+      ctx.strokeStyle = rgba(color, 0.95); ctx.lineWidth = 2;
+      ctx.beginPath();
+      for(let m=0; m<=months; m++){
+        const a = act[f.id][m]; // 0..2
+        const x = leftPad + innerW * (m/months);
+        const amp = (laneH*0.35) * (a/2);
+        const w = Math.sin(m*0.6 + i*0.7);
+        const y = baseY + w * amp;
+        if(m===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+
+      // Confidence envelope
+      ctx.strokeStyle = rgba(color, 0.25); ctx.lineWidth = 6;
+      ctx.beginPath();
+      for(let m=0; m<=months; m++){
+        const a = act[f.id][m];
+        const x = leftPad + innerW * (m/months);
+        const amp = (laneH*0.35) * (a/2);
+        const y = baseY;
+        if(m===0) ctx.moveTo(x,y-amp); else ctx.lineTo(x,y-amp);
+      }
+      ctx.stroke();
+
+      ctx.beginPath();
+      for(let m=0; m<=months; m++){
+        const a = act[f.id][m];
+        const x = leftPad + innerW * (m/months);
+        const amp = (laneH*0.35) * (a/2);
+        const y = baseY;
+        if(m===0) ctx.moveTo(x,y+amp); else ctx.lineTo(x,y+amp);
+      }
+      ctx.stroke();
+    }
+
+    // Milestones
+    for(const ms of State.milestones){
+      const idx = clamp(monthsBetween(State.startDate, new Date(ms.date)), 0, months);
+      const x = leftPad + innerW * (idx/months);
+      // line
+      ctx.strokeStyle = "#f0b35a"; ctx.setLineDash([4,4]); ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(x, topPad); ctx.lineTo(x, topPad + innerH); ctx.stroke();
+      ctx.setLineDash([]);
+      // label + robustness
+      const probe = milestoneProbes[ms.id];
+      const rob = probe?.robustness ?? 0;
+      const badge = Math.round(rob*100);
+      ctx.fillStyle = "#f0b35a"; ctx.font = "12px ui-monospace, monospace"; ctx.textAlign = "center";
+      ctx.fillText(`${ms.label} (${badge}%)`, x, 16);
+    }
+
+    ctx.restore();
+  }
+
+  // ---------- Atelier: Milestones, Robustness, Anchors ----------
+  const elMilestones = document.getElementById("milestoneList");
+  const elAnchors = document.getElementById("anchors");
+
+  function renderAtelier(){
+    const { milestoneProbes } = computeField();
+    elMilestones.innerHTML = "";
+    for(const ms of State.milestones){
+      const probe = milestoneProbes[ms.id];
+      const row = document.createElement("div"); row.className="metric";
+      const label = document.createElement("div");
+      label.innerHTML = `<strong>${ms.label}</strong><div class="note">${ms.date}</div>`;
+      const bar = document.createElement("div"); bar.className="bar";
+      const span = document.createElement("span");
+      const val = Math.round((probe?.robustness ?? 0)*100);
+      span.style.width = `${val}%`;
+      span.className = val>=66 ? "good" : (val>=33 ? "" : "bad");
+      bar.appendChild(span);
+      const act = document.createElement("div"); act.innerHTML = `<span class="pill">${val}%</span>`;
+      row.appendChild(label); row.appendChild(bar); row.appendChild(act);
+      elMilestones.appendChild(row);
+    }
+    renderAnchors();
+  }
+
+  // Anchor heuristics: map pressure vectors to commitments
+  const ANCHOR_RULES = [
+    { dim:"regulatory", thresh:0.8, text:"Pre‑wire regulators; set up voluntary disclosure & sandbox MOUs." },
+    { dim:"supply",     thresh:0.8, text:"Dual‑source critical inputs; negotiate flexible MOQs and surge clauses." },
+    { dim:"cost",       thresh:0.8, text:"Introduce contingency bands; stage capex with option‑to‑defer gates." },
+    { dim:"schedule",   thresh:0.8, text:"Decompose into freeze horizons; protect critical path with time buffers." },
+    { dim:"talent",     thresh:0.8, text:"Cross‑train bench; create scarce‑skill fellowships and retention triggers." },
+    { dim:"quality",    thresh:0.8, text:"Add test oracles; expand pre‑prod canaries and observability budgets." },
+    // Moderate thresholds
+    { dim:"regulatory", thresh:0.5, text:"Data lineage & residency proofs by design; contract addenda ready." },
+    { dim:"supply",     thresh:0.5, text:"Build inventory buffers for chokepoints; logistics scenario drills." },
+    { dim:"cost",       thresh:0.5, text:"Index contracts to input prices; adopt rolling hedges." },
+    { dim:"schedule",   thresh:0.5, text:"Flexible staffing pool; shift left acceptance criteria." },
+    { dim:"talent",     thresh:0.5, text:"Create internal guilds; succession for critical roles." },
+    { dim:"quality",    thresh:0.5, text:"Quality gates on vendor deliverables; SLO‑linked penalties." },
+  ];
+
+  function renderAnchors(){
+    const { milestoneProbes } = computeField();
+    elAnchors.innerHTML = "";
+    for(const ms of State.milestones){
+      const probe = milestoneProbes[ms.id];
+      if(!probe){ continue; }
+      // Compute per‑dim pressure (absolute)
+      const abs = EFFECTS.map((k,i)=> Math.abs(probe.vec[i]));
+      // Pick anchors greedily covering the top pressure dims with minimal items
+      const items = [];
+      const ranked = EFFECTS.map((k,i)=>({k, v:abs[i]})).sort((a,b)=> b.v-a.v);
+      for(const r of ranked){
+        const rules = ANCHOR_RULES.filter(x=> x.dim===r.k).sort((a,b)=> b.thresh-a.thresh);
+        const match = rules.find(x=> r.v >= x.thresh);
+        if(match){ items.push({dim:r.k, text:match.text, level: r.v}); }
+        if(items.length>=3) break; // keep minimal
+      }
+      if(items.length===0){
+        items.push({dim:"none", text:"No anchor change recommended at current appetite; monitor drift.", level:0});
+      }
+
+      for(const it of items){
+        const div = document.createElement("div"); div.className="anchor";
+        div.innerHTML = `<div>${it.text} <div class="note">${ms.label} · pressure(${it.dim})=${fmt.format(it.level)}</div></div>
+                         <div><span class="pill">Anchor</span></div>`;
+        elAnchors.appendChild(div);
+      }
+    }
+  }
+
+  // ---------- Milestone interactions (add, drag) ----------
+  const elAddMilestone = document.getElementById("btnAddMilestone");
+  elAddMilestone.onclick = ()=>{
+    const label = prompt("Milestone label:", "Decision Gate");
+    if(!label) return;
+    const date = prompt("ISO date (YYYY‑MM‑DD):", dateISO(addMonths(State.startDate, Math.min(State.horizon, 12))));
+    if(!date) return;
+    State.milestones.push({id:id(), label, date});
+    saveState(); refresh();
+  };
+
+  // Drag to move milestones
+  let dragMS = null;
+  canvas.addEventListener("mousedown", (e)=>{
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    const leftPad = 70, rightPad = 16, topPad=26, bottomPad=36;
+    const innerW = W - leftPad - rightPad, innerH = H - topPad - bottomPad;
+    const months = State.horizon;
+
+    for(const ms of State.milestones){
+      const idx = clamp(monthsBetween(State.startDate, new Date(ms.date)), 0, months);
+      const mx = leftPad + innerW * (idx/months);
+      if(Math.abs(x - mx) < 8 && y>topPad && y < topPad+innerH){
+        dragMS = ms; break;
+      }
+    }
+  });
+  window.addEventListener("mousemove", (e)=>{
+    if(!dragMS) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const W = canvas.clientWidth;
+    const leftPad = 70, rightPad = 16;
+    const innerW = W - leftPad - rightPad;
+    const months = State.horizon;
+    const m = clamp(Math.round((x - leftPad)/innerW * months), 0, months);
+    const nd = addMonths(State.startDate, m);
+    dragMS.date = dateISO(nd);
+    renderAtelier(); draw();
+  });
+  window.addEventListener("mouseup", ()=>{ if(dragMS){ saveState(); dragMS=null; } });
+
+  // ---------- Fabric swaps (generate alternate fabrics) ----------
+  const elSwap = document.getElementById("btnSwapSets");
+  elSwap.onclick = ()=>{
+    const {ticks, active, field} = computeField();
+    // Rank non‑selected fibres by potential positive resonance if added
+    const notSel = State.library.filter(f=> !State.selected.has(f.id));
+    if(notSel.length===0){ alert("All fibres already selected."); return; }
+
+    // Very simple heuristic: pick the fibre whose mid‑window overlaps the densest positive field
+    const months = State.horizon;
+    const best = notSel.map(f=>{
+      const startM = clamp(monthsBetween(State.startDate, new Date(f.start)), 0, months);
+      const endM = clamp(monthsBetween(State.startDate, new Date(f.end)), 0, months);
+      const mid = Math.round((startM+endM)/2);
+      const s = field[mid]?.pos || 0;
+      return {f, score:s};
+    }).sort((a,b)=> b.score - a.score)[0];
+
+    const worst = [...State.selected].map(id=>{
+      const f = State.library.find(x=> x.id===id);
+      // heuristic: mid overlaps the most negative field (interference)
+      const startM = clamp(monthsBetween(State.startDate, new Date(f.start)), 0, months);
+      const endM = clamp(monthsBetween(State.startDate, new Date(f.end)), 0, months);
+      const mid = Math.round((startM+endM)/2);
+      const s = field[mid]?.neg || 0;
+      return {f, score:s};
+    }).sort((a,b)=> b.score - a.score)[0];
+
+    const choice = confirm(
+      `Swap suggestion:\n\nAdd: ${best.f.name} (${best.f.type})\nRemove: ${worst.f.name} (${worst.f.type})\n\nApply?`
+    );
+    if(choice){
+      State.selected.add(best.f.id);
+      State.selected.delete(worst.f.id);
+      saveState(); refresh();
+    }
+  };
+
+  // ---------- Editor Modal ----------
+  const elDlg = document.getElementById("dlg");
+  const elForm = document.getElementById("fForm");
+  const elWeightVal = document.getElementById("weightVal");
+  elForm.weight.addEventListener("input", ()=> elWeightVal.textContent = (+elForm.weight.value).toFixed(2));
+
+  function openEditor(fid){
+    const f = State.library.find(x=> x.id===fid);
+    elForm.reset();
+    if(f){
+      elForm.id.value = f.id;
+      elForm.name.value = f.name;
+      elForm.type.value = f.type;
+      elForm.start.value = f.start;
+      elForm.end.value = f.end;
+      elForm.confidence.value = f.confidence;
+      elForm.e_cost.value = f.effects.cost;
+      elForm.e_schedule.value = f.effects.schedule;
+      elForm.e_quality.value = f.effects.quality;
+      elForm.e_supply.value = f.effects.supply;
+      elForm.e_regulatory.value = f.effects.regulatory;
+      elForm.e_talent.value = f.effects.talent;
+      elForm.second.value = JSON.stringify(f.second||[], null, 2);
+      elForm.weight.value = State.weights[f.id] ?? f.weight ?? 1;
+      elWeightVal.textContent = (+elForm.weight.value).toFixed(2);
+    }else{
+      elForm.id.value = id();
+      elForm.name.value = "";
+      elForm.type.value = "policy";
+      elForm.start.value = dateISO(addMonths(State.startDate, 3));
+      elForm.end.value = dateISO(addMonths(State.startDate, 9));
+      elForm.confidence.value = 0.6;
+      elForm.e_cost.value = 0;
+      elForm.e_schedule.value = 0;
+      elForm.e_quality.value = 0;
+      elForm.e_supply.value = 0;
+      elForm.e_regulatory.value = 0;
+      elForm.e_talent.value = 0;
+      elForm.second.value = "[]";
+      elForm.weight.value = 1; elWeightVal.textContent = "1.00";
+    }
+    elDlg.showModal();
+  }
+
+  elForm.addEventListener("submit", (e)=>{
+    e.preventDefault();
+    const data = new FormData(elForm);
+    const fid = data.get("id");
+    const existing = State.library.find(x=> x.id===fid);
+
+    const obj = {
+      id: fid,
+      name: data.get("name"),
+      type: data.get("type"),
+      start: data.get("start"),
+      end: data.get("end"),
+      confidence: +data.get("confidence"),
+      weight: +data.get("weight"),
+      effects: {
+        cost:+data.get("e_cost"),
+        schedule:+data.get("e_schedule"),
+        quality:+data.get("e_quality"),
+        supply:+data.get("e_supply"),
+        regulatory:+data.get("e_regulatory"),
+        talent:+data.get("e_talent"),
+      },
+      second: [],
+      tags: [],
+    };
+    const secondText = (data.get("second")||"").trim();
+    if(secondText){
+      try{ obj.second = JSON.parse(secondText); }catch{ alert("Second‑order JSON invalid"); return; }
+    }
+    if(existing){
+      const idx = State.library.findIndex(x=> x.id===fid);
+      State.library[idx] = obj;
+    }else{
+      State.library.push(obj);
+    }
+    State.weights[fid] = obj.weight;
+    elDlg.close(); saveState(); refresh();
+  });
+
+  document.getElementById("btnAdd").onclick = ()=> openEditor(null);
+
+  // ---------- Export / Import / Reset ----------
+  const elExport = document.getElementById("btnExport");
+  const elImport = document.getElementById("btnImport");
+  const elReset  = document.getElementById("btnReset");
+  const fileImport = document.getElementById("fileImport");
+
+  elExport.onclick = ()=>{
+    const payload = {
+      library: State.library,
+      milestones: State.milestones,
+      selected: [...State.selected],
+      weights: State.weights,
+      startDate: dateISO(State.startDate),
+      horizon: State.horizon,
+      risk: State.risk,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `cspl_export_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  elImport.onclick = ()=> fileImport.click();
+  fileImport.addEventListener("change", async (e)=>{
+    const file = e.target.files[0]; if(!file) return;
+    const text = await file.text();
+    try{
+      const obj = JSON.parse(text);
+      State.library = obj.library || State.library;
+      State.milestones = obj.milestones || State.milestones;
+      State.selected = new Set(obj.selected || []);
+      State.weights  = obj.weights || {};
+      State.startDate = new Date(obj.startDate || State.startDate);
+      State.horizon = obj.horizon || State.horizon;
+      State.risk = obj.risk ?? State.risk;
+      saveState(); refresh();
+    }catch(err){
+      alert("Import failed: " + err.message);
+    }finally{
+      fileImport.value = "";
+    }
+  });
+
+  elReset.onclick = ()=>{
+    if(!confirm("Reset CSPL to defaults?")) return;
+    localStorage.removeItem("cspl_library");
+    localStorage.removeItem("cspl_selected");
+    localStorage.removeItem("cspl_weights");
+    localStorage.removeItem("cspl_milestones");
+    localStorage.removeItem("cspl_start");
+    localStorage.removeItem("cspl_horizon");
+    localStorage.removeItem("cspl_risk");
+    State.library=[]; State.selected=new Set(); State.weights={}; State.milestones=[];
+    State.startDate = new Date("2025-01-01"); State.horizon = 60; State.risk=0.5;
+    seedLibrary(); saveState(); refresh();
+  };
+
+  // ---------- Timeline controls ----------
+  const elStart = document.getElementById("startDate");
+  const elHorizon = document.getElementById("horizon");
+  const elRisk = document.getElementById("risk");
+  const elRiskVal = document.getElementById("riskVal");
+
+  function syncControls(){
+    elStart.value = dateISO(State.startDate);
+    elHorizon.value = State.horizon;
+    elRisk.value = State.risk;
+    elRiskVal.textContent = (+State.risk).toFixed(2);
+  }
+  elStart.onchange = ()=>{ State.startDate = new Date(elStart.value); saveState(); refresh(); };
+  elHorizon.onchange = ()=>{ State.horizon = clamp(parseInt(elHorizon.value||60,10), 6, 120); saveState(); refresh(); };
+  elRisk.oninput = ()=>{ State.risk = +elRisk.value; elRiskVal.textContent = (+State.risk).toFixed(2); saveState(); renderAtelier(); draw(); };
+
+  // ---------- Init ----------
+  function refresh(){
+    syncControls();
+    renderLibrary();
+    renderAtelier();
+    draw();
+  }
+
+  window.addEventListener("resize", ()=> draw());
+
+  loadState();
+  refresh();
+  </script>
+</body>
+</html>

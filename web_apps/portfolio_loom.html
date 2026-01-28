@@ -129,6 +129,8 @@
       display:grid; grid-template-columns: 1fr auto; align-items: center; gap:10px;
     }
     .note{ color: var(--muted); font-size: 12px; }
+    .explain{ display:flex; flex-direction: column; gap:8px; }
+    .explain-grid{ display:flex; flex-wrap: wrap; gap:8px; }
 
     /* Modals and helpers */
     dialog{
@@ -225,6 +227,16 @@
     <section class="panel">
       <h2>Decision Atelier & Delivery Anchors</h2>
       <div class="body" id="atelier">
+        <div class="explain">
+          <div class="pill">CSPL explanation buttons</div>
+          <div class="explain-grid">
+            <button class="btn small" data-explain="overview">What is CSPL?</button>
+            <button class="btn small" data-explain="mechanics">Mechanics</button>
+            <button class="btn small" data-explain="impact">Impact Profile</button>
+          </div>
+          <div class="note">Tap a button for a clean explanation you can drop into stakeholder conversations.</div>
+        </div>
+        <div class="hr"></div>
         <div id="milestoneList"></div>
         <div class="hr"></div>
         <div class="row" style="justify-content:space-between;align-items:center;">
@@ -307,6 +319,14 @@
         </div>
       </div>
       <input type="hidden" name="id" />
+    </form>
+  </dialog>
+
+  <dialog id="explainDlg">
+    <div class="modal-h" id="explainTitle">CSPL Explainer</div>
+    <div class="modal-b" id="explainBody"></div>
+    <form method="dialog" class="modal-b" style="text-align:right;">
+      <button class="btn primary">Close</button>
     </form>
   </dialog>
 
@@ -467,6 +487,55 @@
   const elLib = document.getElementById("libList");
   const elSearch = document.getElementById("search");
   const elFilterType = document.getElementById("filterType");
+  const explainDlg = document.getElementById("explainDlg");
+  const explainTitle = document.getElementById("explainTitle");
+  const explainBody = document.getElementById("explainBody");
+
+  const explainers = {
+    overview: {
+      title: "Chrono‑Speculative Portfolio Loom (CSPL)",
+      body: `
+        <p><strong>CSPL</strong> composes programme futures by weaving <strong>time‑indexed scenario fibres</strong> into a living portfolio fabric.</p>
+        <ul>
+          <li>Each fibre represents a policy, market, or tech shock with its own trigger window and effects.</li>
+          <li>Warp/weft interactions create forecast “tapestries” that keep narrative causality intact.</li>
+          <li>Executives can swap fibres on demand and immediately see how outcomes shift.</li>
+        </ul>
+      `,
+    },
+    mechanics: {
+      title: "Slide 6 — CSPL Mechanics (reworked)",
+      body: `
+        <ul>
+          <li><strong>Typed Scenario Fibre Library:</strong> shocks are typed (policy/market/tech) with trigger windows, aleatory vs. epistemic bounds, and lagged morphisms for second‑order effects.</li>
+          <li><strong>Weave Algebra / Temporal Engine:</strong> a tensor network <code>F(i,t,e)</code> over fibres <code>i</code>, time <code>t</code>, and effect dimensions <code>e</code> (cost, schedule, quality, supply, regulatory, talent). Contractions surface resonance/interference fields and milestone pressure vectors.</li>
+          <li><strong>Decision Atelier:</strong> human‑AI co‑composition of admissible fabrics (credal sets + weights), with live forecasts of commitments that remain invariant under fibre swaps.</li>
+          <li><strong>Delivery Anchors:</strong> minimal viable commitments that survive the top‑k fabrics, mapped to governance and stage‑gate updates.</li>
+        </ul>
+      `,
+    },
+    impact: {
+      title: "Slide 7 — Impact Profile (tightened)",
+      body: `
+        <ul>
+          <li><strong>Value:</strong> compresses quarterly planning into a rolling, auditable atlas of time‑sensitive option bundles—showing why outcomes shift when fibres change.</li>
+          <li><strong>Feasibility:</strong> wraps existing scenarios; adds light‑weight tensor logic (no heavy ML) deployable in BI stacks with local storage/APIs for live ingestion.</li>
+          <li><strong>Surprise / Innovation:</strong> reframes trees into an interactive weave where causal lag, constructive interference, and destructive interference are visible, not inferred.</li>
+        </ul>
+      `,
+    },
+  };
+
+  document.querySelectorAll("[data-explain]").forEach((btn)=>{
+    btn.addEventListener("click", ()=>{
+      const key = btn.dataset.explain;
+      const explainer = explainers[key];
+      if(!explainer) return;
+      explainTitle.textContent = explainer.title;
+      explainBody.innerHTML = explainer.body;
+      explainDlg.showModal();
+    });
+  });
 
   function renderLibrary(){
     elLib.innerHTML = "";

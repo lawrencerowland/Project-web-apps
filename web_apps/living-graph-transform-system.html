@@ -16,6 +16,10 @@
   header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 14px}
   header h1{font-size:16px;margin:0}
   header .caps{opacity:.75;font-size:12px;letter-spacing:.06em}
+  header .title{display:flex;flex-direction:column;gap:4px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .tab-btn{cursor:pointer;border:1px solid rgba(255,255,255,0.14);background:transparent;border-radius:999px;padding:6px 12px;color:var(--ink);font-size:12px}
+  .tab-btn.active{border-color:var(--accent);box-shadow:0 0 0 1px inset rgba(125,211,252,.25)}
   aside{
     background:rgba(255,255,255,0.04);
     border:1px solid rgba(255,255,255,0.08);
@@ -45,6 +49,27 @@
   input[type="range"]{width:100%}
   input[type="checkbox"]{transform: translateY(1px);}
   code{background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:6px}
+  textarea, select, input[type="text"], input[type="date"]{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);color:var(--ink);border-radius:8px;padding:8px;font-family:inherit}
+  textarea{width:100%;min-height:120px;resize:vertical}
+  .tab-pane{display:none;flex-direction:column;gap:10px}
+  .tab-pane.active{display:flex}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pane{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;min-height:200px}
+  .pane pre{white-space:pre-wrap;font-size:12px;max-height:240px;overflow:auto}
+  .audit-rail{display:flex;flex-direction:column;gap:8px}
+  .audit-rail ol{margin:0;padding-left:18px;font-size:12px;color:var(--muted);max-height:160px;overflow:auto}
+  .dropzone{border:1px dashed rgba(255,255,255,0.2);border-radius:10px;padding:10px;text-align:center;color:var(--muted);font-size:12px}
+  .dropzone.dragover{border-color:var(--accent);color:var(--ink)}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;background:rgba(125,211,252,0.15);border:1px solid rgba(125,211,252,0.3);font-size:11px}
+  .explainer{border:none;background:rgba(125,211,252,0.15);color:var(--ink);border-radius:999px;padding:2px 8px;font-size:11px;cursor:pointer}
+  .explainer + .explain{display:none;margin-top:6px;font-size:12px;color:var(--muted)}
+  .explain.show{display:block}
+  .pill-grid{display:flex;flex-wrap:wrap;gap:6px}
+  .pill-grid .pill{font-size:11px}
+  .rail{display:flex;flex-direction:column;gap:6px}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-size:12px}
+  .strip{display:flex;flex-wrap:wrap;gap:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px}
+  .hotspot{color:var(--warn)}
 
   /* Log */
   .log{
@@ -63,179 +88,443 @@
 <body>
 <div id="app">
   <header>
-    <h1>GraphTransforms — living graph‑transform rescheduler (Cytoscape)</h1>
-    <div class="caps small">Drag nodes • Click a node or edge • Apply rewrite rules • Watch ripple + log</div>
+    <div class="title">
+      <h1>GraphTransforms — living graph‑transform rescheduler (Cytoscape)</h1>
+      <div class="caps small">Drag nodes • Click a node or edge • Apply rewrite rules • Watch ripple + log</div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="GraphTransforms tabs">
+      <button class="tab-btn active" data-tab="rescheduler" role="tab" aria-selected="true">Rescheduler</button>
+      <button class="tab-btn" data-tab="sandbox" role="tab" aria-selected="false">Graph‑Transform Sandbox</button>
+      <button class="tab-btn" data-tab="agents" role="tab" aria-selected="false">Agent Scenario Explorer</button>
+    </div>
   </header>
 
   <aside>
-    <!-- View / mode -->
-    <div class="panel">
-      <div class="row small">
-        <span>View:</span>
-        <select id="view" class="btn" style="flex:1">
-          <option value="slip">Slip propagation (original)</option>
-          <option value="schedule" selected>Schedule ES/EF (durations + lags)</option>
-          <option value="both">Both (verbose)</option>
-        </select>
-      </div>
-      <div class="row small">
-        <span>Propagation rule:</span>
-        <select id="rule" class="btn" style="flex:1">
-          <option value="max">Finish‑to‑Start (max predecessor)</option>
-          <option value="sum">Cumulative (sum of predecessors)</option>
-          <option value="mean">Averaging (toy)</option>
-        </select>
-      </div>
-      <div class="row small" style="justify-content:flex-start;gap:10px">
-        <label style="margin:0;color:var(--muted)">
-          <input id="animate" type="checkbox" checked />
-          Animate rewrites (stepwise)
-        </label>
-      </div>
-    </div>
-
-    <!-- Node slip panel (kept from base app) -->
-    <div class="panel">
-      <div class="row"><label>Selected node:</label><strong id="sel">—</strong></div>
-      <div class="row"><label>Slip days on selected</label></div>
-      <div class="row">
-        <input id="delay" type="range" min="0" max="30" step="1" value="0" />
-        <span><strong id="delayVal">0d</strong></span>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="apply">Apply slip (rewrite)</button>
-        <button class="btn" id="clear">Clear all slips</button>
-      </div>
-      <div class="row small">
-        <span class="small">
-          Tip: In schedule mode, slip is treated as a local start delay on that task/milestone.
-        </span>
-      </div>
-    </div>
-
-    <!-- Edge lag (rewrite rule) panel (new: ports the toy prototype's DelayEdge rules) -->
-    <div class="panel">
-      <div class="row"><label>Selected edge:</label><strong id="selEdge">—</strong></div>
-      <div class="row small"><span>Current lag:</span><strong id="lagNow">—</strong></div>
-
-      <div class="row"><label>Lag delta on selected edge</label></div>
-      <div class="row">
-        <input id="lagDelta" type="range" min="-10" max="10" step="1" value="0" />
-        <span><strong id="lagDeltaVal">+0d</strong></span>
-      </div>
-
-      <div class="row">
-        <button class="btn primary" id="applyLag">Apply DelayEdge (rewrite)</button>
-        <button class="btn" id="resetAll">Reset all (slips + lags + log)</button>
-      </div>
-
-      <!-- Keep the toy prototype's "quick demo" rewrite buttons (adapted to this graph) -->
-      <div class="row" style="flex-wrap:wrap;justify-content:flex-start">
-        <button class="btn" id="delayAB">Rewrite: Delay edge A→B by +2d</button>
-        <button class="btn" id="delayBC">Rewrite: Delay edge B→C by +1d</button>
-      </div>
-
-      <div class="row small">
-        <span>
-          These match the minimal prototype idea: apply a local delay on an edge and watch stepwise propagation.
-        </span>
-      </div>
-    </div>
-
-    <!-- Makespan + Log (ports the toy prototype's log + makespan readout) -->
-    <div class="panel">
-      <div class="row small">
-        <span>Baseline makespan:</span><strong><span id="msBase">0</span>d</strong>
-      </div>
-      <div class="row small">
-        <span>Current makespan:</span><strong><span id="msNow">0</span>d</strong>
-      </div>
-      <div class="row small">
-        <span>Max lateness (colored):</span><strong><span id="maxSlip">0</span>d</strong>
-      </div>
-      <div class="row" style="margin-top:10px"><label>Rewrite log</label></div>
-      <div id="log" class="log" aria-label="Rewrite log"></div>
-    </div>
-
-    <!-- Legend (kept) -->
-    <div class="panel">
-      <div class="legend">
-        <span class="pill"><span class="dot root"></span> Entry / Tier‑1</span>
-        <span class="pill"><span class="dot base"></span> Tier‑2/3/4</span>
-        <span class="pill"><span class="dot ok"></span> On track (≤3d)</span>
-        <span class="pill"><span class="dot warn"></span> Risk (4–10d)</span>
-        <span class="pill"><span class="dot bad"></span> Late (>10d)</span>
-      </div>
-    </div>
-
-    <!-- Explanations (kept + expanded; includes ALL explanation content from the toy prototype) -->
-    <details class="panel">
-      <summary>What you’re seeing</summary>
-      <div class="small" style="margin-top:8px">
-        <div style="margin-bottom:8px">
-          Each node is a milestone/task with a <code>duration</code> and an optional local slip (start delay).
-          Edges encode dependencies and can carry a <code>lag</code> (edge delay).
+    <div class="tab-pane active" data-tab-pane="rescheduler">
+      <!-- View / mode -->
+      <div class="panel">
+        <div class="row small">
+          <span>View:</span>
+          <select id="view" class="btn" style="flex:1">
+            <option value="slip">Slip propagation (original)</option>
+            <option value="schedule" selected>Schedule ES/EF (durations + lags)</option>
+            <option value="both">Both (verbose)</option>
+          </select>
         </div>
-        <div style="margin-bottom:8px">
-          <strong>Slip propagation view (original):</strong><br/>
-          We compute each node’s <code>effectiveSlip</code> as a transform of predecessor slips
-          (<code>max | sum | mean</code>), add the local slip, and recolor nodes by lateness.
-          This is a tiny “graph of transforms” you can swap for your project rules later.
+        <div class="row small">
+          <span>Propagation rule:</span>
+          <select id="rule" class="btn" style="flex:1">
+            <option value="max">Finish‑to‑Start (max predecessor)</option>
+            <option value="sum">Cumulative (sum of predecessors)</option>
+            <option value="mean">Averaging (toy)</option>
+          </select>
         </div>
-        <div style="margin-bottom:8px">
-          <strong>Schedule ES/EF view (new):</strong><br/>
-          We do a forward pass to compute <code>ES</code> (early start) and <code>EF</code> (early finish):
-          <code>ES = aggregate(predecessor EF + edge lag)</code>, then <code>EF = ES + duration</code>,
-          plus any local slip as a start delay. “Lateness” is shown as <code>EF − baselineEF</code>.
-        </div>
-        <div>
-          <strong>Rewrite rules:</strong><br/>
-          Applying a change (e.g., <code>DelayEdge</code> or a node slip) is treated as a graph rewrite.
-          Instead of one opaque reschedule, you see a sequence of small, causal updates logged in topological order.
+        <div class="row small" style="justify-content:flex-start;gap:10px">
+          <label style="margin:0;color:var(--muted)">
+            <input id="animate" type="checkbox" checked />
+            Animate rewrites (stepwise)
+          </label>
         </div>
       </div>
-    </details>
 
-    <details class="panel">
-      <summary>Living graph‑transform framing (from the minimal prototype)</summary>
-      <div class="small" style="margin-top:8px">
-        <div style="margin-bottom:10px">
-          Here’s a compact, practical way to think about project delivery as a <strong>living graph‑transform system</strong>:
-          model your plan as a graph (tasks = nodes; dependencies/resources/interfaces = edges).
-          Any change—design tweak, reallocation, delay—acts like a <strong>rewrite rule</strong> applied to a local neighborhood of that graph.
-          Instead of one opaque reschedule, you see a <strong>sequence of small, causal updates</strong> that propagate only as far as they must.
+      <!-- Node slip panel (kept from base app) -->
+      <div class="panel">
+        <div class="row"><label>Selected node:</label><strong id="sel">—</strong></div>
+        <div class="row"><label>Slip days on selected</label></div>
+        <div class="row">
+          <input id="delay" type="range" min="0" max="30" step="1" value="0" />
+          <span><strong id="delayVal">0d</strong></span>
         </div>
-        <div style="margin-bottom:10px">
-          <strong>Why this helps (plain English)</strong>
+        <div class="row">
+          <button class="btn primary" id="apply">Apply slip (rewrite)</button>
+          <button class="btn" id="clear">Clear all slips</button>
+        </div>
+        <div class="row small">
+          <span class="small">
+            Tip: In schedule mode, slip is treated as a local start delay on that task/milestone.
+          </span>
+        </div>
+      </div>
+
+      <!-- Edge lag (rewrite rule) panel (new: ports the toy prototype's DelayEdge rules) -->
+      <div class="panel">
+        <div class="row"><label>Selected edge:</label><strong id="selEdge">—</strong></div>
+        <div class="row small"><span>Current lag:</span><strong id="lagNow">—</strong></div>
+
+        <div class="row"><label>Lag delta on selected edge</label></div>
+        <div class="row">
+          <input id="lagDelta" type="range" min="-10" max="10" step="1" value="0" />
+          <span><strong id="lagDeltaVal">+0d</strong></span>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="applyLag">Apply DelayEdge (rewrite)</button>
+          <button class="btn" id="resetAll">Reset all (slips + lags + log)</button>
+        </div>
+
+        <!-- Keep the toy prototype's "quick demo" rewrite buttons (adapted to this graph) -->
+        <div class="row" style="flex-wrap:wrap;justify-content:flex-start">
+          <button class="btn" id="delayAB">Rewrite: Delay edge A→B by +2d</button>
+          <button class="btn" id="delayBC">Rewrite: Delay edge B→C by +1d</button>
+        </div>
+
+        <div class="row small">
+          <span>
+            These match the minimal prototype idea: apply a local delay on an edge and watch stepwise propagation.
+          </span>
+        </div>
+      </div>
+
+      <!-- Makespan + Log (ports the toy prototype's log + makespan readout) -->
+      <div class="panel">
+        <div class="row small">
+          <span>Baseline makespan:</span><strong><span id="msBase">0</span>d</strong>
+        </div>
+        <div class="row small">
+          <span>Current makespan:</span><strong><span id="msNow">0</span>d</strong>
+        </div>
+        <div class="row small">
+          <span>Max lateness (colored):</span><strong><span id="maxSlip">0</span>d</strong>
+        </div>
+        <div class="row" style="margin-top:10px"><label>Rewrite log</label></div>
+        <div id="log" class="log" aria-label="Rewrite log"></div>
+      </div>
+
+      <!-- Legend (kept) -->
+      <div class="panel">
+        <div class="legend">
+          <span class="pill"><span class="dot root"></span> Entry / Tier‑1</span>
+          <span class="pill"><span class="dot base"></span> Tier‑2/3/4</span>
+          <span class="pill"><span class="dot ok"></span> On track (≤3d)</span>
+          <span class="pill"><span class="dot warn"></span> Risk (4–10d)</span>
+          <span class="pill"><span class="dot bad"></span> Late (>10d)</span>
+        </div>
+      </div>
+
+      <!-- Explanations (kept + expanded; includes ALL explanation content from the toy prototype) -->
+      <details class="panel">
+        <summary>What you’re seeing</summary>
+        <div class="small" style="margin-top:8px">
+          <div style="margin-bottom:8px">
+            Each node is a milestone/task with a <code>duration</code> and an optional local slip (start delay).
+            Edges encode dependencies and can carry a <code>lag</code> (edge delay).
+          </div>
+          <div style="margin-bottom:8px">
+            <strong>Slip propagation view (original):</strong><br/>
+            We compute each node’s <code>effectiveSlip</code> as a transform of predecessor slips
+            (<code>max | sum | mean</code>), add the local slip, and recolor nodes by lateness.
+            This is a tiny “graph of transforms” you can swap for your project rules later.
+          </div>
+          <div style="margin-bottom:8px">
+            <strong>Schedule ES/EF view (new):</strong><br/>
+            We do a forward pass to compute <code>ES</code> (early start) and <code>EF</code> (early finish):
+            <code>ES = aggregate(predecessor EF + edge lag)</code>, then <code>EF = ES + duration</code>,
+            plus any local slip as a start delay. “Lateness” is shown as <code>EF − baselineEF</code>.
+          </div>
+          <div>
+            <strong>Rewrite rules:</strong><br/>
+            Applying a change (e.g., <code>DelayEdge</code> or a node slip) is treated as a graph rewrite.
+            Instead of one opaque reschedule, you see a sequence of small, causal updates logged in topological order.
+          </div>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>Living graph‑transform framing (from the minimal prototype)</summary>
+        <div class="small" style="margin-top:8px">
+          <div style="margin-bottom:10px">
+            Here’s a compact, practical way to think about project delivery as a <strong>living graph‑transform system</strong>:
+            model your plan as a graph (tasks = nodes; dependencies/resources/interfaces = edges).
+            Any change—design tweak, reallocation, delay—acts like a <strong>rewrite rule</strong> applied to a local neighborhood of that graph.
+            Instead of one opaque reschedule, you see a <strong>sequence of small, causal updates</strong> that propagate only as far as they must.
+          </div>
+          <div style="margin-bottom:10px">
+            <strong>Why this helps (plain English)</strong>
+            <ul style="margin:6px 0 0 18px;padding:0">
+              <li><strong>Local causes, visible effects:</strong> A change at node/edge X triggers only the dependent neighborhood; you can watch the ripple step by step.</li>
+              <li><strong>What‑if as animation:</strong> Each rewrite is one animation “frame” (apply rule, then recompute downstream, then settle).</li>
+              <li><strong>Governance receipts:</strong> Every rewrite is a signed event (rule used, scope touched, deltas produced), which is great for audit and explaining “why the dates moved.”</li>
+            </ul>
+          </div>
+          <div>
+            <strong>Minimal prototype idea (now embedded here):</strong>
+            Click the “Rewrite: Delay edge …” buttons to see how a local delay on an edge propagates as a short rewrite sequence rather than a big jump.
+          </div>
+        </div>
+      </details>
+
+      <details class="panel">
+        <summary>How you’d harden this for real projects</summary>
+        <div class="small" style="margin-top:8px">
           <ul style="margin:6px 0 0 18px;padding:0">
-            <li><strong>Local causes, visible effects:</strong> A change at node/edge X triggers only the dependent neighborhood; you can watch the ripple step by step.</li>
-            <li><strong>What‑if as animation:</strong> Each rewrite is one animation “frame” (apply rule, then recompute downstream, then settle).</li>
-            <li><strong>Governance receipts:</strong> Every rewrite is a signed event (rule used, scope touched, deltas produced), which is great for audit and explaining “why the dates moved.”</li>
+            <li><strong>Rules library:</strong> <code>DelayEdge</code>, <code>AccelerateTask</code>, <code>ReassignResource</code>, <code>SplitTask</code>, <code>InsertBuffer</code>—each with explicit preconditions + postconditions.</li>
+            <li><strong>Locality guarantees:</strong> limit propagation by <em>k</em> hops or by time window, then surface boundary conditions for human review.</li>
+            <li><strong>Artifacts for governance:</strong> store each rewrite as a verifiable event (timestamp, author/agent, rationale, span), plus a “before/after” diff and a causal subgraph.</li>
+            <li><strong>Visualization:</strong> animate the rewrite sequence and highlight only touched nodes/edges.</li>
+            <li><strong>Interfaces‑aware:</strong> treat interfaces as typed edges; rules can target specific interface types (data handoff vs. permit vs. physical possession, etc.).</li>
           </ul>
         </div>
-        <div>
-          <strong>Minimal prototype idea (now embedded here):</strong>
-          Click the “Rewrite: Delay edge …” buttons to see how a local delay on an edge propagates as a short rewrite sequence rather than a big jump.
+      </details>
+    </div>
+
+    <div class="tab-pane" data-tab-pane="sandbox">
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <strong>Graph‑Transform Sandbox</strong>
+          <button class="explainer" data-explain="sandboxIntro">Why?</button>
+        </div>
+        <div id="sandboxIntro" class="explain">
+          Explore composable transforms on a raw graph while keeping a live before/after diff and audit trail.
+          This mirrors how change requests become explainable rewrites rather than opaque reschedules.
         </div>
       </div>
-    </details>
 
-    <details class="panel">
-      <summary>How you’d harden this for real projects</summary>
-      <div class="small" style="margin-top:8px">
-        <ul style="margin:6px 0 0 18px;padding:0">
-          <li><strong>Rules library:</strong> <code>DelayEdge</code>, <code>AccelerateTask</code>, <code>ReassignResource</code>, <code>SplitTask</code>, <code>InsertBuffer</code>—each with explicit preconditions + postconditions.</li>
-          <li><strong>Locality guarantees:</strong> limit propagation by <em>k</em> hops or by time window, then surface boundary conditions for human review.</li>
-          <li><strong>Artifacts for governance:</strong> store each rewrite as a verifiable event (timestamp, author/agent, rationale, span), plus a “before/after” diff and a causal subgraph.</li>
-          <li><strong>Visualization:</strong> animate the rewrite sequence and highlight only touched nodes/edges.</li>
-          <li><strong>Interfaces‑aware:</strong> treat interfaces as typed edges; rules can target specific interface types (data handoff vs. permit vs. physical possession, etc.).</li>
-        </ul>
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Import nodes/edges JSON</label>
+          <button class="explainer" data-explain="sandboxImport">How?</button>
+        </div>
+        <div id="sandboxImport" class="explain">
+          Paste JSON, drop a file, or load the sample. Large graphs are fine; parsing runs once and we reuse the baseline for diffs.
+        </div>
+        <textarea id="sandboxInput" spellcheck="false" class="mono"></textarea>
+        <div class="row">
+          <button class="btn" id="sandboxSample">Load sample</button>
+          <button class="btn primary" id="sandboxParse">Parse + Baseline</button>
+        </div>
+        <div class="dropzone" id="sandboxDrop">Drag & drop JSON here</div>
+        <div class="row small">
+          <span class="badge">Inputs: nodes[{id,label,tags?,owner?}], edges[{source,target,lag?,duration?}]</span>
+        </div>
       </div>
-    </details>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Filters</label>
+          <button class="explainer" data-explain="sandboxFilters">What/Why?</button>
+        </div>
+        <div id="sandboxFilters" class="explain">
+          Filter by type, tag, owner, or date to project a focused subgraph. Edges are auto-pruned to matching nodes.
+        </div>
+        <div class="row small"><span>Type</span><input id="filterType" type="text" placeholder="permit, scope, power" /></div>
+        <div class="row small"><span>Tag</span><input id="filterTag" type="text" placeholder="interface, risk" /></div>
+        <div class="row small"><span>Owner</span><input id="filterOwner" type="text" placeholder="team-a" /></div>
+        <div class="row small"><span>Date range</span></div>
+        <div class="row">
+          <input id="filterStart" type="date" />
+          <input id="filterEnd" type="date" />
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Contract / merge</label>
+          <button class="explainer" data-explain="sandboxContract">How?</button>
+        </div>
+        <div id="sandboxContract" class="explain">
+          Collapse nodes into lanes (owner/type) or a single interface tag. Edges are re-wired and durations are summed.
+        </div>
+        <div class="row">
+          <select id="contractMode" style="flex:1">
+            <option value="none">No contraction</option>
+            <option value="owner">Merge by owner</option>
+            <option value="type">Merge by type</option>
+            <option value="tag">Merge by tag</option>
+          </select>
+        </div>
+        <div class="row small">
+          <span>Tag name</span>
+          <input id="contractTag" type="text" placeholder="permit" />
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Transforms</label>
+          <button class="explainer" data-explain="sandboxTransforms">What happens?</button>
+        </div>
+        <div id="sandboxTransforms" class="explain">
+          Apply filters → optional merge → topo sort → critical-path annotation. Each run creates an audit entry you can undo/redo.
+        </div>
+        <div class="row">
+          <button class="btn primary" id="sandboxApply">Apply transforms</button>
+          <button class="btn" id="sandboxUndo">Undo</button>
+          <button class="btn" id="sandboxRedo">Redo</button>
+        </div>
+        <div class="row small"><span id="sandboxSummary">No graph loaded.</span></div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Interface archetypes</label>
+          <button class="explainer" data-explain="sandboxArchetypes">Why?</button>
+        </div>
+        <div id="sandboxArchetypes" class="explain">
+          Use the palette as a quick legend overlay for scope/contract/permit/power interfaces in review decks.
+        </div>
+        <div class="pill-grid">
+          <span class="pill"><span class="dot ok"></span> Scope</span>
+          <span class="pill"><span class="dot warn"></span> Contract</span>
+          <span class="pill"><span class="dot bad"></span> Permit</span>
+          <span class="pill"><span class="dot base"></span> Power</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Export</label>
+          <button class="explainer" data-explain="sandboxExport">How to use?</button>
+        </div>
+        <div id="sandboxExport" class="explain">
+          Export JSON/CSV/DOT. Paste DOT into GraphViz or yEd. CSV follows activity_id, pred_id, lag for P6/SharpCloud workflows.
+        </div>
+        <div class="row">
+          <button class="btn" id="exportJson">Copy JSON</button>
+          <button class="btn" id="exportCsv">Copy CSV</button>
+          <button class="btn" id="exportDot">Copy DOT</button>
+        </div>
+      </div>
+
+      <details class="panel">
+        <summary>Reuse notes (why this fits)</summary>
+        <div class="small" style="margin-top:8px">
+          <ul style="margin:6px 0 0 18px;padding:0">
+            <li>Static HTML, ideal for GitHub Pages + bid packs.</li>
+            <li>Outputs auditable artifacts: diff, receipts, DOT/CSV.</li>
+            <li>Integrations: SharpCloud tags/owner lanes; P6 CSV (activity_id, pred_id, lag).</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <div class="tab-pane" data-tab-pane="agents">
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <strong>Agent‑Based Scenario Explorer</strong>
+          <button class="explainer" data-explain="agentsIntro">Why?</button>
+        </div>
+        <div id="agentsIntro" class="explain">
+          Model a swarm of tasks trading scarce resources and time windows, then compare policy receipts before/after tweaks.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Presets</label>
+          <button class="explainer" data-explain="agentsPresets">How?</button>
+        </div>
+        <div id="agentsPresets" class="explain">
+          Load a preset, toggle the policy, and review where buffers collapse or swaps fail.
+        </div>
+        <div class="row">
+          <select id="agentPreset" style="flex:1">
+            <option value="permit">Permit drift</option>
+            <option value="crane">Shared crane</option>
+            <option value="design">Late design</option>
+          </select>
+          <button class="btn" id="loadPreset">Load</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Policy</label>
+          <button class="explainer" data-explain="agentsPolicy">What changes?</button>
+        </div>
+        <div id="agentsPolicy" class="explain">
+          Strict keeps start windows fixed, liberal flexes by buffer, priority‑weighted favors tight‑buffer tasks first.
+        </div>
+        <div class="row">
+          <select id="policyMode" style="flex:1">
+            <option value="strict">Strict (no early starts)</option>
+            <option value="liberal">Liberal (window flex)</option>
+            <option value="priority">Priority‑weighted</option>
+          </select>
+          <button class="btn primary" id="runAgents">Run swaps</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <label>Task input</label>
+          <button class="explainer" data-explain="agentsInput">Format?</button>
+        </div>
+        <div id="agentsInput" class="explain">
+          tasks:[{id, window:[start,end], buffer, needs:[…], offers:[…]}], resources:[{id, cap, calendar}]
+        </div>
+        <textarea id="agentInput" spellcheck="false" class="mono"></textarea>
+      </div>
+
+      <details class="panel">
+        <summary>Reuse notes (why this fits)</summary>
+        <div class="small" style="margin-top:8px">
+          <ul style="margin:6px 0 0 18px;padding:0">
+            <li>Three demo presets: Permit drift, Shared crane, Late design.</li>
+            <li>Outputs JSON trades + deficits + slack deltas; CSV for P6 constraints import.</li>
+            <li>Governance strip: rule, conflicts, mitigations, lineage hash.</li>
+          </ul>
+        </div>
+      </details>
+    </div>
   </aside>
 
   <main class="panel" style="padding:8px">
-    <div id="cy"></div>
+    <div class="tab-pane active" data-tab-pane="rescheduler">
+      <div id="cy"></div>
+    </div>
+
+    <div class="tab-pane" data-tab-pane="sandbox">
+      <div class="split">
+        <div class="pane">
+          <div class="row"><strong>Before</strong><span class="small">Baseline graph</span></div>
+          <pre id="sandboxBefore" class="mono">Load or paste JSON to begin.</pre>
+        </div>
+        <div class="pane">
+          <div class="row"><strong>After</strong><span class="small">Filtered + transformed</span></div>
+          <pre id="sandboxAfter" class="mono">Apply transforms to see output.</pre>
+        </div>
+      </div>
+      <div class="pane audit-rail">
+        <div class="row">
+          <strong>Audit rail</strong>
+          <span class="small">Undo/redo keeps receipts of each transform run.</span>
+        </div>
+        <ol id="sandboxAudit"></ol>
+      </div>
+      <div class="pane">
+        <div class="row"><strong>Export preview</strong><span class="small">JSON/CSV/DOT snapshots</span></div>
+        <div class="split">
+          <pre id="sandboxExportJson" class="mono"></pre>
+          <pre id="sandboxExportDot" class="mono"></pre>
+        </div>
+        <pre id="sandboxExportCsv" class="mono"></pre>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-tab-pane="agents">
+      <div class="pane">
+        <div class="row"><strong>Scenario outputs</strong><span class="small">Trades + deficits + slack deltas</span></div>
+        <pre id="agentOutput" class="mono">Load a preset and run swaps.</pre>
+      </div>
+      <div class="split">
+        <div class="pane">
+          <div class="row"><strong>Temporal‑coupling hotspots</strong></div>
+          <div id="agentHotspots" class="rail small">None yet.</div>
+        </div>
+        <div class="pane">
+          <div class="row"><strong>Rule receipts (before → after)</strong></div>
+          <div id="agentReceipts" class="rail small">No receipts yet.</div>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="row"><strong>Governance strip</strong></div>
+        <div id="agentStrip" class="strip small"></div>
+      </div>
+      <div class="pane">
+        <div class="row"><strong>P6 constraints CSV</strong></div>
+        <pre id="agentCsv" class="mono"></pre>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -412,6 +701,46 @@
   const msNowEl     = document.getElementById('msNow');
   const maxSlipEl   = document.getElementById('maxSlip');
 
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabPanes = document.querySelectorAll('[data-tab-pane]');
+  const explainButtons = document.querySelectorAll('.explainer');
+
+  const sandboxInput = document.getElementById('sandboxInput');
+  const sandboxSampleBtn = document.getElementById('sandboxSample');
+  const sandboxParseBtn = document.getElementById('sandboxParse');
+  const sandboxDrop = document.getElementById('sandboxDrop');
+  const sandboxApplyBtn = document.getElementById('sandboxApply');
+  const sandboxUndoBtn = document.getElementById('sandboxUndo');
+  const sandboxRedoBtn = document.getElementById('sandboxRedo');
+  const sandboxSummary = document.getElementById('sandboxSummary');
+  const sandboxBefore = document.getElementById('sandboxBefore');
+  const sandboxAfter = document.getElementById('sandboxAfter');
+  const sandboxAudit = document.getElementById('sandboxAudit');
+  const exportJsonBtn = document.getElementById('exportJson');
+  const exportCsvBtn = document.getElementById('exportCsv');
+  const exportDotBtn = document.getElementById('exportDot');
+  const sandboxExportJson = document.getElementById('sandboxExportJson');
+  const sandboxExportCsv = document.getElementById('sandboxExportCsv');
+  const sandboxExportDot = document.getElementById('sandboxExportDot');
+  const filterType = document.getElementById('filterType');
+  const filterTag = document.getElementById('filterTag');
+  const filterOwner = document.getElementById('filterOwner');
+  const filterStart = document.getElementById('filterStart');
+  const filterEnd = document.getElementById('filterEnd');
+  const contractMode = document.getElementById('contractMode');
+  const contractTag = document.getElementById('contractTag');
+
+  const agentPreset = document.getElementById('agentPreset');
+  const loadPresetBtn = document.getElementById('loadPreset');
+  const policyMode = document.getElementById('policyMode');
+  const runAgentsBtn = document.getElementById('runAgents');
+  const agentInput = document.getElementById('agentInput');
+  const agentOutput = document.getElementById('agentOutput');
+  const agentHotspots = document.getElementById('agentHotspots');
+  const agentReceipts = document.getElementById('agentReceipts');
+  const agentStrip = document.getElementById('agentStrip');
+  const agentCsv = document.getElementById('agentCsv');
+
   function logLine(msg){
     const t = new Date();
     const stamp = t.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
@@ -419,6 +748,31 @@
     div.textContent = `[${stamp}] ${msg}`;
     logEl.prepend(div);
   }
+
+  function setActiveTab(tab){
+    tabButtons.forEach(btn => {
+      const active = btn.dataset.tab === tab;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    tabPanes.forEach(pane => {
+      pane.classList.toggle('active', pane.dataset.tabPane === tab);
+    });
+  }
+
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+  });
+
+  explainButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.explain;
+      const el = document.getElementById(targetId);
+      if(el){
+        el.classList.toggle('show');
+      }
+    });
+  });
 
   // -----------------------------
   // Selection handlers
@@ -571,6 +925,554 @@
     }
     recomputeAndRender({ logUpdates:true, stepwise: state.animate });
   }
+
+  // -----------------------------
+  // Graph‑Transform Sandbox
+  // -----------------------------
+  const SANDBOX_SAMPLE = {
+    nodes: [
+      { id:'S1', label:'Scope draft', tags:['scope'], owner:'PMO', type:'scope', date:'2025-02-01' },
+      { id:'S2', label:'Permit check', tags:['permit','risk'], owner:'Reg', type:'permit', date:'2025-02-05' },
+      { id:'S3', label:'Contract gate', tags:['contract'], owner:'Legal', type:'contract', date:'2025-02-10' },
+      { id:'S4', label:'Power interface', tags:['power','interface'], owner:'Utilities', type:'power', date:'2025-02-12' },
+      { id:'S5', label:'Design pack', tags:['design'], owner:'Eng', type:'scope', date:'2025-02-15' }
+    ],
+    edges: [
+      { source:'S1', target:'S2', duration:2, lag:1 },
+      { source:'S2', target:'S3', duration:3, lag:0 },
+      { source:'S3', target:'S4', duration:4, lag:1 },
+      { source:'S3', target:'S5', duration:2, lag:0 },
+      { source:'S5', target:'S4', duration:1, lag:0 }
+    ]
+  };
+
+  const sandboxState = {
+    original: null,
+    current: null,
+    history: [],
+    historyIndex: -1,
+    lastSummary: null
+  };
+
+  function normalizeGraph(raw){
+    if(!raw || !Array.isArray(raw.nodes) || !Array.isArray(raw.edges)){
+      throw new Error('Invalid graph JSON: expected {nodes:[], edges:[]}');
+    }
+    const nodes = raw.nodes.map(n => ({
+      id: String(n.id),
+      label: n.label || String(n.id),
+      tags: Array.isArray(n.tags) ? n.tags.map(t => String(t)) : [],
+      owner: n.owner ? String(n.owner) : '',
+      type: n.type ? String(n.type) : '',
+      date: n.date ? String(n.date) : ''
+    }));
+    const edges = raw.edges.map(e => ({
+      source: String(e.source),
+      target: String(e.target),
+      lag: Number.isFinite(+e.lag) ? +e.lag : 0,
+      duration: Number.isFinite(+e.duration) ? +e.duration : 0
+    }));
+    return { nodes, edges };
+  }
+
+  function parseSandboxInput(text){
+    const parsed = JSON.parse(text);
+    return normalizeGraph(parsed);
+  }
+
+  function buildGraphIndex(graph){
+    const nodeIds = graph.nodes.map(n => n.id);
+    const preds = Object.fromEntries(nodeIds.map(id => [id, []]));
+    const succs = Object.fromEntries(nodeIds.map(id => [id, []]));
+    graph.edges.forEach(e => {
+      if(preds[e.target]){
+        preds[e.target].push(e);
+      }
+      if(succs[e.source]){
+        succs[e.source].push(e);
+      }
+    });
+    const inDeg = Object.fromEntries(nodeIds.map(id => [id, preds[id].length]));
+    const queue = nodeIds.filter(id => inDeg[id] === 0);
+    const order = [];
+    while(queue.length){
+      const u = queue.shift();
+      order.push(u);
+      succs[u].forEach(edge => {
+        const v = edge.target;
+        inDeg[v]--;
+        if(inDeg[v] === 0) queue.push(v);
+      });
+    }
+    return { nodeIds, preds, succs, order, hasCycle: order.length !== nodeIds.length };
+  }
+
+  function applyFilters(graph){
+    const typeVal = filterType.value.trim().toLowerCase();
+    const tagVal = filterTag.value.trim().toLowerCase();
+    const ownerVal = filterOwner.value.trim().toLowerCase();
+    const startVal = filterStart.value ? new Date(filterStart.value) : null;
+    const endVal = filterEnd.value ? new Date(filterEnd.value) : null;
+
+    const nodes = graph.nodes.filter(n => {
+      if(typeVal && (n.type || '').toLowerCase() !== typeVal) return false;
+      if(tagVal && !(n.tags || []).some(t => t.toLowerCase().includes(tagVal))) return false;
+      if(ownerVal && (n.owner || '').toLowerCase() !== ownerVal) return false;
+      if(startVal || endVal){
+        if(!n.date) return false;
+        const d = new Date(n.date);
+        if(startVal && d < startVal) return false;
+        if(endVal && d > endVal) return false;
+      }
+      return true;
+    });
+    const nodeIds = new Set(nodes.map(n => n.id));
+    const edges = graph.edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+    return { nodes, edges };
+  }
+
+  function contractGraph(graph){
+    const mode = contractMode.value;
+    const tagName = contractTag.value.trim();
+    if(mode === 'none'){
+      return { graph, note:'No contraction' };
+    }
+
+    const mapping = {};
+    const groups = new Map();
+    const tagLower = tagName.toLowerCase();
+
+    graph.nodes.forEach(node => {
+      let key = node.id;
+      if(mode === 'owner' && node.owner){
+        key = `owner:${node.owner}`;
+      } else if(mode === 'type' && node.type){
+        key = `type:${node.type}`;
+      } else if(mode === 'tag' && tagLower && node.tags.some(t => t.toLowerCase() === tagLower)){
+        key = `tag:${tagName}`;
+      }
+      mapping[node.id] = key;
+      if(!groups.has(key)){
+        groups.set(key, []);
+      }
+      groups.get(key).push(node);
+    });
+
+    const mergedNodes = [];
+    groups.forEach((nodes, key) => {
+      if(nodes.length === 1 && nodes[0].id === key){
+        mergedNodes.push(nodes[0]);
+        return;
+      }
+      const tags = [...new Set(nodes.flatMap(n => n.tags || []))];
+      const owners = [...new Set(nodes.map(n => n.owner).filter(Boolean))];
+      const types = [...new Set(nodes.map(n => n.type).filter(Boolean))];
+      mergedNodes.push({
+        id: key,
+        label: `${key} (${nodes.length})`,
+        tags,
+        owner: owners.join(','),
+        type: types.join(','),
+        members: nodes.map(n => n.id)
+      });
+    });
+
+    const edgeMap = new Map();
+    graph.edges.forEach(e => {
+      const source = mapping[e.source] || e.source;
+      const target = mapping[e.target] || e.target;
+      if(source === target) return;
+      const id = `${source}->${target}`;
+      if(!edgeMap.has(id)){
+        edgeMap.set(id, { source, target, lag: 0, duration: 0, count: 0 });
+      }
+      const entry = edgeMap.get(id);
+      entry.lag += e.lag || 0;
+      entry.duration += e.duration || 0;
+      entry.count += 1;
+    });
+
+    return { graph: { nodes: mergedNodes, edges: [...edgeMap.values()] }, note:`Contracted by ${mode}` };
+  }
+
+  function computeCriticalPath(graph){
+    const idx = buildGraphIndex(graph);
+    const dist = Object.fromEntries(idx.nodeIds.map(id => [id, 0]));
+    const prevEdge = {};
+
+    idx.order.forEach(id => {
+      (idx.succs[id] || []).forEach(edge => {
+        const weight = (edge.duration || 0) + (edge.lag || 0);
+        const cand = dist[id] + weight;
+        if(cand >= dist[edge.target]){
+          dist[edge.target] = cand;
+          prevEdge[edge.target] = edge;
+        }
+      });
+    });
+
+    const endNode = idx.nodeIds.reduce((maxId, id) => dist[id] > dist[maxId] ? id : maxId, idx.nodeIds[0] || '');
+    const criticalEdges = new Set();
+    let cursor = endNode;
+    while(prevEdge[cursor]){
+      const edge = prevEdge[cursor];
+      criticalEdges.add(`${edge.source}->${edge.target}`);
+      cursor = edge.source;
+    }
+
+    return { criticalEdges, criticalLength: dist[endNode] || 0, order: idx.order, hasCycle: idx.hasCycle };
+  }
+
+  function buildSandboxSummary(graph, critical){
+    if(!graph){
+      return 'No graph loaded.';
+    }
+    const summary = `${graph.nodes.length} nodes, ${graph.edges.length} edges, topo order ${critical.order.length} nodes`;
+    const cycleNote = critical.hasCycle ? ' (cycle detected)' : '';
+    const orderPreview = critical.order.slice(0, 6).join(' → ');
+    const orderNote = orderPreview ? ` • topo ${orderPreview}${critical.order.length > 6 ? ' …' : ''}` : '';
+    return `${summary}${cycleNote} • critical path ${critical.criticalLength}d${orderNote}`;
+  }
+
+  function buildExports(graph, critical){
+    if(!graph){
+      return { json:'', csv:'', dot:'' };
+    }
+    const json = JSON.stringify(graph, null, 2);
+    const csvLines = ['activity_id,pred_id,lag,duration,critical'];
+    graph.edges.forEach(edge => {
+      const id = `${edge.source}->${edge.target}`;
+      csvLines.push(`${edge.target},${edge.source},${edge.lag || 0},${edge.duration || 0},${critical.criticalEdges.has(id) ? 'yes' : 'no'}`);
+    });
+    const dotLines = ['digraph G {', '  rankdir=LR;'];
+    graph.nodes.forEach(node => {
+      dotLines.push(`  "${node.id}" [label="${node.label}"];`);
+    });
+    graph.edges.forEach(edge => {
+      const id = `${edge.source}->${edge.target}`;
+      const criticalFlag = critical.criticalEdges.has(id);
+      const color = criticalFlag ? 'color="red", penwidth=2' : '';
+      const label = `label="lag ${edge.lag || 0}d, dur ${edge.duration || 0}d"`;
+      dotLines.push(`  "${edge.source}" -> "${edge.target}" [${label}${color ? ', ' + color : ''}];`);
+    });
+    dotLines.push('}');
+
+    return { json, csv: csvLines.join('\n'), dot: dotLines.join('\n') };
+  }
+
+  function pushSandboxHistory(entry){
+    if(sandboxState.historyIndex < sandboxState.history.length - 1){
+      sandboxState.history = sandboxState.history.slice(0, sandboxState.historyIndex + 1);
+    }
+    sandboxState.history.push(entry);
+    sandboxState.historyIndex = sandboxState.history.length - 1;
+  }
+
+  function updateSandboxUI(){
+    if(!sandboxState.current){
+      sandboxBefore.textContent = 'Load or paste JSON to begin.';
+      sandboxAfter.textContent = 'Apply transforms to see output.';
+      sandboxSummary.textContent = 'No graph loaded.';
+      sandboxAudit.innerHTML = '';
+      sandboxExportJson.textContent = '';
+      sandboxExportCsv.textContent = '';
+      sandboxExportDot.textContent = '';
+      return;
+    }
+    sandboxBefore.textContent = JSON.stringify(sandboxState.original, null, 2);
+    sandboxAfter.textContent = JSON.stringify(sandboxState.current, null, 2);
+    sandboxSummary.textContent = sandboxState.lastSummary || 'Transforms applied.';
+    sandboxAudit.innerHTML = '';
+    sandboxState.history.forEach((entry, index) => {
+      const li = document.createElement('li');
+      li.textContent = `${entry.label} ${index === sandboxState.historyIndex ? '• current' : ''}`;
+      sandboxAudit.appendChild(li);
+    });
+    if(sandboxState.lastExports){
+      sandboxExportJson.textContent = sandboxState.lastExports.json;
+      sandboxExportCsv.textContent = sandboxState.lastExports.csv;
+      sandboxExportDot.textContent = sandboxState.lastExports.dot;
+    }
+  }
+
+  function applySandboxTransforms(){
+    if(!sandboxState.original){
+      sandboxSummary.textContent = 'Parse a graph first.';
+      return;
+    }
+    const filtered = applyFilters(sandboxState.original);
+    const { graph: contracted, note } = contractGraph(filtered);
+    const critical = computeCriticalPath(contracted);
+    const summary = buildSandboxSummary(contracted, critical);
+    const exports = buildExports(contracted, critical);
+
+    sandboxState.current = contracted;
+    sandboxState.lastSummary = summary;
+    sandboxState.lastExports = exports;
+    pushSandboxHistory({
+      label: `Transform: ${note} + filters + critical path`,
+      graph: contracted
+    });
+    updateSandboxUI();
+  }
+
+  function resetSandboxFromHistory(){
+    const entry = sandboxState.history[sandboxState.historyIndex];
+    if(entry){
+      sandboxState.current = entry.graph;
+      const critical = computeCriticalPath(entry.graph);
+      sandboxState.lastSummary = buildSandboxSummary(entry.graph, critical);
+      sandboxState.lastExports = buildExports(entry.graph, critical);
+      updateSandboxUI();
+    }
+  }
+
+  sandboxSampleBtn.addEventListener('click', () => {
+    sandboxInput.value = JSON.stringify(SANDBOX_SAMPLE, null, 2);
+  });
+
+  sandboxParseBtn.addEventListener('click', () => {
+    try{
+      const graph = parseSandboxInput(sandboxInput.value);
+      sandboxState.original = graph;
+      sandboxState.current = graph;
+      const critical = computeCriticalPath(graph);
+      sandboxState.lastSummary = buildSandboxSummary(graph, critical);
+      sandboxState.lastExports = buildExports(graph, critical);
+      sandboxState.history = [];
+      pushSandboxHistory({ label:'Baseline loaded', graph });
+      updateSandboxUI();
+    }catch(err){
+      sandboxSummary.textContent = err.message;
+    }
+  });
+
+  sandboxApplyBtn.addEventListener('click', applySandboxTransforms);
+  sandboxUndoBtn.addEventListener('click', () => {
+    if(sandboxState.historyIndex > 0){
+      sandboxState.historyIndex -= 1;
+      resetSandboxFromHistory();
+    }
+  });
+  sandboxRedoBtn.addEventListener('click', () => {
+    if(sandboxState.historyIndex < sandboxState.history.length - 1){
+      sandboxState.historyIndex += 1;
+      resetSandboxFromHistory();
+    }
+  });
+
+  [exportJsonBtn, exportCsvBtn, exportDotBtn].forEach((btn, idx) => {
+    btn.addEventListener('click', async () => {
+      if(!sandboxState.lastExports) return;
+      const payloads = [sandboxState.lastExports.json, sandboxState.lastExports.csv, sandboxState.lastExports.dot];
+      const text = payloads[idx];
+      if(navigator.clipboard && text){
+        await navigator.clipboard.writeText(text);
+        sandboxSummary.textContent = 'Copied export to clipboard.';
+      }
+    });
+  });
+
+  sandboxDrop.addEventListener('dragover', evt => {
+    evt.preventDefault();
+    sandboxDrop.classList.add('dragover');
+  });
+  sandboxDrop.addEventListener('dragleave', () => sandboxDrop.classList.remove('dragover'));
+  sandboxDrop.addEventListener('drop', evt => {
+    evt.preventDefault();
+    sandboxDrop.classList.remove('dragover');
+    const file = evt.dataTransfer.files[0];
+    if(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        sandboxInput.value = reader.result;
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  // -----------------------------
+  // Agent‑Based Scenario Explorer
+  // -----------------------------
+  const AGENT_PRESETS = {
+    permit: {
+      tasks: [
+        { id:'A1', window:[1,6], buffer:2, needs:['permit'], offers:['design'] },
+        { id:'A2', window:[4,9], buffer:1, needs:['design'], offers:['permit'] },
+        { id:'A3', window:[6,10], buffer:2, needs:['permit'], offers:[] }
+      ],
+      resources: [{ id:'permit', cap:1, calendar:'weekdays' }, { id:'design', cap:1, calendar:'weekdays' }]
+    },
+    crane: {
+      tasks: [
+        { id:'C1', window:[2,7], buffer:1, needs:['crane'], offers:['lift'] },
+        { id:'C2', window:[5,9], buffer:1, needs:['lift'], offers:['crane'] },
+        { id:'C3', window:[3,8], buffer:0, needs:['crane'], offers:[] }
+      ],
+      resources: [{ id:'crane', cap:1, calendar:'shift' }, { id:'lift', cap:1, calendar:'shift' }]
+    },
+    design: {
+      tasks: [
+        { id:'D1', window:[1,5], buffer:1, needs:['design'], offers:['review'] },
+        { id:'D2', window:[4,10], buffer:2, needs:['review'], offers:['design'] },
+        { id:'D3', window:[6,12], buffer:1, needs:['design'], offers:[] }
+      ],
+      resources: [{ id:'design', cap:1, calendar:'weekdays' }, { id:'review', cap:1, calendar:'weekdays' }]
+    }
+  };
+
+  function parseAgentInput(text){
+    const parsed = JSON.parse(text);
+    if(!Array.isArray(parsed.tasks) || !Array.isArray(parsed.resources)){
+      throw new Error('Invalid input: expected tasks[] and resources[].');
+    }
+    return parsed;
+  }
+
+  function effectiveWindow(task, policy){
+    const [start, end] = task.window;
+    const buffer = task.buffer || 0;
+    if(policy === 'liberal'){
+      return [start - buffer, end + buffer];
+    }
+    if(policy === 'priority'){
+      return [start - Math.floor(buffer * 0.5), end + Math.floor(buffer * 0.5)];
+    }
+    return [start, end];
+  }
+
+  function overlapWindow(a, b){
+    return Math.max(0, Math.min(a[1], b[1]) - Math.max(a[0], b[0]));
+  }
+
+  function simulateAgents(input, policy){
+    const tasks = input.tasks.map(t => ({ ...t }));
+    const trades = [];
+    const deficits = [];
+    const slackDeltas = {};
+    const offerUsed = new Set();
+
+    const ordered = [...tasks].sort((a, b) => (policy === 'priority' ? (a.buffer || 0) - (b.buffer || 0) : 0));
+
+    ordered.forEach(task => {
+      const windowEff = effectiveWindow(task, policy);
+      const baseSlack = (task.window[1] - task.window[0]);
+      const effSlack = (windowEff[1] - windowEff[0]);
+      slackDeltas[task.id] = effSlack - baseSlack;
+
+      (task.needs || []).forEach(need => {
+        const match = ordered.find(other => other.id !== task.id && (other.offers || []).includes(need) && !offerUsed.has(`${other.id}:${need}`) && overlapWindow(windowEff, effectiveWindow(other, policy)) > 0);
+        if(match){
+          offerUsed.add(`${match.id}:${need}`);
+          trades.push({
+            from: match.id,
+            to: task.id,
+            resource: need,
+            overlap: overlapWindow(windowEff, effectiveWindow(match, policy))
+          });
+        }else{
+          deficits.push({ task: task.id, resource: need, window: windowEff });
+        }
+      });
+    });
+
+    return { trades, deficits, slackDeltas };
+  }
+
+  function buildReceipts(baseline, current, policy){
+    return [
+      `Baseline (strict): trades ${baseline.trades.length}, deficits ${baseline.deficits.length}`,
+      `Policy (${policy}): trades ${current.trades.length}, deficits ${current.deficits.length}`
+    ];
+  }
+
+  function buildHotspots(deficits){
+    if(!deficits.length) return ['No hotspots detected.'];
+    return deficits.map(d => `Task ${d.task} lacks ${d.resource} in window ${d.window[0]}–${d.window[1]}`);
+  }
+
+  function hashString(str){
+    let hash = 0;
+    for(let i = 0; i < str.length; i++){
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return `hx${Math.abs(hash)}`;
+  }
+
+  function updateAgentUI(output, baseline, policy){
+    agentOutput.textContent = JSON.stringify({
+      policy,
+      trades: output.trades,
+      residual_deficits: output.deficits,
+      slack_deltas: output.slackDeltas
+    }, null, 2);
+
+    agentHotspots.innerHTML = '';
+    buildHotspots(output.deficits).forEach(line => {
+      const div = document.createElement('div');
+      div.textContent = line;
+      if(output.deficits.length){
+        div.classList.add('hotspot');
+      }
+      agentHotspots.appendChild(div);
+    });
+
+    agentReceipts.innerHTML = '';
+    buildReceipts(baseline, output, policy).forEach(line => {
+      const div = document.createElement('div');
+      div.textContent = line;
+      agentReceipts.appendChild(div);
+    });
+
+    const lineage = hashString(agentOutput.textContent);
+    agentStrip.innerHTML = '';
+    [
+      `Rule: ${policy}`,
+      `Conflicts surfaced: ${output.deficits.length}`,
+      `Mitigations chosen: ${output.trades.length}`,
+      `Lineage hash: ${lineage}`
+    ].forEach(item => {
+      const span = document.createElement('span');
+      span.className = 'badge';
+      span.textContent = item;
+      agentStrip.appendChild(span);
+    });
+  }
+
+  function buildAgentCsv(output){
+    const lines = ['activity_id,constraint_type,constraint_date,slack_delta'];
+    Object.entries(output.slackDeltas).forEach(([taskId, delta]) => {
+      lines.push(`${taskId},WINDOW,0,${delta}`);
+    });
+    output.deficits.forEach(def => {
+      lines.push(`${def.task},NEEDS_${def.resource},${def.window[1]},-1`);
+    });
+    return lines.join('\n');
+  }
+
+  function loadPreset(name){
+    const preset = AGENT_PRESETS[name];
+    if(preset){
+      agentInput.value = JSON.stringify(preset, null, 2);
+    }
+  }
+
+  loadPreset(agentPreset.value);
+
+  loadPresetBtn.addEventListener('click', () => loadPreset(agentPreset.value));
+  runAgentsBtn.addEventListener('click', () => {
+    try{
+      const input = parseAgentInput(agentInput.value);
+      const policy = policyMode.value;
+      const baseline = simulateAgents(input, 'strict');
+      const output = simulateAgents(input, policy);
+      updateAgentUI(output, baseline, policy);
+      agentCsv.textContent = buildAgentCsv(output);
+    }catch(err){
+      agentOutput.textContent = err.message;
+    }
+  });
 
   // -----------------------------
   // GraphTransforms core utilities

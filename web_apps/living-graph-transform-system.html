@@ -43,6 +43,7 @@
   .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
   .dot.base{background:var(--accent2)} .dot.root{background:var(--accent)}
   #cy{height:100%;width:100%;background:radial-gradient(ellipse at 50% -10%, #15203a 0%, #0b0f1a 60%);border:1px solid rgba(255,255,255,0.08);border-radius:12px}
+  #sandboxCy{height:320px;width:100%;background:radial-gradient(ellipse at 50% -10%, #15203a 0%, #0b0f1a 60%);border:1px solid rgba(255,255,255,0.08);border-radius:12px}
   .small{font-size:12px;color:var(--muted)}
   details{border:1px dashed rgba(255,255,255,0.12);border-radius:10px;padding:8px}
   summary{cursor:pointer;color:var(--accent)}
@@ -474,6 +475,10 @@
     </div>
 
     <div class="tab-pane" data-tab-pane="sandbox">
+      <div class="pane">
+        <div class="row"><strong>Network graph</strong><span class="small">Baseline / transformed view</span></div>
+        <div id="sandboxCy" aria-label="Sandbox network graph"></div>
+      </div>
       <div class="split">
         <div class="pane">
           <div class="row"><strong>Before</strong><span class="small">Baseline graph</span></div>
@@ -722,6 +727,7 @@
   const sandboxExportJson = document.getElementById('sandboxExportJson');
   const sandboxExportCsv = document.getElementById('sandboxExportCsv');
   const sandboxExportDot = document.getElementById('sandboxExportDot');
+  const sandboxCyEl = document.getElementById('sandboxCy');
   const filterType = document.getElementById('filterType');
   const filterTag = document.getElementById('filterTag');
   const filterOwner = document.getElementById('filterOwner');
@@ -758,6 +764,12 @@
     tabPanes.forEach(pane => {
       pane.classList.toggle('active', pane.dataset.tabPane === tab);
     });
+    if(tab === 'sandbox' && sandboxCyInstance){
+      requestAnimationFrame(() => {
+        sandboxCyInstance.resize();
+        sandboxCyInstance.fit();
+      });
+    }
   }
 
   tabButtons.forEach(btn => {
@@ -946,12 +958,98 @@
     ]
   };
 
+  let sandboxCyInstance = null;
+
+  function ensureSandboxCy(){
+    if(sandboxCyInstance || !sandboxCyEl) return;
+    sandboxCyInstance = cytoscape({
+      container: sandboxCyEl,
+      wheelSensitivity: 0.3,
+      layout: { name:'breadthfirst', directed:true, spacingFactor:1.2 },
+      style: [
+        {
+          selector:'node',
+          style:{
+            'background-color':'#1b2440',
+            'border-width':2,
+            'border-color':'#2b3757',
+            'label':'data(label)',
+            'color':'#e6f1ff',
+            'font-size':11,
+            'text-wrap':'wrap',
+            'text-max-width': 160,
+            'text-valign':'center',
+            'text-halign':'center'
+          }
+        },
+        {
+          selector:'edge',
+          style:{
+            'curve-style':'bezier',
+            'width':2,
+            'line-color':'#2b3757',
+            'target-arrow-shape':'triangle',
+            'target-arrow-color':'#2b3757',
+            'label':'data(label)',
+            'font-size':10,
+            'color':'rgba(230,241,255,0.75)',
+            'text-background-color':'rgba(0,0,0,0.35)',
+            'text-background-opacity':1,
+            'text-background-padding':'2px',
+            'text-rotation':'autorotate'
+          }
+        },
+        {
+          selector:'edge.critical',
+          style:{
+            'line-color':'#fb7185',
+            'target-arrow-color':'#fb7185',
+            'width':3
+          }
+        }
+      ],
+      elements: []
+    });
+  }
+
+  function renderSandboxGraph(graph, critical){
+    ensureSandboxCy();
+    if(!sandboxCyInstance) return;
+    sandboxCyInstance.elements().remove();
+    if(!graph){
+      sandboxCyInstance.resize();
+      return;
+    }
+    const elements = [
+      ...graph.nodes.map(node => ({
+        data: {
+          id: node.id,
+          label: node.label || node.id
+        }
+      })),
+      ...graph.edges.map(edge => ({
+        data: {
+          id: `${edge.source}->${edge.target}`,
+          source: edge.source,
+          target: edge.target,
+          label: `lag ${edge.lag || 0}d, dur ${edge.duration || 0}d`
+        },
+        classes: critical && critical.criticalEdges.has(`${edge.source}->${edge.target}`) ? 'critical' : ''
+      }))
+    ];
+    sandboxCyInstance.add(elements);
+    const layout = sandboxCyInstance.layout({ name:'breadthfirst', directed:true, spacingFactor:1.2 });
+    layout.run();
+    sandboxCyInstance.fit();
+  }
+
   const sandboxState = {
     original: null,
     current: null,
     history: [],
     historyIndex: -1,
-    lastSummary: null
+    lastSummary: null,
+    lastCritical: null
   };
 
   function normalizeGraph(raw){
@@ -1177,6 +1275,7 @@
       sandboxExportJson.textContent = '';
       sandboxExportCsv.textContent = '';
       sandboxExportDot.textContent = '';
+      renderSandboxGraph(null, null);
       return;
     }
     sandboxBefore.textContent = JSON.stringify(sandboxState.original, null, 2);
@@ -1193,6 +1292,7 @@
       sandboxExportCsv.textContent = sandboxState.lastExports.csv;
       sandboxExportDot.textContent = sandboxState.lastExports.dot;
     }
+    renderSandboxGraph(sandboxState.current, sandboxState.lastCritical);
   }
 
   function applySandboxTransforms(){
@@ -1209,6 +1309,7 @@
     sandboxState.current = contracted;
     sandboxState.lastSummary = summary;
     sandboxState.lastExports = exports;
+    sandboxState.lastCritical = critical;
     pushSandboxHistory({
       label: `Transform: ${note} + filters + critical path`,
       graph: contracted
@@ -1223,6 +1324,7 @@
       const critical = computeCriticalPath(entry.graph);
       sandboxState.lastSummary = buildSandboxSummary(entry.graph, critical);
       sandboxState.lastExports = buildExports(entry.graph, critical);
+      sandboxState.lastCritical = critical;
       updateSandboxUI();
     }
   }
@@ -1239,6 +1341,7 @@
       const critical = computeCriticalPath(graph);
       sandboxState.lastSummary = buildSandboxSummary(graph, critical);
       sandboxState.lastExports = buildExports(graph, critical);
+      sandboxState.lastCritical = critical;
       sandboxState.history = [];
       pushSandboxHistory({ label:'Baseline loaded', graph });
       updateSandboxUI();

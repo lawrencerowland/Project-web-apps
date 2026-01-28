@@ -173,23 +173,6 @@
         <button class="btn grid" data-explainer="coda">Tangential coda</button>
       </div>
     </div>
-    <!-- View / mode -->
-    <div class="panel">
-      <div class="row small">
-        <span>View:</span>
-        <select id="view" class="btn" style="flex:1">
-          <option value="slip">Slip propagation (original)</option>
-          <option value="schedule" selected>Schedule ES/EF (durations + lags)</option>
-          <option value="both">Both (verbose)</option>
-        </select>
-      </div>
-      <div class="row small">
-        <span>Propagation rule:</span>
-        <select id="rule" class="btn" style="flex:1">
-          <option value="max">Finish‑to‑Start (max predecessor)</option>
-          <option value="sum">Cumulative (sum of predecessors)</option>
-          <option value="mean">Averaging (toy)</option>
-        </select>
     <div class="tab-pane active" data-tab-pane="rescheduler">
       <!-- View / mode -->
       <div class="panel">
@@ -1003,6 +986,7 @@
     if(event.target === explainerModal){
       closeExplainerModal();
     }
+  });
   function setActiveTab(tab){
     tabButtons.forEach(btn => {
       const active = btn.dataset.tab === tab;

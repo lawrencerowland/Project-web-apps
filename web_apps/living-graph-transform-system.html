@@ -983,9 +983,11 @@
       title: 'Primer (plain terms)',
       subtitle: 'Reversible graph rewrite system for a digital twin.',
       body: `
-        <p><strong>Graph:</strong> nodes = assets, actors, or artifacts; edges = relationships like flows, dependencies, or contracts.</p>
+        <p>Here’s a compact idea you can use right away: treat your digital twin as a <strong>reversible graph‑rewrite system</strong>, so every change is a proof object.</p>
+        <p><strong>Graph:</strong> nodes = assets/actors/artifacts; edges = relationships (flows, dependencies, contracts).</p>
         <p><strong>Rewrite rule:</strong> a small pattern you match and replace (e.g., “Split WorkPackage A into A1/A2; redirect dependencies”).</p>
-        <p><strong>Reversible:</strong> every rule has an inverse; applying forward + inverse nets identity. That gives you lineage plus provable diffs.</p>
+        <p><strong>Reversible:</strong> every rule has an inverse; applying inverse + forward nets identity. This gives you lineage + provable diffs.</p>
+        <p><strong>Rule receipt:</strong> every edge/node rewrite emits a receipt (who/what/why/when), so the audit trail is natively visual—not a spreadsheet.</p>
         <div class="small" style="margin-top:10px">
           Think of each change as a tiny, explainable move rather than a single opaque reschedule.
         </div>
@@ -996,8 +998,8 @@
       subtitle: 'Diff-as-morphism governance + deterministic replay.',
       body: `
         <ul>
-          <li><strong>Diff as morphism:</strong> every change is the composition of rule receipts; governance checks that composition against policy.</li>
-          <li><strong>Lineage first:</strong> any element shows its ancestry (rule chain that created it) and obligations (policies consulted).</li>
+          <li><strong>Diff as morphism:</strong> a twin’s change is the composition of rule receipts; governance = checking that composition against policy.</li>
+          <li><strong>Lineage first:</strong> any element shows its ancestry (which rule chain created it) and obligations (which policies were consulted).</li>
           <li><strong>Deterministic replay:</strong> “What happened?” becomes a click-through movie, not narrative notes.</li>
         </ul>
       `
@@ -1007,7 +1009,7 @@
       subtitle: 'The smallest set of objects to support receipts + replay.',
       body: `
         <ul>
-          <li><strong>Graph:</strong> typed nodes/edges, versioned state.</li>
+          <li><strong>Graph:</strong> typed nodes/edges, versioned.</li>
           <li><strong>Rule:</strong> LHS pattern, RHS construction, pre/post-conditions, policy hooks.</li>
           <li><strong>Receipt:</strong> RuleID, actor, timestamp, inputs, outputs, policy decisions, hash of LHS/RHS.</li>
           <li><strong>Trace:</strong> ordered list of Receipts; <code>State_t = apply(Trace[0..t], State_0)</code>.</li>
@@ -1019,8 +1021,8 @@
       subtitle: 'Pre-conditions, obligations, and stakeholder projections.',
       body: `
         <ul>
-          <li><strong>Pre-conditions:</strong> “H&amp;S review present”, “RACI owner exists”, “contract cap not exceeded”.</li>
-          <li><strong>Obligation tags:</strong> attach CDM / NEC clause / retention class to receipts.</li>
+          <li><strong>Pre-conditions:</strong> “H&amp;S review present”, “RACI owner exists”, “contractual cap not exceeded”.</li>
+          <li><strong>Obligation tags:</strong> attach obligations to receipts (e.g., CDM, NEC clause, data-retention class).</li>
           <li><strong>Selective projection:</strong> produce stakeholder views (risk, commercial, H&amp;S) by filtering receipts + subgraphs.</li>
         </ul>
       `
@@ -1048,7 +1050,7 @@
     create A1,A2:type=WP; partition scope(A) -> (A1,A2)
     rewire deps_out based on new WBS split
   post: baseline.delta.cost <= threshold
-  inverse: MergeWorkPackage(A1,A2)</pre>
+  inverse: MergeWorkPackage(A1,A2)  // generated automatically</pre>
         <p class="small">Inverse rules can be generated automatically so replay and undo are provably correct.</p>
       `
     },

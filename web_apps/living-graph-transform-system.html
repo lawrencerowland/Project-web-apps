@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>GraphTransforms — Living Graph‑Transform Rescheduler (Cytoscape demo)</title>
+<title>GraphTransforms — Living Graph‑Transform Rescheduler (D3 demo)</title>
 <link rel="preconnect" href="https://unpkg.com">
+<link rel="icon" href="data:,">
 <style>
   :root{
     --bg:#0b0f1a; --panel:#111726; --ink:#e6f1ff;
@@ -44,6 +45,16 @@
   .dot.base{background:var(--accent2)} .dot.root{background:var(--accent)}
   #cy{height:100%;width:100%;background:radial-gradient(ellipse at 50% -10%, #15203a 0%, #0b0f1a 60%);border:1px solid rgba(255,255,255,0.08);border-radius:12px}
   #sandboxCy{height:320px;width:100%;background:radial-gradient(ellipse at 50% -10%, #15203a 0%, #0b0f1a 60%);border:1px solid rgba(255,255,255,0.08);border-radius:12px}
+  .graph-surface{width:100%;height:100%;display:block}
+  .graph-bg{fill:transparent}
+  .graph-node circle{stroke:#2b3757;stroke-width:2}
+  .graph-node text{fill:#e6f1ff;font-size:12px;text-anchor:middle;pointer-events:none}
+  .graph-node.selected circle{stroke:#7dd3fc;stroke-width:3;filter:drop-shadow(0 0 6px rgba(125,211,252,0.7))}
+  .graph-node.stepping circle{stroke:#fbbf24;stroke-width:3;filter:drop-shadow(0 0 8px rgba(251,191,36,0.8))}
+  .graph-edge{stroke:#2b3757}
+  .graph-edge.edgeSelected{stroke:#7dd3fc}
+  .graph-edge.critical{stroke:#fb7185}
+  .edge-label{fill:rgba(230,241,255,0.75);font-size:10px;pointer-events:none;text-anchor:middle}
   .small{font-size:12px;color:var(--muted)}
   details{border:1px dashed rgba(255,255,255,0.12);border-radius:10px;padding:8px}
   summary{cursor:pointer;color:var(--accent)}
@@ -137,14 +148,14 @@
     text-align:left;
   }
 
-  /* Cytoscape selection styling handled via classes */
+  /* Selection styling handled via classes */
 </style>
 </head>
 <body>
 <div id="app">
   <header>
     <div class="title">
-      <h1>GraphTransforms — living graph‑transform rescheduler (Cytoscape)</h1>
+      <h1>GraphTransforms — living graph‑transform rescheduler (D3)</h1>
       <div class="caps small">Drag nodes • Click a node or edge • Apply rewrite rules • Watch ripple + log</div>
     </div>
     <div class="tabs" role="tablist" aria-label="GraphTransforms tabs">
@@ -618,8 +629,8 @@
   </div>
 </div>
 
-<!-- Cytoscape.js -->
-<script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.umd.js"></script>
+<!-- D3.js -->
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
 
 <script>
 (function(){
@@ -671,97 +682,266 @@
     }
   };
 
-  // -----------------------------
-  // Cytoscape init
-  // -----------------------------
-  const cy = cytoscape({
-    container: document.getElementById('cy'),
-    wheelSensitivity: 0.3,
-    layout: { name:'cose', animate:true, randomize:false },
-    style: [
-      {
-        selector:'node',
-        style:{
-          'background-color': 'data(color)',
-          'border-width':2,
-          'border-color':'#2b3757',
-          'label':'data(renderLabel)',
-          'color':'#e6f1ff',
-          'font-size':12,
-          'text-wrap':'wrap',
-          'text-max-width': 170,
-          'text-valign':'center',
-          'text-halign':'center',
-          'width': 44, 'height': 44,
-          'overlay-opacity':0
-        }
-      },
-      {
-        selector:'node.selected',
-        style:{
-          'border-color':'#7dd3fc',
-          'border-width':3,
-          'shadow-blur':12,
-          'shadow-color':'#7dd3fc'
-        }
-      },
-      {
-        selector:'node.stepping',
-        style:{
-          'shadow-blur':18,
-          'shadow-color':'#fbbf24'
-        }
-      },
-      {
-        selector:'edge',
-        style:{
-          'curve-style':'bezier',
-          'width':'data(w)',
-          'line-color':'#2b3757',
-          'target-arrow-shape':'triangle',
-          'target-arrow-color':'#2b3757',
-          'label':'data(renderLabel)',
-          'font-size':10,
-          'color':'rgba(230,241,255,0.75)',
-          'text-background-color':'rgba(0,0,0,0.35)',
-          'text-background-opacity':1,
-          'text-background-padding':'2px',
-          'text-rotation':'autorotate'
-        }
-      },
-      {
-        selector:'edge.edgeSelected',
-        style:{
-          'line-color':'#7dd3fc',
-          'target-arrow-color':'#7dd3fc',
-          'width': 4
-        }
+  const nodes = NODES.map(n => ({
+    ...n,
+    color: baseFill(n.tier),
+    renderLabel: n.label
+  }));
+  const edges = EDGES0.map(([s,t]) => ({
+    id: `${s}->${t}`,
+    source: s,
+    target: t,
+    lag0: 0,
+    lag: 0,
+    w: 2,
+    renderLabel: 'lag 0d'
+  }));
+  const nodeById = new Map(nodes.map(n => [n.id, n]));
+  const edgeById = new Map(edges.map(e => [e.id, e]));
+
+  function edgeSourceId(edge){
+    return typeof edge.source === 'object' ? edge.source.id : edge.source;
+  }
+  function edgeTargetId(edge){
+    return typeof edge.target === 'object' ? edge.target.id : edge.target;
+  }
+
+  function createGraphRenderer({ container, nodeRadius = 24, linkDistance = 160, fontSize = 12, showEdgeLabels = true, onNodeClick, onEdgeClick, onBackgroundClick } = {}){
+    const handlers = {
+      onNodeClick: onNodeClick || null,
+      onEdgeClick: onEdgeClick || null,
+      onBackgroundClick: onBackgroundClick || null
+    };
+    const selection = d3.select(container);
+    const svg = selection.append('svg').attr('class', 'graph-surface');
+    const background = svg.append('rect').attr('class', 'graph-bg');
+    const defs = svg.append('defs');
+    const markerId = `arrow-${Math.random().toString(36).slice(2, 8)}`;
+    defs.append('marker')
+      .attr('id', markerId)
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', nodeRadius + 10)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', '#2b3757');
+
+    const zoomGroup = svg.append('g').attr('class', 'graph-layer');
+    const linkLayer = zoomGroup.append('g').attr('class', 'graph-links');
+    const labelLayer = zoomGroup.append('g').attr('class', 'graph-link-labels');
+    const nodeLayer = zoomGroup.append('g').attr('class', 'graph-nodes');
+
+    if(!showEdgeLabels){
+      labelLayer.style('display', 'none');
+    }
+
+    let width = 0;
+    let height = 0;
+    let dataNodes = [];
+    let dataEdges = [];
+
+    const zoom = d3.zoom()
+      .scaleExtent([0.4, 2.5])
+      .on('zoom', (event) => {
+        zoomGroup.attr('transform', event.transform);
+      });
+    svg.call(zoom);
+
+    const simulation = d3.forceSimulation()
+      .force('link', d3.forceLink().id(d => d.id).distance(linkDistance).strength(0.12))
+      .force('charge', d3.forceManyBody().strength(-420))
+      .force('center', d3.forceCenter(0, 0))
+      .force('collision', d3.forceCollide(nodeRadius + 8));
+
+    let linkSel = linkLayer.selectAll('line');
+    let labelSel = labelLayer.selectAll('text');
+    let nodeSel = nodeLayer.selectAll('g');
+
+    function resize(){
+      const bounds = container.getBoundingClientRect();
+      width = bounds.width || 800;
+      height = bounds.height || 400;
+      svg.attr('width', width).attr('height', height);
+      background.attr('width', width).attr('height', height);
+      simulation.force('center', d3.forceCenter(width / 2, height / 2));
+      simulation.alpha(0.2).restart();
+    }
+
+    function updateNodeLabels(selection){
+      selection.each(function(d){
+        const textSel = d3.select(this).select('text');
+        const lines = String(d.renderLabel || d.label || d.id).split('\n');
+        textSel
+          .attr('y', -(lines.length - 1) * (fontSize * 0.55))
+          .selectAll('tspan')
+          .data(lines, (line, i) => `${d.id}-${i}`)
+          .join(
+            enter => enter.append('tspan'),
+            update => update,
+            exit => exit.remove()
+          )
+          .attr('x', 0)
+          .attr('dy', (line, i) => (i === 0 ? 0 : fontSize * 1.1))
+          .text(line => line);
+      });
+    }
+
+    function updateEdges(){
+      linkSel
+        .classed('edgeSelected', d => !!d.isSelected)
+        .classed('critical', d => !!d.isCritical)
+        .attr('stroke-width', d => d.isSelected ? 4 : (d.w || 2))
+        .attr('stroke', d => d.isSelected ? '#7dd3fc' : (d.isCritical ? '#fb7185' : '#2b3757'))
+        .attr('marker-end', d => d.isSelected ? `url(#${markerId})` : `url(#${markerId})`);
+      labelSel.text(d => d.renderLabel || '');
+    }
+
+    function updateNodes(nodesSubset){
+      const selection = nodesSubset ? nodeSel.filter(d => nodesSubset.includes(d)) : nodeSel;
+      selection
+        .classed('selected', d => !!d.isSelected)
+        .classed('stepping', d => !!d.isStepping);
+      selection.select('circle').attr('fill', d => d.color || '#1b2440');
+      updateNodeLabels(selection);
+    }
+
+    function ticked(){
+      linkSel
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
+      labelSel
+        .attr('x', d => (d.source.x + d.target.x) / 2)
+        .attr('y', d => (d.source.y + d.target.y) / 2);
+      nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+    }
+
+    function setData(nodesData, edgesData){
+      dataNodes = nodesData || [];
+      dataEdges = edgesData || [];
+
+      linkSel = linkLayer.selectAll('line')
+        .data(dataEdges, d => d.id)
+        .join(enter => (
+          enter.append('line')
+            .attr('class', 'graph-edge')
+            .attr('marker-end', `url(#${markerId})`)
+            .on('click', (event, d) => {
+              event.stopPropagation();
+              if(handlers.onEdgeClick) handlers.onEdgeClick(d);
+            })
+        ));
+
+      labelSel = labelLayer.selectAll('text')
+        .data(dataEdges, d => d.id)
+        .join(enter => (
+          enter.append('text')
+            .attr('class', 'edge-label')
+        ));
+
+      nodeSel = nodeLayer.selectAll('g')
+        .data(dataNodes, d => d.id)
+        .join(enter => {
+          const gNode = enter.append('g').attr('class', 'graph-node');
+          gNode.append('circle').attr('r', nodeRadius);
+          gNode.append('text').attr('class', 'node-label');
+          gNode.call(
+            d3.drag()
+              .on('start', (event, d) => {
+                if(!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+              })
+              .on('drag', (event, d) => {
+                d.fx = event.x;
+                d.fy = event.y;
+              })
+              .on('end', (event, d) => {
+                if(!event.active) simulation.alphaTarget(0);
+                d.fx = event.x;
+                d.fy = event.y;
+              })
+          );
+          gNode.on('click', (event, d) => {
+            event.stopPropagation();
+            if(handlers.onNodeClick) handlers.onNodeClick(d);
+          });
+          return gNode;
+        });
+
+      simulation.nodes(dataNodes).on('tick', ticked);
+      simulation.force('link').links(dataEdges);
+      simulation.alpha(1).restart();
+      updateEdges();
+      updateNodes();
+    }
+
+    function centerOn(id){
+      const node = typeof id === 'string' ? dataNodes.find(n => n.id === id) : id;
+      if(!node || !Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
+      const transform = d3.zoomIdentity.translate(width / 2 - node.x, height / 2 - node.y);
+      svg.transition().duration(500).call(zoom.transform, transform);
+    }
+
+    function fit(padding = 40){
+      if(!dataNodes.length) return;
+      const xs = dataNodes.map(n => n.x || 0);
+      const ys = dataNodes.map(n => n.y || 0);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const dx = maxX - minX || 1;
+      const dy = maxY - minY || 1;
+      const scale = Math.min(width / (dx + padding * 2), height / (dy + padding * 2), 2.2);
+      const translateX = width / 2 - scale * (minX + maxX) / 2;
+      const translateY = height / 2 - scale * (minY + maxY) / 2;
+      const transform = d3.zoomIdentity.translate(translateX, translateY).scale(scale);
+      svg.transition().duration(400).call(zoom.transform, transform);
+    }
+
+    function clear(){
+      setData([], []);
+    }
+
+    background.on('click', () => {
+      if(handlers.onBackgroundClick) handlers.onBackgroundClick();
+    });
+
+    resize();
+
+    return {
+      setData,
+      updateEdges,
+      updateNodes,
+      resize,
+      centerOn,
+      fit,
+      clear,
+      setHandlers: (nextHandlers = {}) => {
+        handlers.onNodeClick = nextHandlers.onNodeClick || handlers.onNodeClick;
+        handlers.onEdgeClick = nextHandlers.onEdgeClick || handlers.onEdgeClick;
+        handlers.onBackgroundClick = nextHandlers.onBackgroundClick || handlers.onBackgroundClick;
       }
-    ],
-    elements: {
-      nodes: NODES.map(n => ({
-        data: {
-          ...n,
-          color: baseFill(n.tier),
-          renderLabel: n.label
-        }
-      })),
-      edges: EDGES0.map(([s,t]) => ({
-        data:{
-          id:`${s}->${t}`,
-          source:s,
-          target:t,
-          lag0: 0,
-          lag:  0,
-          w: 2,
-          renderLabel: 'lag 0d'
-        }
-      }))
+    };
+  }
+
+  const mainGraph = createGraphRenderer({
+    container: document.getElementById('cy'),
+    nodeRadius: 26,
+    linkDistance: 170,
+    onNodeClick: selectNode,
+    onEdgeClick: selectEdge,
+    onBackgroundClick: () => {
+      selectNode(null);
+      selectEdge(null);
     }
   });
-
-  // allow manual dragging
-  cy.nodes().grabify();
+  mainGraph.setData(nodes, edges);
 
   // -----------------------------
   // UI
@@ -996,10 +1176,10 @@
     tabPanes.forEach(pane => {
       pane.classList.toggle('active', pane.dataset.tabPane === tab);
     });
-    if(tab === 'sandbox' && sandboxCyInstance){
+    if(tab === 'sandbox'){
       requestAnimationFrame(() => {
-        sandboxCyInstance.resize();
-        sandboxCyInstance.fit();
+        sandboxGraph.resize();
+        sandboxGraph.fit();
       });
     }
   }
@@ -1022,48 +1202,48 @@
   // Selection handlers
   // -----------------------------
   function selectNode(n){
-    if(state.selectedNode) state.selectedNode.removeClass('selected');
+    if(state.selectedNode){
+      state.selectedNode.isSelected = false;
+    }
     state.selectedNode = n || null;
 
     if(state.selectedNode){
-      state.selectedNode.addClass('selected');
-      const id = state.selectedNode.id();
-      selEl.textContent = `${id} (${state.selectedNode.data('label')})`;
+      state.selectedNode.isSelected = true;
+      const id = state.selectedNode.id;
+      selEl.textContent = `${id} (${state.selectedNode.label})`;
       delayInput.value = state.localSlip[id] || 0;
       delayVal.textContent = `${delayInput.value}d`;
     }else{
       selEl.textContent = '—';
     }
+    mainGraph.updateNodes();
   }
 
   function selectEdge(e){
-    if(state.selectedEdge) state.selectedEdge.removeClass('edgeSelected');
+    if(state.selectedEdge){
+      state.selectedEdge.isSelected = false;
+    }
     state.selectedEdge = e || null;
 
     if(state.selectedEdge){
-      state.selectedEdge.addClass('edgeSelected');
-      const id = state.selectedEdge.id();
+      state.selectedEdge.isSelected = true;
+      const id = state.selectedEdge.id;
       selEdgeEl.textContent = id;
-      const lag = state.selectedEdge.data('lag') || 0;
-      const lag0 = state.selectedEdge.data('lag0') || 0;
+      const lag = state.selectedEdge.lag || 0;
+      const lag0 = state.selectedEdge.lag0 || 0;
       const deltaFromBase = lag - lag0;
       lagNowEl.textContent = `${lag}d (base ${lag0}d, Δ ${deltaFromBase>=0?'+':''}${deltaFromBase}d)`;
     }else{
       selEdgeEl.textContent = '—';
       lagNowEl.textContent = '—';
     }
+    mainGraph.updateEdges();
   }
 
-  cy.on('tap', 'node', evt => selectNode(evt.target));
-  cy.on('tap', 'edge', evt => selectEdge(evt.target));
-
-  // Tap background to clear selections
-  cy.on('tap', evt => {
-    if(evt.target === cy){
-      selectNode(null);
-      selectEdge(null);
-    }
-  });
+  mainGraph.setData(nodes, edges);
+  mainGraph.resize();
+  mainGraph.updateNodes();
+  mainGraph.updateEdges();
 
   delayInput.addEventListener('input', () => {
     delayVal.textContent = `${delayInput.value}d`;
@@ -1096,7 +1276,7 @@
   // -----------------------------
   applyBtn.addEventListener('click', () => {
     if(!state.selectedNode) return;
-    const id = state.selectedNode.id();
+    const id = state.selectedNode.id;
     const v = parseInt(delayInput.value, 10) || 0;
     state.localSlip[id] = v;
 
@@ -1129,7 +1309,7 @@
   resetAllBtn.addEventListener('click', () => {
     // Reset lags to baseline and local slips to 0, clear log.
     logEl.innerHTML = '';
-    cy.edges().forEach(e => e.data('lag', e.data('lag0') || 0));
+    edges.forEach(e => { e.lag = e.lag0 || 0; });
     Object.keys(state.localSlip).forEach(k => state.localSlip[k] = 0);
 
     logLine('Rule: ResetAll(slips + lags + log) applied.');
@@ -1154,17 +1334,17 @@
   });
 
   function applyDelayEdge(edgeId, delta, {label} = {}){
-    const e = cy.$id(edgeId);
-    if(!e || e.empty()){
+    const e = edgeById.get(edgeId);
+    if(!e){
       logLine(`Rule: DelayEdge(${edgeId}) failed (edge not found).`);
       return;
     }
-    const prev = e.data('lag') || 0;
-    e.data('lag', prev + delta);
+    const prev = e.lag || 0;
+    e.lag = prev + delta;
 
     logLine(`Rule: ${label || `DelayEdge(${edgeId}, ${delta}d)`} applied.`);
     // Update edge selection panel if this is selected
-    if(state.selectedEdge && state.selectedEdge.id() === edgeId){
+    if(state.selectedEdge && state.selectedEdge.id === edgeId){
       selectEdge(state.selectedEdge);
     }
     recomputeAndRender({ logUpdates:true, stepwise: state.animate });
@@ -1190,89 +1370,39 @@
     ]
   };
 
-  let sandboxCyInstance = null;
-
-  function ensureSandboxCy(){
-    if(sandboxCyInstance || !sandboxCyEl) return;
-    sandboxCyInstance = cytoscape({
-      container: sandboxCyEl,
-      wheelSensitivity: 0.3,
-      layout: { name:'breadthfirst', directed:true, spacingFactor:1.2 },
-      style: [
-        {
-          selector:'node',
-          style:{
-            'background-color':'#1b2440',
-            'border-width':2,
-            'border-color':'#2b3757',
-            'label':'data(label)',
-            'color':'#e6f1ff',
-            'font-size':11,
-            'text-wrap':'wrap',
-            'text-max-width': 160,
-            'text-valign':'center',
-            'text-halign':'center'
-          }
-        },
-        {
-          selector:'edge',
-          style:{
-            'curve-style':'bezier',
-            'width':2,
-            'line-color':'#2b3757',
-            'target-arrow-shape':'triangle',
-            'target-arrow-color':'#2b3757',
-            'label':'data(label)',
-            'font-size':10,
-            'color':'rgba(230,241,255,0.75)',
-            'text-background-color':'rgba(0,0,0,0.35)',
-            'text-background-opacity':1,
-            'text-background-padding':'2px',
-            'text-rotation':'autorotate'
-          }
-        },
-        {
-          selector:'edge.critical',
-          style:{
-            'line-color':'#fb7185',
-            'target-arrow-color':'#fb7185',
-            'width':3
-          }
-        }
-      ],
-      elements: []
-    });
-  }
+  const sandboxGraph = createGraphRenderer({
+    container: sandboxCyEl,
+    nodeRadius: 20,
+    linkDistance: 140,
+    fontSize: 11
+  });
 
   function renderSandboxGraph(graph, critical){
-    ensureSandboxCy();
-    if(!sandboxCyInstance) return;
-    sandboxCyInstance.elements().remove();
     if(!graph){
-      sandboxCyInstance.resize();
+      sandboxGraph.clear();
       return;
     }
-    const elements = [
-      ...graph.nodes.map(node => ({
-        data: {
-          id: node.id,
-          label: node.label || node.id
-        }
-      })),
-      ...graph.edges.map(edge => ({
-        data: {
-          id: `${edge.source}->${edge.target}`,
-          source: edge.source,
-          target: edge.target,
-          label: `lag ${edge.lag || 0}d, dur ${edge.duration || 0}d`
-        },
-        classes: critical && critical.criticalEdges.has(`${edge.source}->${edge.target}`) ? 'critical' : ''
-      }))
-    ];
-    sandboxCyInstance.add(elements);
-    const layout = sandboxCyInstance.layout({ name:'breadthfirst', directed:true, spacingFactor:1.2 });
-    layout.run();
-    sandboxCyInstance.fit();
+    const sandboxNodes = graph.nodes.map(node => ({
+      id: node.id,
+      label: node.label || node.id,
+      renderLabel: node.label || node.id,
+      color: '#1b2440'
+    }));
+    const sandboxEdges = graph.edges.map(edge => {
+      const id = `${edge.source}->${edge.target}`;
+      return {
+        id,
+        source: edge.source,
+        target: edge.target,
+        lag: edge.lag || 0,
+        duration: edge.duration || 0,
+        w: critical && critical.criticalEdges.has(id) ? 3 : 2,
+        renderLabel: `lag ${edge.lag || 0}d, dur ${edge.duration || 0}d`,
+        isCritical: critical && critical.criticalEdges.has(id)
+      };
+    });
+    sandboxGraph.setData(sandboxNodes, sandboxEdges);
+    setTimeout(() => sandboxGraph.fit(), 250);
   }
 
   const sandboxState = {
@@ -1813,15 +1943,16 @@
   // GraphTransforms core utilities
   // -----------------------------
   function buildIndex(){
-    const nodeIds = cy.nodes().map(n => n.id());
-    const preds = {};      // id -> [{p, edge}]
-    const predsIds = {};   // id -> [pId]
-    const succs = {};      // id -> [vId]
+    const nodeIds = nodes.map(n => n.id);
+    const preds = {};
+    const predsIds = {};
+    const succs = {};
     nodeIds.forEach(id => { preds[id]=[]; predsIds[id]=[]; succs[id]=[]; });
 
-    cy.edges().forEach(e => {
-      const s = e.data('source');
-      const t = e.data('target');
+    edges.forEach(e => {
+      const s = edgeSourceId(e);
+      const t = edgeTargetId(e);
+      if(!preds[t] || !succs[s]) return;
       preds[t].push({ p:s, edge:e });
       predsIds[t].push(s);
       succs[s].push(t);
@@ -1892,8 +2023,8 @@
     const baseES = {};
     const baseEF = {};
     idx.order.forEach(id => {
-      const dur = (cy.$id(id).data('dur') || 0);
-      const candidates = idx.preds[id].map(({p, edge}) => (baseEF[p] || 0) + (edge.data('lag0') || 0));
+      const dur = (nodeById.get(id)?.dur || 0);
+      const candidates = idx.preds[id].map(({p, edge}) => (baseEF[p] || 0) + (edge.lag0 || 0));
       const es = aggregate(candidates, state.rule);
       baseES[id] = es;
       baseEF[id] = es + dur;
@@ -1926,8 +2057,8 @@
     const es = {};
     const ef = {};
     idx.order.forEach(id => {
-      const dur = (cy.$id(id).data('dur') || 0);
-      const candidates = idx.preds[id].map(({p, edge}) => (ef[p] || 0) + (edge.data('lag') || 0));
+      const dur = (nodeById.get(id)?.dur || 0);
+      const candidates = idx.preds[id].map(({p, edge}) => (ef[p] || 0) + (edge.lag || 0));
       const start = aggregate(candidates, state.rule) + (state.localSlip[id] || 0);
       es[id] = start;
       ef[id] = start + dur;
@@ -1958,19 +2089,20 @@
     }
 
     // edge render data (lag labels + widths)
-    cy.edges().forEach(e => {
-      const lag = e.data('lag') || 0;
-      const lag0 = e.data('lag0') || 0;
+    edges.forEach(e => {
+      const lag = e.lag || 0;
+      const lag0 = e.lag0 || 0;
       const delta = lag - lag0;
       const deltaStr = delta === 0 ? '' : ` (Δ ${delta>=0?'+':''}${delta}d)`;
-      e.data('renderLabel', `lag ${lag}d${deltaStr}`);
+      e.renderLabel = `lag ${lag}d${deltaStr}`;
 
       // edge thickness by downstream slip gradient (kept concept, adapted)
-      const s = slipForColorById[e.data('source')] || 0;
-      const t = slipForColorById[e.data('target')] || 0;
+      const s = slipForColorById[edgeSourceId(e)] || 0;
+      const t = slipForColorById[edgeTargetId(e)] || 0;
       const w = 1.5 + Math.max(0, t - s) * 0.15;
-      e.data('w', w);
+      e.w = w;
     });
+    mainGraph.updateEdges();
 
     // update makespan / slip readouts
     msBaseEl.textContent = `${state.baseline.makespan || 0}`;
@@ -2005,14 +2137,14 @@
   }
 
   function renderNodesInstant(nodeIds, ctx){
-    cy.batch(() => {
-      nodeIds.forEach(id => applyNodeRender(id, ctx));
-    });
+    nodeIds.forEach(id => applyNodeRender(id, ctx));
+    mainGraph.updateNodes();
   }
 
   function renderNodesStepwise(order, ctx){
     // clear any prior stepping highlight
-    cy.nodes().removeClass('stepping');
+    nodes.forEach(n => { n.isStepping = false; });
+    mainGraph.updateNodes();
 
     const delayMs = 140;
     let i = 0;
@@ -2021,12 +2153,15 @@
       // finished
       if(i >= order.length){
         // remove highlight shortly after end
-        setTimeout(() => cy.nodes().removeClass('stepping'), 300);
+        setTimeout(() => {
+          nodes.forEach(node => { node.isStepping = false; });
+          mainGraph.updateNodes();
+        }, 300);
         return;
       }
 
       const id = order[i];
-      const n = cy.$id(id);
+      const n = nodeById.get(id);
 
       // log in causal/topo order as the animation proceeds
       if(ctx.scheduleUpdateMsgById && ctx.scheduleUpdateMsgById[id]){
@@ -2034,11 +2169,12 @@
       }
 
       // apply node render and pulse highlight
-      cy.batch(() => {
-        cy.nodes().removeClass('stepping');
-        applyNodeRender(id, ctx);
-        n.addClass('stepping');
-      });
+      nodes.forEach(node => { node.isStepping = false; });
+      applyNodeRender(id, ctx);
+      if(n){
+        n.isStepping = true;
+      }
+      mainGraph.updateNodes();
 
       i++;
       setTimeout(step, delayMs);
@@ -2047,33 +2183,34 @@
   }
 
   function applyNodeRender(id, {slipToy, es, ef, slipSched, slipForColorById}){
-    const n = cy.$id(id);
-    const tier = n.data('tier');
-    const dur  = n.data('dur') || 0;
+    const n = nodeById.get(id);
+    if(!n) return;
+    const tier = n.tier;
+    const dur  = n.dur || 0;
 
     const slipColorVal = slipForColorById[id] || 0;
-    n.data('color', riskFill(tier, slipColorVal));
+    n.color = riskFill(tier, slipColorVal);
 
     const local = state.localSlip[id] || 0;
 
     let label;
     if(state.view === 'slip'){
       const s = slipToy[id] || 0;
-      label = `${n.data('label')}\n+${s}d`;
+      label = `${n.label}\n+${s}d`;
     } else if(state.view === 'schedule'){
       const s = slipSched[id] || 0;
-      label = `${n.data('label')}\n` +
+      label = `${n.label}\n` +
               `dur ${dur}d | ES ${es[id]||0} EF ${ef[id]||0}\n` +
               `local +${local}d | late +${s}d`;
     } else { // both
       const sToy = slipToy[id] || 0;
       const sSch = slipSched[id] || 0;
-      label = `${n.data('label')}\n` +
+      label = `${n.label}\n` +
               `dur ${dur}d | ES ${es[id]||0} EF ${ef[id]||0}\n` +
               `slipToy +${sToy}d | late +${sSch}d`;
     }
 
-    n.data('renderLabel', label);
+    n.renderLabel = label;
   }
 
   // -----------------------------
@@ -2083,11 +2220,26 @@
   recomputeAndRender({ logUpdates:false, stepwise:false });
 
   // quality‑of‑life: pick a node to start
+  mainGraph.updateNodes();
+  mainGraph.updateEdges();
+  mainGraph.fit();
+
+  mainGraph.onNodeClick = selectNode;
+  mainGraph.onEdgeClick = selectEdge;
+  mainGraph.onBackgroundClick = () => {
+    selectNode(null);
+    selectEdge(null);
+  };
+
   setTimeout(() => {
-    const a = cy.$('#A');
-    cy.center(a);
-    a.emit('tap');
-  }, 350);
+    mainGraph.centerOn('A');
+    selectNode(nodeById.get('A'));
+  }, 450);
+
+  window.addEventListener('resize', () => {
+    mainGraph.resize();
+    sandboxGraph.resize();
+  });
 })();
 </script>
 </body>

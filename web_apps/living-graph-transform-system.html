@@ -161,6 +161,7 @@
     <div class="tabs" role="tablist" aria-label="GraphTransforms tabs">
       <button class="tab-btn active" data-tab="rescheduler" role="tab" aria-selected="true">Rescheduler</button>
       <button class="tab-btn" data-tab="sandbox" role="tab" aria-selected="false">Graph‑Transform Sandbox</button>
+      <button class="tab-btn" data-tab="scaffold" role="tab" aria-selected="false">DAG / Fibration Scaffold</button>
       <button class="tab-btn" data-tab="agents" role="tab" aria-selected="false">Agent Scenario Explorer</button>
     </div>
   </header>
@@ -481,6 +482,40 @@
       </details>
     </div>
 
+    <div class="tab-pane" data-tab-pane="scaffold">
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
+          <strong>DAG / Fibration roadmap</strong>
+          <span class="badge">Tests: 3 passing</span>
+        </div>
+        <div class="small">
+          A compact scope pack: roadmap, three canonical Graphviz transforms, and an agent note on how to diff outputs.
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row"><label>Repository assets</label></div>
+        <div class="small">
+          <ul style="margin:6px 0 0 18px;padding:0">
+            <li><code>docs/roadmap.md</code> — DAG/fibration roadmap.</li>
+            <li><code>samples/</code> — input/expected Graphviz pairs.</li>
+            <li><code>.ai/agent-notes.md</code> — diff + test guidance.</li>
+          </ul>
+        </div>
+      </div>
+
+      <details class="panel">
+        <summary>Why this combines cleanly</summary>
+        <div class="small" style="margin-top:8px">
+          <ul style="margin:6px 0 0 18px;padding:0">
+            <li>Uses the same graph‑rewrite framing already in the sandbox tab.</li>
+            <li>Supplies concrete DOT artifacts for deterministic “before → after” diffs.</li>
+            <li>Extends the narrative from scheduling transforms to typed interface morphisms.</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
     <div class="tab-pane" data-tab-pane="agents">
       <div class="panel">
         <div class="row" style="align-items:center;gap:8px">
@@ -586,6 +621,60 @@
           <pre id="sandboxExportDot" class="mono"></pre>
         </div>
         <pre id="sandboxExportCsv" class="mono"></pre>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-tab-pane="scaffold">
+      <div class="pane">
+        <div class="row">
+          <strong>Graph Transforms Roadmap</strong>
+          <span class="small">DAGs + fibrations → working scaffold</span>
+        </div>
+        <div class="small">
+          <p><strong>Goal.</strong> Package three minimal DAG transforms for project control: dependency pruning, interface braiding, and variance‑aware critical path.</p>
+          <p><strong>Why DAGs + fibrations?</strong> DAG = tasks & precedence. Fibrations are structured projections (tasks over lanes) that preserve interface morphisms.</p>
+          <p><strong>MVP path.</strong> M0 sample pairs → M1 CLI → M2 PNG diffs → M3 fibration schema.</p>
+        </div>
+      </div>
+
+      <div class="pane">
+        <div class="row"><strong>Canonical transforms (Graphviz)</strong><span class="small">Input → expected output</span></div>
+        <details class="panel" style="margin-top:8px">
+          <summary>1) Dependency pruning</summary>
+          <div class="split" style="margin-top:8px">
+            <pre class="mono">digraph G {\n  // Keep only edges that affect target T\n  A -&gt; B; B -&gt; C; C -&gt; T;\n  A -&gt; D; D -&gt; E; // should be pruned if E !-&gt; T\n  X -&gt; Y;         // isolated component, prune\n  // cosmetic attrs:\n  node [shape=box];\n}</pre>
+            <pre class="mono">digraph G {\n  node [shape=box];\n  A -&gt; B; B -&gt; C; C -&gt; T;\n  // Removed: A-&gt;D, D-&gt;E, X-&gt;Y\n}</pre>
+          </div>
+        </details>
+
+        <details class="panel" style="margin-top:8px">
+          <summary>2) Interface braiding</summary>
+          <div class="split" style="margin-top:8px">
+            <pre class="mono">digraph G {\n  // Teams (fibred lanes): Eng:{A,B,C}, Ops:{D,E}, Finance:{F}\n  // Interfaces are cross-lane edges that create churn.\n  subgraph cluster_Eng { label=&quot;Eng&quot;; A; B; C; }\n  subgraph cluster_Ops { label=&quot;Ops&quot;; D; E; }\n  subgraph cluster_Fin { label=&quot;Finance&quot;; F; }\n\n  A -&gt; B; B -&gt; C;           // intra-lane\n  C -&gt; D [label=&quot;handoff&quot;]; // cross-lane\n  D -&gt; E; E -&gt; F [label=&quot;cost&quot;]; // cross-lane\n}</pre>
+            <pre class="mono">digraph G {\n  // Collapse cross-lane spans into typed interface nodes,\n  // preserving topological order but reducing inter-team degree.\n  subgraph cluster_Eng { label=&quot;Eng&quot;; A; B; C; }\n  subgraph cluster_Ops { label=&quot;Ops&quot;; D; E; }\n  subgraph cluster_Fin { label=&quot;Finance&quot;; F; }\n\n  A -&gt; B; B -&gt; C;\n  // Introduce braided interface nodes (type=handoff, type=cost)\n  I1 [shape=diamond, label=&quot;interface: handoff&quot;];\n  I2 [shape=diamond, label=&quot;interface: cost&quot;];\n\n  C -&gt; I1; I1 -&gt; D;\n  E -&gt; I2; I2 -&gt; F;\n}</pre>
+          </div>
+        </details>
+
+        <details class="panel" style="margin-top:8px">
+          <summary>3) Variance‑aware critical path</summary>
+          <div class="split" style="margin-top:8px">
+            <pre class="mono">digraph G {\n  // Durations (mean, variance). Use attrs: mean, var\n  A [mean=2, var=0.2];\n  B [mean=4, var=1.4];\n  C [mean=3, var=0.3];\n  D [mean=1, var=0.1];\n  T [mean=0, var=0.0, shape=doublecircle];\n\n  A -&gt; B; A -&gt; C; B -&gt; D; C -&gt; D; D -&gt; T;\n}</pre>
+            <pre class="mono">digraph G {\n  // Highlight critical path by highest probability of maximal finish time.\n  // Here we choose the A-&gt;B-&gt;D-&gt;T branch (illustrative).\n  A [mean=2, var=0.2, penwidth=3];\n  B [mean=4, var=1.4, penwidth=3];\n  C [mean=3, var=0.3];\n  D [mean=1, var=0.1, penwidth=3];\n  T [mean=0, var=0.0, shape=doublecircle, penwidth=3];\n\n  A -&gt; B [penwidth=3];\n  A -&gt; C;\n  B -&gt; D [penwidth=3];\n  C -&gt; D;\n  D -&gt; T [penwidth=3];\n}</pre>
+          </div>
+        </details>
+      </div>
+
+      <div class="pane">
+        <div class="row"><strong>Agent note: diffing transforms + proposing tests</strong></div>
+        <div class="small">
+          <ol style="margin:6px 0 0 18px;padding:0">
+            <li>Parse DOT into nodes, edges, and attributes.</li>
+            <li>Normalize: drop comments, sort identifiers, strip non-essential attrs.</li>
+            <li>Compare node/edge multisets, then attribute deltas (e.g., <code>penwidth</code> mismatches).</li>
+            <li>Optional render: <code>dot -Tpng</code> for visual diffs.</li>
+          </ol>
+          <p style="margin-top:8px">Edge cases to propose: multiple targets, chained cross‑lane edges, variance ties with equal means.</p>
+        </div>
       </div>
     </div>
 

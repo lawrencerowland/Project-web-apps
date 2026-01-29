@@ -1302,7 +1302,7 @@
     const delta = parseInt(lagDeltaInp.value, 10) || 0;
     if(delta === 0) return;
 
-    applyDelayEdge(state.selectedEdge.id(), delta, { label: `DelayEdge(${state.selectedEdge.id()}, ${delta>=0?'+':''}${delta}d)` });
+    applyDelayEdge(state.selectedEdge.id, delta, { label: `DelayEdge(${state.selectedEdge.id}, ${delta>=0?'+':''}${delta}d)` });
     // reset delta UI back to 0 for convenience
     lagDeltaInp.value = 0;
     lagDeltaVal.textContent = '+0d';
@@ -1734,8 +1734,14 @@
       const payloads = [sandboxState.lastExports.json, sandboxState.lastExports.csv, sandboxState.lastExports.dot];
       const text = payloads[idx];
       if(navigator.clipboard && text){
-        await navigator.clipboard.writeText(text);
-        sandboxSummary.textContent = 'Copied export to clipboard.';
+        try{
+          await navigator.clipboard.writeText(text);
+          sandboxSummary.textContent = 'Copied export to clipboard.';
+        }catch(err){
+          sandboxSummary.textContent = 'Clipboard copy blocked. Use manual copy from the preview.';
+        }
+      }else if(text){
+        sandboxSummary.textContent = 'Clipboard unavailable. Use manual copy from the preview.';
       }
     });
   });

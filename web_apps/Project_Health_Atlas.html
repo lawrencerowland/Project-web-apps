@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Project Health Atlas — Deforming Tiles + Mini DAGs</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#14182b; --ink:#e7eaf6; --muted:#9aa3b2;
+    --good:#3bb273; --warn:#e0a400; --bad:#e05263; --accent:#6a7dff;
+    --border:#232a4a;
+  }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial;}
+  header{
+    padding:16px 18px;border-bottom:1px solid #1e2440;display:flex;gap:14px;align-items:center;
+    position:sticky;top:0;background:linear-gradient(180deg,#0f1220cc,#0f1220e0 60%,#0f1220 90%);backdrop-filter: blur(6px);
+    z-index:10;
+  }
+  .titlebox{display:flex;flex-direction:column;gap:2px;min-width:240px}
+  h1{font-size:18px;margin:0;}
+  .hint{color:var(--muted)}
+  .helpbar{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  button{
+    background:#1a1f38;color:#e7eaf6;border:1px solid #2a3158;border-radius:10px;padding:8px 10px;cursor:pointer
+  }
+  button:hover{background:#1e2542}
+  button:focus{outline:2px solid #6a7dff66; outline-offset:2px}
+
+  .wrap{padding:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+  .tile{
+    position:relative;border:1px solid var(--border);border-radius:14px;background:
+      radial-gradient(120% 100% at 20% 0%, #1b2140 10%, #121733 55%, #0f1220 100%);
+    overflow:hidden; padding:12px 12px 14px; transition:transform .18s ease, filter .18s ease;
+    box-shadow: 0 10px 24px #00000033 inset, 0 0 0 1px #00000014 inset;
+  }
+  .tile:hover{transform:translateY(-2px);filter:saturate(1.05);}
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px}
+  .name{font-weight:600;letter-spacing:.2px}
+  .tag{font-size:12px;color:#bcc5d6;background:#1b2140;border:1px solid #273058;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .hdrRight{display:flex;gap:8px;align-items:center}
+  .tileinfo{
+    width:30px;height:30px;border-radius:10px;border:1px solid #2a3158;background:#151a33;color:#cfd6f6;
+    display:grid;place-items:center;padding:0;font-weight:700;line-height:1;cursor:pointer;
+  }
+  .tileinfo:hover{background:#1e2542}
+  .tileinfo:focus{outline:2px solid #6a7dff66; outline-offset:2px}
+
+  .grid{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+  .meters{display:flex;gap:8px}
+  .meter{--v:0; width:8px; height:52px; border-radius:6px; background:#222a4a; position:relative; overflow:hidden; cursor:pointer}
+  .meter::after{
+    content:""; position:absolute; bottom:0; left:0; right:0; height:calc(var(--v) * 1%);
+    background:linear-gradient(180deg,var(--good),#2fa86a 20%,#256c56 100%);
+    box-shadow:0 0 6px #2fa86a80 inset;
+  }
+  .meter[data-kind="cap"]::after{ background:linear-gradient(180deg,var(--accent),#4f5cff 60%,#3543a8 100%);}
+  .meter[data-kind="mat"]::after{ background:linear-gradient(180deg,var(--warn),#e9b62d 60%,#946d12 100%);}
+  .meter[data-kind="perf"]::after{ background:linear-gradient(180deg,var(--bad),#f06b78 60%,#7d2a34 100%);}
+
+  .labels{display:flex;gap:8px;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+  .spark{height:62px; width:120px; border-radius:8px; background:#121733; border:1px solid var(--border); position:relative; overflow:hidden}
+  .spark canvas{position:absolute; inset:0}
+  .dag{
+    position:absolute; right:-6px; bottom:-6px; width:120px; height:120px; opacity:.85;
+    filter:drop-shadow(0 2px 4px #0007);
+    transition:transform .2s ease, opacity .2s ease;
+  }
+  .tile:hover .dag{transform:scale(1.02) rotate(-1deg); opacity:1}
+
+  /* Deformation surface */
+  .deform{
+    position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; opacity:.65;
+    background:
+      radial-gradient(120px 90px at var(--bulge-x,70%) var(--bulge-y,20%), #3b46ff20, transparent 60%),
+      conic-gradient(from 0deg at 60% 40%, #ffffff0f, #0000 40%, #ffffff12 60%, #0000 100%);
+    transform: perspective(800px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) skew(var(--skew-x,0deg),var(--skew-y,0deg));
+    transition: transform .25s ease, background .3s ease, opacity .25s ease;
+  }
+
+  /* Legend + controls */
+  .legend{padding:8px 18px;color:#aab4c8;font-size:12px}
+  .legend b{color:var(--ink)}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;padding:0 18px 12px}
+  footer{padding:10px 18px 24px;color:#7d8799;font-size:12px}
+
+  /* Modal dialogs */
+  dialog{
+    border:1px solid #2b3460;background:linear-gradient(180deg,#14182b,#0f1220);
+    color:var(--ink); border-radius:14px; width:min(760px, calc(100vw - 28px));
+    box-shadow:0 24px 80px #00000080;
+  }
+  dialog::backdrop{background:#00000088; backdrop-filter: blur(4px);}
+  .modalhdr{
+    display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:14px 14px 10px;border-bottom:1px solid #232a4a;
+  }
+  .modaltitle{font-weight:700;letter-spacing:.2px}
+  .modalhint{color:var(--muted);font-size:12px;margin-top:2px}
+  .iconbtn{
+    width:34px;height:34px;border-radius:10px;border:1px solid #2a3158;background:#151a33;color:#d9e0ff;
+    display:grid;place-items:center;padding:0;cursor:pointer;
+  }
+  .iconbtn:hover{background:#1e2542}
+  .tabs{display:flex;gap:8px;padding:10px 14px 0}
+  .tab{
+    background:#151a33;border:1px solid #2a3158;border-radius:999px;padding:8px 10px;cursor:pointer;
+    font-size:12px;color:#d5dcf8;
+  }
+  .tab[aria-selected="true"]{background:#1f2750;border-color:#3a46a0}
+  .panel{padding:12px 14px 14px;display:none}
+  .panel[data-open="true"]{display:block}
+  .panel h3{margin:6px 0 8px;font-size:13px}
+  .panel p, .panel li{color:#c2cadc}
+  .panel code{background:#10142a;border:1px solid #232a4a;border-radius:8px;padding:2px 6px}
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .pill{font-size:12px;border:1px solid #2a3158;background:#151a33;color:#cfd6f6;padding:6px 10px;border-radius:999px}
+
+  /* Toast */
+  .toast{
+    position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+    background:#11162f; border:1px solid #2a3158; color:#e7eaf6;
+    padding:10px 12px; border-radius:12px; box-shadow:0 18px 60px #00000080;
+    max-width:min(720px, calc(100vw - 22px));
+    opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease;
+    z-index:999;
+  }
+  .toast[data-show="true"]{opacity:1; transform:translateX(-50%) translateY(-2px);}
+
+  /* Coach-mark tour overlay */
+  .tourOverlay{
+    position:fixed; inset:0; z-index:1200;
+    display:none;
+  }
+  .tourOverlay[data-open="true"]{display:block;}
+  .tourSpotlight{
+    position:fixed;
+    border:2px solid #6a7dffaa;
+    border-radius:14px;
+    box-shadow:0 0 0 9999px #000000a8, 0 10px 30px #00000055;
+    pointer-events:none;
+    transition: left .18s ease, top .18s ease, width .18s ease, height .18s ease, border-color .18s ease;
+  }
+  .tourBubble{
+    position:fixed;
+    width:min(360px, calc(100vw - 22px));
+    background:linear-gradient(180deg,#14182b,#0f1220);
+    border:1px solid #2b3460;
+    border-radius:14px;
+    box-shadow:0 24px 80px #00000080;
+    padding:12px;
+  }
+  .tourTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:6px}
+  .tourTitle{font-weight:750;letter-spacing:.2px}
+  .tourProgress{color:var(--muted);font-size:12px;margin-top:2px}
+  .tourText{color:#c2cadc;font-size:13px;line-height:1.45}
+  .tourActions{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .tourActions .spacer{flex:1}
+  .tourKbd{color:var(--muted);font-size:12px;margin-top:8px}
+  .tourHintPills{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .tourHintPills .pill{padding:5px 8px}
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    .tile, .deform, .dag, .toast, .tourSpotlight{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="titlebox">
+    <h1>Project Health Atlas</h1>
+    <div class="hint">Tiles deform from three <i>gaps</i>: <b>Capability</b>, <b>Maturity</b>, <b>Performance</b>. Click ⓘ for “why this tile looks like this”.</div>
+  </div>
+
+  <!-- Explainer buttons (What / Why / How) -->
+  <div class="helpbar" aria-label="Explainers">
+    <button data-help-open="what" title="What is this view?">What</button>
+    <button data-help-open="why" title="Why show deformation and DAGs?">Why</button>
+    <button data-help-open="how" title="How is the deformation computed?">How</button>
+  </div>
+</header>
+
+<div class="legend">
+  <b>How to read</b> — Taller bars = bigger gap. The tile “leans/warps” toward the dominant gap:
+  <span style="color:var(--accent)"><b>blue</b></span> (Capability),
+  <span style="color:var(--warn)"><b>amber</b></span> (Maturity),
+  <span style="color:var(--bad)"><b>red</b></span> (Performance).
+  Mini‑DAG hints where control breaks (fat edge = bottleneck).
+</div>
+
+<div class="btnrow">
+  <button onclick="startTour()" title="3-step walkthrough of the UI">Show tour overlays</button>
+  <button onclick="randomize()">Randomize gaps</button>
+  <button onclick="tiltTo('cap')">Stress Capability</button>
+  <button onclick="tiltTo('mat')">Stress Maturity</button>
+  <button onclick="tiltTo('perf')">Stress Performance</button>
+  <button onclick="resetView()">Reset</button>
+</div>
+
+<div class="wrap" id="wrap"></div>
+
+<footer>
+  Drop‑in: export a tiny DAG from yEd/Graphviz as SVG and swap each tile’s <code>.dag</code>.
+  Data inputs: <code>capGap</code>, <code>matGap</code>, <code>perfGap</code> (0–100).
+  Deformation is deterministic and explainable (see <code>How</code>, or click ⓘ on a tile).
+</footer>
+
+<!-- Help dialog (What / Why / How) -->
+<dialog id="helpDialog" aria-label="Explainer dialog">
+  <div class="modalhdr">
+    <div>
+      <div class="modaltitle">Explainer</div>
+      <div class="modalhint">A quick, director‑friendly guide to the map.</div>
+    </div>
+    <button class="iconbtn" data-dialog-close="helpDialog" aria-label="Close">✕</button>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Explainer tabs">
+    <button class="tab" role="tab" aria-selected="true" data-help-tab="what">What</button>
+    <button class="tab" role="tab" aria-selected="false" data-help-tab="why">Why</button>
+    <button class="tab" role="tab" aria-selected="false" data-help-tab="how">How</button>
+  </div>
+
+  <section class="panel" data-help-panel="what" data-open="true">
+    <h3>What you’re looking at</h3>
+    <ul>
+      <li><b>Each tile</b> is one project.</li>
+      <li><b>Three bars</b> are “gaps” (0–100): <span style="color:var(--accent)"><b>Capability</b></span>, <span style="color:var(--warn)"><b>Maturity</b></span>, <span style="color:var(--bad)"><b>Performance</b></span>.</li>
+      <li><b>Deformation</b> is a fast visual “fingerprint” of which gap dominates.</li>
+      <li><b>Mini‑DAG</b> is a lightweight dependency snapshot (fat edge = current constraint/bottleneck).</li>
+    </ul>
+    <div class="pillrow">
+      <div class="pill">Bars = magnitude</div>
+      <div class="pill">Shape = dominance</div>
+      <div class="pill">DAG = constraint</div>
+    </div>
+    <p style="margin:0">
+      Tip: click the ⓘ on any tile for a plain‑English explanation of that specific project’s shape.
+    </p>
+  </section>
+
+  <section class="panel" data-help-panel="why" data-open="false">
+    <h3>Why “deforming tiles” works</h3>
+    <ul>
+      <li><b>Scan speed:</b> leaders can spot outliers in seconds without reading a report.</li>
+      <li><b>Meaningful ambiguity:</b> the shape invites the right follow‑ups (“Is this a governance issue or a delivery issue?”).</li>
+      <li><b>Prevents single‑number traps:</b> a project can be “red” for very different reasons; shape keeps the dimensions separate.</li>
+      <li><b>Conversation starter:</b> the DAG gives a concrete place to ask “where is control breaking?”</li>
+    </ul>
+    <p style="margin:0">
+      In practice, this becomes a portfolio “triage board”: <b>where to intervene</b>, <b>what kind of intervention</b>, and <b>who must coordinate</b>.
+    </p>
+  </section>
+
+  <section class="panel" data-help-panel="how" data-open="false">
+    <h3>How the shape is computed (deterministic + explainable)</h3>
+    <p>
+      We normalize the three gaps and derive a lean:
+      <code>wx = (cap - perf) / (cap + mat + perf)</code> and
+      <code>wy = (mat - avg(cap, perf)) / (cap + mat + perf)</code>.
+    </p>
+    <p>
+      Then we map lean + intensity into tilt/skew/bulge (CSS transforms). In plain English:
+      <ul>
+        <li>More <b>Capability</b> gap pushes the tile toward blue‑lean (one direction).</li>
+        <li>More <b>Performance</b> gap pushes it toward red‑lean (the opposite direction).</li>
+        <li>More <b>Maturity</b> gap lifts/warps the tile along the other axis.</li>
+        <li>The largest gap increases <b>intensity</b> (how dramatic the deformation feels).</li>
+      </ul>
+    </p>
+    <p style="margin:0">
+      For implementation details, see <code>applyDeformation()</code>. Every deformation value is stored on the tile and shown in the ⓘ view.
+    </p>
+  </section>
+</dialog>
+
+<!-- Per-tile dialog -->
+<dialog id="tileDialog" aria-label="Project explanation dialog">
+  <div class="modalhdr">
+    <div>
+      <div class="modaltitle" id="tileDialogTitle">Project</div>
+      <div class="modalhint" id="tileDialogSub">Why this tile looks the way it does.</div>
+    </div>
+    <button class="iconbtn" data-dialog-close="tileDialog" aria-label="Close">✕</button>
+  </div>
+  <div class="panel" style="display:block;padding-top:10px" id="tileDialogBody"></div>
+</dialog>
+
+<!-- Toast -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<!-- Coach-mark tour overlay -->
+<div id="tourOverlay" class="tourOverlay" aria-hidden="true">
+  <div id="tourSpotlight" class="tourSpotlight" aria-hidden="true"></div>
+  <div id="tourBubble" class="tourBubble" role="dialog" aria-modal="true" aria-labelledby="tourTitle" aria-describedby="tourText">
+    <div class="tourTop">
+      <div>
+        <div id="tourTitle" class="tourTitle">Tour</div>
+        <div id="tourProgress" class="tourProgress">Step</div>
+      </div>
+      <button class="iconbtn" id="tourClose" aria-label="Close tour">✕</button>
+    </div>
+    <div id="tourText" class="tourText"></div>
+    <div class="tourHintPills" id="tourPills"></div>
+    <div class="tourActions">
+      <button id="tourBack">Back</button>
+      <div class="spacer"></div>
+      <button id="tourNext">Next</button>
+    </div>
+    <div class="tourKbd">Tip: <b>Esc</b> closes the tour. <b>←</b>/<b>→</b> moves steps.</div>
+  </div>
+</div>
+
+<script>
+  // --- Demo data ---
+  const projects = [
+    {name:"Hydrogen Hub", tag:"Phase 2", capGap:38, matGap:62, perfGap:25},
+    {name:"Grid Interconnect", tag:"Design", capGap:70, matGap:20, perfGap:40},
+    {name:"Port Expansion", tag:"Delivery", capGap:25, matGap:35, perfGap:75},
+    {name:"EV Corridors", tag:"Pilot", capGap:55, matGap:55, perfGap:15},
+    {name:"Data Spine", tag:"Build", capGap:15, matGap:80, perfGap:30},
+    {name:"Offshore Tie‑in", tag:"Stage Gate", capGap:45, matGap:30, perfGap:60},
+  ];
+
+  const wrap = document.getElementById('wrap');
+
+  // Tiny inline Graphviz‑style SVG (replace with yEd/Graphviz export per project)
+  function miniDAGSVG({accent="#6a7dff", warn="#e0a400", bad="#e05263"}) {
+    return `
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#aab4c8"/>
+    </marker>
+  </defs>
+  <g fill="none" stroke="#aab4c8" stroke-width="1.2" marker-end="url(#arrow)" opacity=".9">
+    <path d="M20,80 C40,70 60,50 80,40" />
+    <path d="M20,40 C36,48 50,58 68,66" />
+    <path d="M50,95 C62,78 74,62 92,58" stroke="${bad}" stroke-width="2.6"/>
+  </g>
+  <g>
+    <circle cx="20" cy="80" r="7" fill="${accent}" />
+    <circle cx="20" cy="40" r="7" fill="#6f7aa6" />
+    <circle cx="50" cy="95" r="7" fill="${bad}" />
+    <circle cx="80" cy="40" r="7" fill="${warn}" />
+    <circle cx="92" cy="58" r="7" fill="#8fbf9f" />
+  </g>
+</svg>`;
+  }
+
+  const meterExplain = {
+    cap: "Capability gap = resourcing/skills/tooling shortfall versus what the plan assumes (roles, competencies, vendor depth, tech capability).",
+    mat: "Maturity gap = governance/process readiness shortfall (stage gates, controls, assurance cadence, decision rights, data quality).",
+    perf:"Performance gap = delivery/output shortfall (schedule, cost, quality, throughput, operational stability)."
+  };
+
+  function tile(project){
+    const el = document.createElement('div');
+    el.className = 'tile';
+    el.dataset.cap = project.capGap;
+    el.dataset.mat = project.matGap;
+    el.dataset.perf = project.perfGap;
+
+    el.innerHTML = `
+      <div class="hdr">
+        <div>
+          <div class="name">${project.name}</div>
+        </div>
+        <div class="hdrRight">
+          <div class="tag">${project.tag}</div>
+          <button class="tileinfo" aria-label="Explain ${project.name}" title="Explain this project">ⓘ</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="meters" aria-label="Gap meters (click for meaning)">
+            <div class="meter" data-kind="cap" title="Capability gap (click)"></div>
+            <div class="meter" data-kind="mat" title="Maturity gap (click)"></div>
+            <div class="meter" data-kind="perf" title="Performance gap (click)"></div>
+          </div>
+          <div class="labels" aria-hidden="true">
+            <span>Cap</span><span>Mat</span><span>Perf</span>
+          </div>
+        </div>
+        <div class="spark" title="Synthetic KPI trend (placeholder)"><canvas></canvas></div>
+      </div>
+
+      <div class="deform"></div>
+      <div class="dag" title="Mini dependency DAG (swap with yEd/Graphviz SVG)">${miniDAGSVG({})}</div>
+    `;
+
+    // Set meters
+    el.querySelectorAll('.meter').forEach(m=>{
+      const k = m.dataset.kind;
+      m.style.setProperty('--v', project[k+'Gap']);
+
+      // Click-to-explain meters
+      m.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        showToast(meterExplain[k]);
+      });
+    });
+
+    // Sparkline (synthetic KPI trend)
+    spark(el.querySelector('canvas'));
+
+    // Apply deformation based on gaps
+    applyDeformation(el);
+
+    // Tile explainer
+    el.querySelector('.tileinfo').addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      openTileDialog(project, el);
+    });
+
+    // (Optional) clicking the tile itself opens the same explainer
+    el.addEventListener('dblclick', ()=>openTileDialog(project, el));
+
+    return el;
+  }
+
+  function spark(canvas){
+    const dpr = Math.max(1, window.devicePixelRatio||1);
+    const w = canvas.parentElement.clientWidth, h = canvas.parentElement.clientHeight;
+    canvas.width = w*dpr; canvas.height = h*dpr; canvas.style.width = w+'px'; canvas.style.height = h+'px';
+    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+    const pts = 28, base = Math.random()*0.3 + 0.35;
+    ctx.clearRect(0,0,w,h);
+    ctx.beginPath(); ctx.moveTo(0,h*(1-base));
+    for(let i=1;i<pts;i++){
+      const x = i*(w/(pts-1));
+      const y = h*(1-(base + 0.12*Math.sin(i*.6) + (Math.random()-0.5)*0.08));
+      ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle = '#aab4c8'; ctx.lineWidth = 1.2; ctx.stroke();
+    // fill under
+    ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'#aab4c82a'); grad.addColorStop(1,'#aab4c803');
+    ctx.fillStyle = grad; ctx.fill();
+  }
+
+  // Core deformation model: map 3 gaps (0–100) to visual tilt/skew + bulge
+  function applyDeformation(el, bias){
+    const cap = +el.dataset.cap, mat = +el.dataset.mat, perf = +el.dataset.perf;
+    const total = Math.max(1, cap+mat+perf);
+    const wx = (cap - perf)/total;    // x‑axis lean (cap right, perf left)
+    const wy = (mat - ((cap+perf)/2))/total; // y‑axis elevation (maturity dominance)
+    const intensity = Math.max(cap,mat,perf)/100;
+
+    const tiltX = (wy*8* (bias?.mat?1.3:1)).toFixed(2);
+    const tiltY = (wx*10* (bias?.cap||bias?.perf?1.3:1)).toFixed(2);
+    const skewX = (wx*6*intensity).toFixed(2);
+    const skewY = (-wy*5*intensity).toFixed(2);
+    const bulgeX = (50 + 35*wx).toFixed(1)+'%';
+    const bulgeY = (35 - 25*wy).toFixed(1)+'%';
+
+    const d = el.querySelector('.deform');
+    d.style.setProperty('--tilt-x', tiltX+'deg');
+    d.style.setProperty('--tilt-y', tiltY+'deg');
+    d.style.setProperty('--skew-x', skewX+'deg');
+    d.style.setProperty('--skew-y', skewY+'deg');
+    d.style.setProperty('--bulge-x', bulgeX);
+    d.style.setProperty('--bulge-y', bulgeY);
+
+    // Store values for explainers
+    el.dataset.wx = wx.toFixed(3);
+    el.dataset.wy = wy.toFixed(3);
+    el.dataset.intensity = intensity.toFixed(2);
+    el.dataset.tiltX = tiltX;
+    el.dataset.tiltY = tiltY;
+    el.dataset.skewX = skewX;
+    el.dataset.skewY = skewY;
+    el.dataset.bulgeX = bulgeX;
+    el.dataset.bulgeY = bulgeY;
+
+    // Perimeter glow tint toward dominant gap
+    const dom = cap>mat && cap>perf ? 'cap' : (mat>perf ? 'mat':'perf');
+    el.dataset.dom = dom;
+
+    el.style.boxShadow = dom==='cap'
+      ? "0 10px 24px #0003 inset, 0 0 0 1px #0001 inset, 0 0 28px #6a7dff22"
+      : dom==='mat'
+      ? "0 10px 24px #0003 inset, 0 0 0 1px #0001 inset, 0 0 28px #e0a40022"
+      : "0 10px 24px #0003 inset, 0 0 0 1px #0001 inset, 0 0 28px #e0526322";
+  }
+
+  function mount(){
+    wrap.innerHTML='';
+    projects.forEach(p=>wrap.appendChild(tile(p)));
+  }
+
+  function randomize(){
+    document.querySelectorAll('.tile').forEach(t=>{
+      const cap = Math.round(Math.random()*100);
+      const mat = Math.round(Math.random()*100);
+      const perf = Math.round(Math.random()*100);
+      t.dataset.cap = cap; t.dataset.mat = mat; t.dataset.perf = perf;
+      t.querySelector('.meter[data-kind="cap"]').style.setProperty('--v', cap);
+      t.querySelector('.meter[data-kind="mat"]').style.setProperty('--v', mat);
+      t.querySelector('.meter[data-kind="perf"]').style.setProperty('--v', perf);
+      applyDeformation(t);
+    });
+    showToast("Randomized gaps. Click ⓘ on a tile to see the computed explanation.");
+  }
+
+  function tiltTo(kind){
+    const bias = {cap:false, mat:false, perf:false}; bias[kind]=true;
+    document.querySelectorAll('.tile').forEach(t=>applyDeformation(t, bias));
+    showToast(`Bias preview: exaggerating the ${kind.toUpperCase()} dimension (visual stress test).`);
+  }
+
+  function resetView(){
+    document.querySelectorAll('.tile').forEach(t=>applyDeformation(t));
+    showToast("Reset deformation to true (unbiased) mapping.");
+  }
+
+  // Replace a DAG programmatically (drop‑in for yEd/Graphviz exports)
+  function setDAGFor(index, svgString){
+    const t = document.querySelectorAll('.tile')[index];
+    if(t) t.querySelector('.dag').innerHTML = svgString;
+  }
+
+  // ---------- Explainer dialogs ----------
+  const helpDialog = document.getElementById('helpDialog');
+  const tileDialog = document.getElementById('tileDialog');
+  const tileDialogTitle = document.getElementById('tileDialogTitle');
+  const tileDialogSub = document.getElementById('tileDialogSub');
+  const tileDialogBody = document.getElementById('tileDialogBody');
+
+  function openDialog(d){
+    if(typeof d.showModal === "function") d.showModal();
+    else d.setAttribute('open',''); // fallback
+  }
+  function closeDialog(d){
+    if(typeof d.close === "function") d.close();
+    else d.removeAttribute('open');
+  }
+
+  // Help buttons open dialog on selected tab
+  document.querySelectorAll('[data-help-open]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      openDialog(helpDialog);
+      setHelpTab(btn.dataset.helpOpen);
+    });
+  });
+
+  // Close buttons
+  document.querySelectorAll('[data-dialog-close]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.dialogClose;
+      const d = document.getElementById(id);
+      if(d) closeDialog(d);
+    });
+  });
+
+  // Tabs inside help dialog
+  document.querySelectorAll('[data-help-tab]').forEach(tab=>{
+    tab.addEventListener('click', ()=>setHelpTab(tab.dataset.helpTab));
+  });
+
+  function setHelpTab(which){
+    document.querySelectorAll('[data-help-tab]').forEach(t=>{
+      t.setAttribute('aria-selected', String(t.dataset.helpTab === which));
+    });
+    document.querySelectorAll('[data-help-panel]').forEach(p=>{
+      p.dataset.open = String(p.dataset.helpPanel === which);
+    });
+  }
+
+  function openTileDialog(project, tileEl){
+    const cap = +tileEl.dataset.cap, mat = +tileEl.dataset.mat, perf = +tileEl.dataset.perf;
+    const dom = tileEl.dataset.dom;
+    const domLabel = dom==='cap' ? 'Capability' : dom==='mat' ? 'Maturity' : 'Performance';
+    const domColor = dom==='cap' ? 'var(--accent)' : dom==='mat' ? 'var(--warn)' : 'var(--bad)';
+
+    const guidance = {
+      cap: [
+        "Typical intervention: strengthen roles/skills/vendor capacity; reduce parallelism; simplify scope until capability catches up.",
+        "Questions to ask: Do we have the right technical depth? Is the plan assuming ‘heroic’ productivity? Are critical roles unfilled?"
+      ],
+      mat: [
+        "Typical intervention: tighten governance and controls; clarify decision rights; increase assurance cadence; strengthen stage gate evidence.",
+        "Questions to ask: Are controls fit for phase? Are decisions stuck? Is data quality good enough to run the program?"
+      ],
+      perf: [
+        "Typical intervention: remove delivery bottlenecks; replan; focus on throughput/quality; unblock dependencies; stop-start less.",
+        "Questions to ask: Where is the constraint? What is slipping (time/cost/quality)? Are we thrashing due to late changes?"
+      ],
+    }[dom];
+
+    tileDialogTitle.textContent = project.name;
+    tileDialogSub.textContent = `Dominant gap: ${domLabel}. Values shown are the “why” behind the deformation.`;
+
+    tileDialogBody.innerHTML = `
+      <div class="pillrow" style="margin-top:0">
+        <div class="pill"><span style="color:var(--accent)"><b>Cap</b></span>: ${cap}</div>
+        <div class="pill"><span style="color:var(--warn)"><b>Mat</b></span>: ${mat}</div>
+        <div class="pill"><span style="color:var(--bad)"><b>Perf</b></span>: ${perf}</div>
+        <div class="pill">Intensity: ${tileEl.dataset.intensity}</div>
+      </div>
+
+      <h3 style="margin-top:10px">Interpretation</h3>
+      <p style="margin-top:6px">
+        This tile is pulled toward <span style="color:${domColor}"><b>${domLabel}</b></span> because it is currently the largest gap.
+        Use this as a triage signal: <b>what kind of intervention</b> is most likely to help.
+      </p>
+
+      <h3>Suggested focus</h3>
+      <ul>
+        <li>${guidance[0]}</li>
+        <li>${guidance[1]}</li>
+      </ul>
+
+      <h3>Why the shape looks like this (numbers)</h3>
+      <ul>
+        <li>Lean weights: <code>wx=${tileEl.dataset.wx}</code>, <code>wy=${tileEl.dataset.wy}</code> (normalized dominance signals)</li>
+        <li>Transforms: <code>tiltX=${tileEl.dataset.tiltX}°</code>, <code>tiltY=${tileEl.dataset.tiltY}°</code>, <code>skewX=${tileEl.dataset.skewX}°</code>, <code>skewY=${tileEl.dataset.skewY}°</code></li>
+        <li>Bulge anchor: <code>${tileEl.dataset.bulgeX}</code>, <code>${tileEl.dataset.bulgeY}</code> (where the “pressure” appears)</li>
+      </ul>
+
+      <p style="margin:10px 0 0;color:var(--muted);font-size:12px">
+        Note: the mini‑DAG is a placeholder SVG here. In production, swap in a real weekly dependency snapshot (yEd/Graphviz export).
+      </p>
+    `;
+
+    openDialog(tileDialog);
+  }
+
+  // ---------- Toast ----------
+  const toast = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.dataset.show = "true";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>toast.dataset.show="false", 3400);
+  }
+
+  // ---------- Coach-mark tour ----------
+  const tourOverlay = document.getElementById('tourOverlay');
+  const tourSpotlight = document.getElementById('tourSpotlight');
+  const tourBubble = document.getElementById('tourBubble');
+  const tourTitle = document.getElementById('tourTitle');
+  const tourProgress = document.getElementById('tourProgress');
+  const tourText = document.getElementById('tourText');
+  const tourPills = document.getElementById('tourPills');
+  const tourBack = document.getElementById('tourBack');
+  const tourNext = document.getElementById('tourNext');
+  const tourClose = document.getElementById('tourClose');
+
+  let tourIndex = 0;
+  let tourSteps = [];
+
+  function buildTourSteps(){
+    // We anchor the tour to the first tile to make it predictable.
+    const firstTile = document.querySelector('.tile');
+
+    return [
+      {
+        title: "Gap meters",
+        color: "#6a7dff",
+        pills: ["Bars = magnitude", "Click a bar"],
+        getTarget: () => firstTile?.querySelector('.meters'),
+        text: `
+          <p style="margin:0 0 8px">
+            These three bars are the <b>gap scores</b> (0–100): <b style="color:var(--accent)">Capability</b>,
+            <b style="color:var(--warn)">Maturity</b>, <b style="color:var(--bad)">Performance</b>.
+          </p>
+          <p style="margin:0">
+            Taller bar = bigger gap (more attention needed). Try clicking any bar for a plain-language definition.
+          </p>
+        `
+      },
+      {
+        title: "Deformation fingerprint",
+        color: "#e0a400",
+        pills: ["Shape = dominance", "Fast triage"],
+        getTarget: () => firstTile?.querySelector('.deform') || firstTile,
+        text: `
+          <p style="margin:0 0 8px">
+            The tile <b>leans/warps</b> toward whichever gap dominates. This gives leaders an at-a-glance “why is it unhealthy?”
+            without collapsing everything into a single traffic-light score.
+          </p>
+          <p style="margin:0">
+            Want the numeric “why”? Click the <b>ⓘ</b> on any tile.
+          </p>
+        `
+      },
+      {
+        title: "Mini dependency DAG",
+        color: "#e05263",
+        pills: ["DAG = constraint", "Fat edge = bottleneck"],
+        getTarget: () => firstTile?.querySelector('.dag'),
+        text: `
+          <p style="margin:0 0 8px">
+            This corner diagram is a mini <b>dependency snapshot</b>.
+            Replace it with a yEd/Graphviz SVG export for the current week.
+          </p>
+          <p style="margin:0">
+            A <b>fat edge</b> (or highlighted path) is a cue: “that’s the bottleneck / control break.” Ask what must move first.
+          </p>
+        `
+      }
+    ];
+  }
+
+  function startTour(){
+    // Close any open dialogs to reduce modality conflicts
+    try{ if(helpDialog.open) helpDialog.close(); }catch(e){}
+    try{ if(tileDialog.open) tileDialog.close(); }catch(e){}
+
+    tourSteps = buildTourSteps();
+    tourIndex = 0;
+
+    tourOverlay.dataset.open = "true";
+    tourOverlay.setAttribute('aria-hidden', 'false');
+
+    renderTourStep();
+  }
+
+  function closeTour(){
+    tourOverlay.dataset.open = "false";
+    tourOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  function nextTour(){
+    if(tourIndex < tourSteps.length - 1){
+      tourIndex++;
+      renderTourStep();
+    } else {
+      closeTour();
+      showToast("Tour complete. Tip: use What / Why / How for deeper context.");
+    }
+  }
+
+  function prevTour(){
+    if(tourIndex > 0){
+      tourIndex--;
+      renderTourStep();
+    }
+  }
+
+  function renderTourStep(){
+    const step = tourSteps[tourIndex];
+    const target = step?.getTarget?.();
+
+    tourTitle.textContent = step?.title || "Tour";
+    tourProgress.textContent = `Step ${tourIndex + 1} of ${tourSteps.length}`;
+    tourText.innerHTML = step?.text || "";
+    tourPills.innerHTML = (step?.pills || []).map(p => `<div class="pill">${p}</div>`).join('');
+
+    // Buttons
+    tourBack.disabled = tourIndex === 0;
+    tourNext.textContent = (tourIndex === tourSteps.length - 1) ? "Done" : "Next";
+
+    // Spotlight styling
+    tourSpotlight.style.borderColor = (step?.color || "#6a7dff") + "aa";
+
+    if(!target){
+      // If for some reason there is no target, just center the bubble.
+      centerTourBubble();
+      tourSpotlight.style.left = "-9999px";
+      return;
+    }
+
+    // Make sure target is visible
+    target.scrollIntoView({behavior:'smooth', block:'center', inline:'nearest'});
+
+    // Position after a short delay so scrollIntoView can complete
+    setTimeout(()=>positionTourToTarget(target), 220);
+
+    // Focus the primary action for keyboard users
+    setTimeout(()=>tourNext.focus(), 0);
+  }
+
+  function centerTourBubble(){
+    const vw = window.innerWidth, vh = window.innerHeight;
+    tourBubble.style.left = Math.max(10, (vw - tourBubble.offsetWidth)/2) + "px";
+    tourBubble.style.top = Math.max(10, (vh - tourBubble.offsetHeight)/2) + "px";
+  }
+
+  function positionTourToTarget(target){
+    const rect = target.getBoundingClientRect();
+    const pad = 10;
+
+    // Spotlight rectangle
+    const left = Math.max(8, rect.left - pad);
+    const top = Math.max(8, rect.top - pad);
+    const width = Math.min(window.innerWidth - 16, rect.width + pad*2);
+    const height = Math.min(window.innerHeight - 16, rect.height + pad*2);
+
+    tourSpotlight.style.left = left + "px";
+    tourSpotlight.style.top = top + "px";
+    tourSpotlight.style.width = width + "px";
+    tourSpotlight.style.height = height + "px";
+
+    // Bubble placement: prefer to the right; else left; else below; else above.
+    // We'll do a simple heuristic with clamping.
+    const gap = 12;
+    // Measure bubble
+    const bw = tourBubble.offsetWidth;
+    const bh = tourBubble.offsetHeight;
+
+    let bx = rect.right + gap;
+    let by = rect.top;
+
+    // If not enough space to the right, try left
+    if(bx + bw > window.innerWidth - 10){
+      bx = rect.left - gap - bw;
+    }
+    // If not enough space left either, go below
+    if(bx < 10){
+      bx = rect.left;
+      by = rect.bottom + gap;
+      // If below overflows, go above
+      if(by + bh > window.innerHeight - 10){
+        by = rect.top - gap - bh;
+      }
+    }
+
+    // Clamp within viewport
+    bx = Math.min(window.innerWidth - bw - 10, Math.max(10, bx));
+    by = Math.min(window.innerHeight - bh - 10, Math.max(10, by));
+
+    tourBubble.style.left = bx + "px";
+    tourBubble.style.top = by + "px";
+  }
+
+  // Tour event wiring
+  tourOverlay.addEventListener('click', closeTour);
+  tourBubble.addEventListener('click', (ev)=>ev.stopPropagation());
+  tourClose.addEventListener('click', closeTour);
+  tourNext.addEventListener('click', nextTour);
+  tourBack.addEventListener('click', prevTour);
+
+  // Keyboard: Esc to close, arrows to navigate
+  document.addEventListener('keydown', (e)=>{
+    if(tourOverlay.dataset.open !== "true") return;
+    if(e.key === 'Escape') closeTour();
+    if(e.key === 'ArrowRight') nextTour();
+    if(e.key === 'ArrowLeft') prevTour();
+  });
+
+  // Reposition spotlight/bubble on scroll/resize
+  let tourRAF = null;
+  function scheduleTourReposition(){
+    if(tourOverlay.dataset.open !== "true") return;
+    cancelAnimationFrame(tourRAF);
+    tourRAF = requestAnimationFrame(()=>{
+      const step = tourSteps[tourIndex];
+      const target = step?.getTarget?.();
+      if(target) positionTourToTarget(target);
+    });
+  }
+  window.addEventListener('resize', scheduleTourReposition);
+  window.addEventListener('scroll', scheduleTourReposition, {passive:true});
+
+  // Resize: refresh sparklines
+  window.addEventListener('resize', ()=>document.querySelectorAll('canvas').forEach(spark));
+
+  mount();
+
+  // Example: swap DAG on first tile after load (demonstrates the API)
+  setTimeout(()=>setDAGFor(0, miniDAGSVG({accent:"#4ae3b5", warn:"#f4c851", bad:"#ff6b7a"})), 250);
+</script>
+</body>
+</html>

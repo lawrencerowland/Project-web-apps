@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lower Thames Crossing — Geo-framed Knowledge Graph (Contracts Finder sample)</title>
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <!-- D3 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <style>
+    :root{
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,0.06);
+      --panel2: rgba(255,255,255,0.09);
+      --ink: rgba(255,255,255,0.92);
+      --muted: rgba(255,255,255,0.70);
+      --muted2: rgba(255,255,255,0.55);
+      --edge: rgba(255,255,255,0.20);
+      --edgeHi: rgba(255,255,255,0.75);
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --accent: #60a5fa;
+      --accent2: #a78bfa;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    html, body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 800px at 20% -10%, rgba(96,165,250,0.25), transparent 55%),
+                  radial-gradient(900px 600px at 100% 10%, rgba(167,139,250,0.18), transparent 55%),
+                  var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      overflow:hidden;
+    }
+    a{color: var(--accent)}
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-rows: auto 1fr;
+    }
+    header{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      padding:12px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      backdrop-filter: blur(10px);
+      background: rgba(0,0,0,0.16);
+    }
+    header .title{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width: 320px;
+    }
+    header h1{
+      font-size: 14px;
+      margin:0;
+      letter-spacing: 0.2px;
+      font-weight: 700;
+    }
+    header .sub{
+      font-size: 12px;
+      margin:0;
+      color: var(--muted);
+      line-height:1.25;
+    }
+    header .pills{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-left:auto;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .pill{
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: var(--ink);
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .08s ease, background .15s ease, border-color .15s ease;
+    }
+    .pill:hover{transform: translateY(-1px); background: rgba(255,255,255,0.11);}
+    .pill:active{transform: translateY(0px);}
+    .pill.on{border-color: rgba(96,165,250,0.55); background: rgba(96,165,250,0.14);}
+    .pill.danger.on{border-color: rgba(239,68,68,0.55); background: rgba(239,68,68,0.14);}
+
+    .main{
+      display:grid;
+      grid-template-columns: 1.35fr 1fr;
+      height:100%;
+      min-height:0;
+    }
+    .left, .right{
+      min-height:0;
+      position:relative;
+    }
+    .left{
+      border-right: 1px solid rgba(255,255,255,0.10);
+    }
+    #map{
+      position:absolute;
+      inset:0;
+    }
+    .mapOverlayLegend{
+      position:absolute;
+      left:12px;
+      top:12px;
+      z-index:500;
+      background: rgba(0,0,0,0.42);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 14px;
+      padding:10px 10px;
+      width: 320px;
+      backdrop-filter: blur(10px);
+    }
+    .legendRow{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .legendRow + .legendRow{margin-top:10px}
+    .legendTitle{
+      font-size:12px;
+      font-weight:700;
+      margin:0 0 6px 0;
+      color: var(--ink);
+    }
+    .legendSmall{
+      font-size: 11px;
+      color: var(--muted);
+      line-height:1.25;
+      margin:0;
+    }
+    .legendGrid{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:6px 10px;
+    }
+    .key{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size: 11px;
+      color: var(--muted);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      border: 1px solid rgba(255,255,255,0.35);
+      flex:0 0 auto;
+    }
+    .dot.square{border-radius:3px}
+    .dot.ring{background: transparent !important; border-width:2px}
+    .badge{
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.07);
+      color: var(--muted);
+      margin-left: auto;
+    }
+
+    .right{
+      display:grid;
+      grid-template-rows: auto 1fr auto;
+      min-height:0;
+    }
+    .controls{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      padding:12px 12px 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.16);
+      backdrop-filter: blur(10px);
+    }
+    .controls .group{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      padding:10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius:14px;
+      background: rgba(255,255,255,0.06);
+      min-width: 210px;
+    }
+    .controls .group .gTitle{
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink);
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+    }
+    .controls .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    label.chk{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size: 11px;
+      color: var(--muted);
+      cursor:pointer;
+      user-select:none;
+      white-space:nowrap;
+    }
+    input[type="checkbox"]{accent-color: #60a5fa;}
+    input[type="range"]{width: 100%;}
+    .smallHint{font-size: 10.5px; color: var(--muted2); line-height:1.25;}
+    .graphWrap{
+      position:relative;
+      min-height:0;
+    }
+    #graph{
+      position:absolute;
+      inset:0;
+    }
+    #graph svg{
+      width:100%;
+      height:100%;
+      display:block;
+    }
+
+    .details{
+      border-top: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.16);
+      backdrop-filter: blur(10px);
+      padding: 10px 12px 12px 12px;
+      max-height: 34vh;
+      overflow:auto;
+    }
+    .details h2{
+      margin:0 0 6px 0;
+      font-size: 13px;
+      letter-spacing:.2px;
+    }
+    .details .meta{
+      display:grid;
+      grid-template-columns: 120px 1fr;
+      gap:6px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height:1.25;
+    }
+    .details .meta .k{
+      color: var(--muted2);
+      font-family: var(--mono);
+      font-size: 10.5px;
+    }
+    .details .meta .v{
+      color: var(--muted);
+      word-break: break-word;
+    }
+    .details .meta .v code{
+      font-family: var(--mono);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 1px 4px;
+      border-radius: 6px;
+    }
+    .details .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .details .actions button{
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: var(--ink);
+      cursor:pointer;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+    .details .actions button:hover{background: rgba(255,255,255,0.11);}
+
+    /* Graph styling */
+    .link{
+      stroke: var(--edge);
+      stroke-width: 1.2px;
+    }
+    .link.hidden{display:none;}
+    .link.hi{stroke: var(--edgeHi); stroke-width: 2px;}
+    .nodeCircle{
+      stroke: rgba(255,255,255,0.35);
+      stroke-width: 1px;
+    }
+    .nodeCircle.hidden{display:none;}
+    .label{
+      fill: rgba(255,255,255,0.88);
+      font-size: 11px;
+      pointer-events:none;
+      paint-order: stroke;
+      stroke: rgba(0,0,0,0.45);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+    .label.hidden{display:none;}
+    .node.selected .nodeCircle{
+      stroke: rgba(255,255,255,0.95);
+      stroke-width: 2px;
+    }
+    .node.neighbor .nodeCircle{
+      stroke: rgba(96,165,250,0.95);
+      stroke-width: 2px;
+    }
+    .node.faded{
+      opacity: 0.22;
+    }
+    .link.faded{
+      opacity: 0.12;
+    }
+
+    /* Drawer */
+    .drawer{
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      z-index: 600;
+      width: min(540px, calc(100% - 24px));
+      max-height: min(74vh, calc(100% - 24px));
+      overflow:auto;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+      display:none;
+    }
+    .drawer.open{display:block;}
+    .drawer .drawerHead{
+      padding: 12px 12px 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      position:sticky;
+      top:0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(12px);
+      z-index: 2;
+    }
+    .drawer .drawerHead h3{
+      margin:0;
+      font-size: 13px;
+      letter-spacing: .2px;
+    }
+    .drawer .drawerHead .closeBtn{
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: var(--ink);
+      padding: 8px 10px;
+      border-radius: 12px;
+      cursor:pointer;
+    }
+    .drawer .content{
+      padding: 12px;
+    }
+    .drawer .content .section{
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .drawer .content .section h4{
+      margin:0 0 6px 0;
+      font-size: 12px;
+      letter-spacing: .2px;
+    }
+    .drawer .content .section p{
+      margin: 6px 0 0 0;
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .drawer .content code{
+      font-family: var(--mono);
+      font-size: 10.5px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 1px 4px;
+      border-radius: 6px;
+    }
+
+    /* Leaflet tweaks for dark UI */
+    .leaflet-control-attribution{
+      background: rgba(0,0,0,0.35) !important;
+      color: rgba(255,255,255,0.75) !important;
+      border-radius: 10px !important;
+      padding: 4px 8px !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      margin: 0 10px 10px 0 !important;
+      backdrop-filter: blur(10px) !important;
+    }
+    .leaflet-control-attribution a{color: rgba(255,255,255,0.9) !important;}
+    .leaflet-control-zoom a{
+      background: rgba(0,0,0,0.35) !important;
+      color: rgba(255,255,255,0.90) !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      backdrop-filter: blur(10px) !important;
+    }
+
+    @media (max-width: 1100px){
+      .main{grid-template-columns: 1fr}
+      .left{border-right:none; border-bottom: 1px solid rgba(255,255,255,0.10);}
+      header .title{min-width:auto;}
+      .mapOverlayLegend{width: min(360px, calc(100% - 24px));}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Lower Thames Crossing — geo-framed knowledge graph</h1>
+        <p class="sub">
+          Sample ecosystem graph built from a handful of <em>Contracts Finder</em> awarded notices, treated as first-class nodes (contracts ↔ organisations ↔ locations ↔ frameworks) inside a geographic reference frame.
+        </p>
+      </div>
+
+      <div class="pills">
+        <button class="pill" id="btnHelp">What / Why / How</button>
+        <button class="pill" id="btnMapLines">Map lines: OFF</button>
+        <button class="pill" id="btnEgo">Ego highlight: OFF</button>
+        <button class="pill" id="btnReset">Reset view</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <section class="left">
+        <div id="map"></div>
+
+        <div class="mapOverlayLegend" aria-label="Legend">
+          <div class="legendRow">
+            <div style="flex:1">
+              <div class="legendTitle">Legend &amp; quick moves</div>
+              <p class="legendSmall">
+                Click a marker (map) or node (graph) to select. Use filters to isolate patterns.
+                Turn on <span style="color:var(--accent)">Map lines</span> to project relational edges into space.
+              </p>
+            </div>
+          </div>
+
+          <div class="legendGrid" id="legendGrid"></div>
+        </div>
+      </section>
+
+      <section class="right">
+        <div class="controls">
+          <div class="group">
+            <div class="gTitle">Node types <span class="badge" id="badgeNodes"></span></div>
+            <div class="row" id="nodeTypeChecks"></div>
+            <div class="smallHint">Hide “Contract” to see the organisational geography; hide “Location” to see pure actor-network.</div>
+          </div>
+
+          <div class="group">
+            <div class="gTitle">Edge types <span class="badge" id="badgeLinks"></span></div>
+            <div class="row" id="linkTypeChecks"></div>
+            <div class="smallHint">For spatial patterns, keep <code>BASED_IN</code> + <code>DELIVERS_TO</code> and toggle others.</div>
+          </div>
+
+          <div class="group" style="min-width: 240px;">
+            <div class="gTitle">Award year ≥ <span class="badge" id="badgeYear"></span></div>
+            <input type="range" id="yearRange" min="2015" max="2026" value="2015" step="1" />
+            <div class="smallHint">This is a tiny slice; the slider mainly demonstrates how to add temporal gating.</div>
+          </div>
+        </div>
+
+        <div class="graphWrap">
+          <div id="graph"></div>
+
+          <div class="drawer" id="drawer">
+            <div class="drawerHead">
+              <h3>Geo + KG explainers</h3>
+              <button class="closeBtn" id="btnCloseHelp">Close</button>
+            </div>
+            <div class="content">
+              <div class="section">
+                <h4>What you’re looking at</h4>
+                <p>
+                  A multi-relational knowledge graph where <b>contracts</b>, <b>organisations</b>, <b>sites</b>, <b>locations</b>, and <b>frameworks</b>
+                  are first-class nodes. The map is not “just points”: it is a coordinate system for interpreting the network when proximity and jurisdiction matter.
+                </p>
+              </div>
+              <div class="section">
+                <h4>Why the geographic frame helps (the non-obvious bit)</h4>
+                <p>
+                  A spatial frame turns “who-is-linked-to-whom” into “who-is-linked-to-whom <i>where</i>”, which surfaces
+                  <i>spatial homophily</i>, regional clustering, and governance discontinuities. In practice, you often care less about the raw topology
+                  than about where edges cut across boundaries (e.g., central procurement hubs feeding peripheral delivery sites).
+                </p>
+              </div>
+              <div class="section">
+                <h4>How to read this demo</h4>
+                <p>
+                  Start by selecting the <b>Site</b> node, then toggle edges:
+                  keep <code>HAS_CONTRACT</code> + <code>SUPPLIES</code> to see the procurement “fan-out”,
+                  then add <code>BASED_IN</code> to see the geographic footprint. Turn on <b>Map lines</b> to project any edge whose endpoints have coordinates.
+                </p>
+              </div>
+              <div class="section">
+                <h4>How you would scale it beyond a demo</h4>
+                <p>
+                  (1) Ingest OCDS / Contracts Finder API responses; (2) normalise org identities (Companies House IDs, LEI) and locations (UPRN / admin areas);
+                  (3) treat lots, amendments, and subcontract tiers as edge-labeled events; (4) snapshot by time to get a temporal multilayer graph.
+                  When you do that, <code>Contract</code> nodes can be replaced by <i>hyperedges</i> (or reified events) to avoid “ballooning” degree.
+                </p>
+              </div>
+              <div class="section">
+                <h4>About the data in this file</h4>
+                <p>
+                  The nodes/edges here are extracted from a small set of public Contracts Finder notices that mention the Lower Thames Crossing,
+                  so you can see the modelling pattern without needing a pipeline.
+                  Each contract node includes a direct link back to its notice.
+                </p>
+              </div>
+              <div class="section">
+                <h4>Buttons (top right)</h4>
+                <p>
+                  <b>Map lines</b>: draw geodesic-ish polylines for any edge whose endpoints have coordinates.<br/>
+                  <b>Ego highlight</b>: fade everything except the selected node’s 1-hop neighbourhood (classic ego-network view).<br/>
+                  <b>Reset</b>: clears selection, restores default zoom, and re-shows everything.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="details">
+          <h2 id="detailsTitle">Select something…</h2>
+          <div class="meta" id="detailsMeta"></div>
+          <div class="actions">
+            <button id="btnFly" disabled>Fly map to selection</button>
+            <button id="btnOpen" disabled>Open source notice</button>
+            <button id="btnPin" disabled>Pin node in graph</button>
+            <button id="btnUnpin" disabled>Unpin node</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+/**
+ * DATA MODEL NOTES
+ * - Contract nodes here are "reified transactions": handy for exploration, but for scale you might use hyperedges / event tables.
+ * - Location is first-class: orgs and contracts link to location nodes, rather than keeping location as a mere attribute.
+ * - Some coords are postcode centroids; some are representative-centre postcodes for regions/cities.
+ */
+
+/** Simple slug */
+function slug(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,''); }
+
+/** Number formatting */
+function fmtGBP(n){
+  if (n == null || n === "") return "";
+  const v = Number(n);
+  if (!Number.isFinite(v)) return String(n);
+  return v.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 2 });
+}
+function fmtDate(s){
+  if (!s) return "";
+  try{
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
+    return d.toLocaleDateString('en-GB', { year:'numeric', month:'short', day:'2-digit' });
+  }catch(e){ return s; }
+}
+
+const COORDS = {
+  "B4 6GA": {lat: 52.484141, lon: -1.898832, src: "doogal"},
+  "B1 1RN": {lat: 52.474879, lon: -1.907009, src: "doogal"},
+  "LS11 9AT": {lat: 53.788422, lon: -1.547728, src: "doogal"},
+  "W6 7EF": {lat: 51.494254, lon: -0.216116, src: "doogal"},
+  "KT18 5BW": {lat: 51.324978, lon: -0.266524, src: "doogal"},
+  "EC3R 5BU": {lat: 51.510702, lon: -0.083834, src: "doogal"},
+  "EC2A 4NE": {lat: 51.526546, lon: -0.082236, src: "doogal"},
+  "CV8 1ED": {lat: 52.34399, lon: -1.580993, src: "doogal"},
+  "MK9 1AA": {lat: 52.037233, lon: -0.770255, src: "doogal"},
+  "RG21 7AA": {lat: 51.266339, lon: -1.08472, src: "doogal"},
+  "RG41 5TU": {lat: 51.439302, lon: -0.881626, src: "doogal"},
+  "GU1 4LZ": {lat: 51.236553, lon: -0.579128, src: "doogal"},
+  "CB2 1TN": {lat: 52.205118, lon: 0.116208, src: "doogal"},
+  "SW1A 1AA": {lat: 51.50101, lon: -0.141563, src: "doogal"},
+  "NE1 7AL": {lat: 54.974306, lon: -1.612894, src: "doogal"},
+  "Lower Thames Crossing": {lat: 51.4667, lon: 0.3000, src: "latitude.to"}
+};
+
+const DATA = {
+  nodes: [
+    // Project & site
+    { id:"proj_ltc", label:"Lower Thames Crossing", type:"Project",
+      url:"https://www.contractsfinder.service.gov.uk/Search?text=Lower%20Thames%20Crossing", // navigation aid
+      meta:{ note:"Project wrapper node; in a full pipeline you would key this to an internal project ID + scope." } },
+
+    { id:"site_ltc", label:"Lower Thames Crossing (Site)", type:"Site",
+      lat: COORDS["Lower Thames Crossing"].lat, lon: COORDS["Lower Thames Crossing"].lon,
+      url:"https://www.contractsfinder.service.gov.uk/Search?text=Lower%20Thames%20Crossing",
+      meta:{ note:"Coordinate is an approximate centroid for the proposed crossing corridor." } },
+
+    // Location nodes (postcodes + representative region-centres)
+    { id:"loc_b4_6ga", label:"B4 6GA (Birmingham)", type:"Location", lat: COORDS["B4 6GA"].lat, lon: COORDS["B4 6GA"].lon, meta:{kind:"postcode"} },
+    { id:"loc_b1_1rn", label:"B1 1RN (Birmingham)", type:"Location", lat: COORDS["B1 1RN"].lat, lon: COORDS["B1 1RN"].lon, meta:{kind:"postcode"} },
+    { id:"loc_ls11_9at", label:"LS11 9AT (Leeds)", type:"Location", lat: COORDS["LS11 9AT"].lat, lon: COORDS["LS11 9AT"].lon, meta:{kind:"postcode"} },
+    { id:"loc_w6_7ef", label:"W6 7EF (London)", type:"Location", lat: COORDS["W6 7EF"].lat, lon: COORDS["W6 7EF"].lon, meta:{kind:"postcode"} },
+    { id:"loc_kt18_5bw", label:"KT18 5BW (Epsom)", type:"Location", lat: COORDS["KT18 5BW"].lat, lon: COORDS["KT18 5BW"].lon, meta:{kind:"postcode"} },
+    { id:"loc_ec3r_5bu", label:"EC3R 5BU (City of London)", type:"Location", lat: COORDS["EC3R 5BU"].lat, lon: COORDS["EC3R 5BU"].lon, meta:{kind:"postcode"} },
+    { id:"loc_ec2a_4ne", label:"EC2A 4NE (London)", type:"Location", lat: COORDS["EC2A 4NE"].lat, lon: COORDS["EC2A 4NE"].lon, meta:{kind:"postcode"} },
+    { id:"loc_cv8_1ed", label:"CV8 1ED (Kenilworth)", type:"Location", lat: COORDS["CV8 1ED"].lat, lon: COORDS["CV8 1ED"].lon, meta:{kind:"postcode"} },
+    { id:"loc_mk9_1aa", label:"MK9 1AA (Milton Keynes)", type:"Location", lat: COORDS["MK9 1AA"].lat, lon: COORDS["MK9 1AA"].lon, meta:{kind:"postcode"} },
+    { id:"loc_rg21_7aa", label:"RG21 7AA (Basingstoke)", type:"Location", lat: COORDS["RG21 7AA"].lat, lon: COORDS["RG21 7AA"].lon, meta:{kind:"postcode"} },
+    { id:"loc_rg41_5tu", label:"RG41 5TU (Winnersh/Wokingham)", type:"Location", lat: COORDS["RG41 5TU"].lat, lon: COORDS["RG41 5TU"].lon, meta:{kind:"postcode"} },
+    { id:"loc_gu1_4lz", label:"GU1 4LZ (Guildford)", type:"Location", lat: COORDS["GU1 4LZ"].lat, lon: COORDS["GU1 4LZ"].lon, meta:{kind:"postcode"} },
+    { id:"loc_cb2_1tn", label:"CB2 1TN (Cambridge)", type:"Location", lat: COORDS["CB2 1TN"].lat, lon: COORDS["CB2 1TN"].lon, meta:{kind:"postcode"} },
+    { id:"loc_sw1a_1aa", label:"SW1A 1AA (London centre)", type:"Location", lat: COORDS["SW1A 1AA"].lat, lon: COORDS["SW1A 1AA"].lon, meta:{kind:"postcode"} },
+    { id:"loc_ne1_7al", label:"NE1 7AL (Newcastle upon Tyne)", type:"Location", lat: COORDS["NE1 7AL"].lat, lon: COORDS["NE1 7AL"].lon, meta:{kind:"postcode"} },
+
+    // Organisations
+    { id:"org_nh_ltd", label:"National Highways Limited", type:"Organisation",
+      meta:{role:["buyer"], address:"Three Snowhill, Snow Hill Queensway, Birmingham B4 6GA"} },
+    { id:"org_nh", label:"National Highways", type:"Organisation",
+      meta:{role:["buyer"], address:"The Cube, Birmingham B1 1RN"} },
+    { id:"org_highways_agency", label:"Highways Agency", type:"Organisation",
+      meta:{role:["buyer"], address:"Lateral, 8 City Walk, Leeds LS11 9AT"} },
+    { id:"org_highways_england", label:"Highways England", type:"Organisation",
+      meta:{role:["buyer"], address:"The Cube, Birmingham B1 1RN"} },
+    { id:"org_dft", label:"Department for Transport", type:"Organisation",
+      meta:{role:["buyer"], address:"(notice lists Highways England Company Ltd address in Guildford GU1 4LZ)"} },
+    { id:"org_he_company", label:"Highways England Company Ltd", type:"Organisation",
+      meta:{role:["buyer"], address:"Bridge House, 1 Walnut Tree Close, Guildford GU1 4LZ"} },
+
+    { id:"org_atkinsrealis_pps", label:"AtkinsRealis PPS Limited", type:"Organisation",
+      meta:{role:["supplier"], address:"43 Epsom Gateway, Epsom KT18 5BW"} },
+    { id:"org_marsh", label:"Marsh Limited", type:"Organisation",
+      meta:{role:["supplier"], address:"1 Tower Place East, London EC3R 5BU"} },
+    { id:"org_ve3", label:"VE3 Global Ltd", type:"Organisation",
+      meta:{role:["supplier"], address:"86–90 Paul Street, London EC2A 4NE"} },
+    { id:"org_dentons", label:"Dentons UK & Middle East LLP", type:"Organisation",
+      meta:{role:["supplier"], address:"London (postcode not given in notice)"} },
+    { id:"org_deloitte", label:"Deloitte LLP", type:"Organisation",
+      meta:{role:["supplier"], address:"Milton Keynes (postcode not given in notice)"} },
+    { id:"org_orange", label:"The Orange Partnership Limited", type:"Organisation",
+      meta:{role:["supplier"], address:"Kenilworth (postcode not given in notice)"} },
+    { id:"org_futran", label:"FUTRAN", type:"Organisation",
+      meta:{role:["supplier"], address:"Wokingham (postcode not given in notice)"} },
+    { id:"org_wsp", label:"WSP UK Ltd", type:"Organisation",
+      meta:{role:["supplier"], address:"Basingstoke (postcode not given in notice)"} },
+    { id:"org_cmp_jv", label:"CMP JV (CH2m Hill, Mace Limited and PWC)", type:"Organisation",
+      meta:{role:["supplier"], address:"Elms House, 43 Brook Green, London W6 7EF"} },
+    { id:"org_jacobs", label:"Jacobs UK Ltd", type:"Organisation",
+      meta:{role:["supplier"], address:"1180 Eskdale Road, Winnersh, Wokingham RG41 5TU"} },
+    { id:"org_arup", label:"Ove Arup & Partners Limited", type:"Organisation",
+      meta:{role:["supplier"], address:"Newcastle upon Tyne (postcode not given in notice)"} },
+
+    // Stakeholder orgs mentioned inside audit notices (not necessarily suppliers of THESE notices)
+    { id:"org_turner_townsend", label:"Turner & Townsend", type:"Organisation",
+      meta:{role:["stakeholder"], note:"Named in audit scope as commercial partner contract holder."} },
+    { id:"org_cascade_jv", label:"Cascade JV (Arcadis / Jacobs / COWI)", type:"Organisation",
+      meta:{role:["stakeholder"], note:"Named in audit scope as technical partner contract holder."} },
+
+    // Frameworks (first-class nodes too)
+    { id:"fw_rm6323", label:"CCS RM6323 (Insurance & Related Services)", type:"Framework",
+      meta:{note:"Referenced as the framework route for the insurance advisor notice."} },
+    { id:"fw_faf", label:"National Highways Forensic Audit Framework", type:"Framework",
+      meta:{note:"Referenced across several audit call-offs."} },
+    { id:"fw_spats2", label:"SPaTS 2 (framework)", type:"Framework",
+      meta:{note:"Appears in email/attachments labels on several notices; included here as a lightweight node."} },
+
+    // Contracts (awarded notices)
+    { id:"c_gantries_2026", label:"Architectural Gantries — Detailed Design (Phase 2)", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/b5c40d07-3e8d-49eb-a731-d748d6f25255",
+      meta:{ noticeId:"b5c40d07-3e8d-49eb-a731-d748d6f25255", awardDate:"2026-01-14", start:"2025-12-20", end:"2028-05-31",
+             valueGBP: 2968831, location:"London", cpv:"71240000", buyer:"National Highways Limited" } },
+
+    { id:"c_insurance_2026", label:"LTC — Insurance Advisor", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/a1cf1439-908c-45e5-8c06-08f5712e5e6e",
+      meta:{ noticeId:"a1cf1439-908c-45e5-8c06-08f5712e5e6e", awardDate:"2025-12-11", start:"2025-12-12", end:"2030-12-11",
+             valueGBP: 500000, location:"B4 6GA", cpv:"66510000", buyer:"National Highways Limited",
+             framework:"RM6323 (Lot 1)" } },
+
+    { id:"c_finance_erp_2026", label:"LTC — Finance ERP (selection/implementation/support)", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/975ba958-45ec-4907-a3b2-d731ec8dc7cb",
+      meta:{ noticeId:"975ba958-45ec-4907-a3b2-d731ec8dc7cb", awardDate:"2026-01-07", start:"2026-01-06", end:"2031-09-30",
+             valueGBP: 2000000, location:"East of England, London", cpv:"72212000", buyer:"National Highways Limited" } },
+
+    { id:"c_dco_2024", label:"DCO — legal advisory & representation (LTC 2024–2026)", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/36569c5d-a7e9-45fd-b6e3-9c3e14aac44b",
+      meta:{ noticeId:"36569c5d-a7e9-45fd-b6e3-9c3e14aac44b", awardDate:"2024-05-17", start:"2024-06-04", end:"2026-06-03",
+             valueGBP: 426000, location:"Any region", cpv:"79110000", buyer:"National Highways" } },
+
+    { id:"c_f0030_2024", label:"F0030 — Commercial Partner Contract Audit", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/12929928-f207-4b04-8650-466fbeeee25b",
+      meta:{ noticeId:"12929928-f207-4b04-8650-466fbeeee25b", awardDate:"2024-12-03", start:"2024-12-03", end:"2025-02-04",
+             valueGBP: 43875, location:"Any region", cpv:"79212000", buyer:"National Highways",
+             auditTarget:"Commercial Partner Contract (Turner & Townsend)" } },
+
+    { id:"c_f0031_2024", label:"F0031 — Technical Partner Contract Audit", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/e372beb0-cfef-45ed-a1c0-ce37abac65bc",
+      meta:{ noticeId:"e372beb0-cfef-45ed-a1c0-ce37abac65bc", awardDate:"2024-12-11", start:"2024-12-10", end:"2025-01-31",
+             valueGBP: 33472.60, location:"Any region", cpv:"79212000", buyer:"National Highways",
+             auditTarget:"Technical Partner Contract (Cascade JV)" } },
+
+    { id:"c_f0022_2024", label:"F0022 — Audit services for DA2 contract", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/ac00d743-798c-4d77-8e88-008ad8e60e38",
+      meta:{ noticeId:"ac00d743-798c-4d77-8e88-008ad8e60e38", awardDate:"2024-04-15", start:"2024-04-15", end:"2024-05-17",
+             valueGBP: 60664.96, location:"Any region", cpv:"79212100", buyer:"National Highways",
+             auditTarget:"Pre-enabling Works Delivery Agreement 2 (DA2)" } },
+
+    { id:"c_t0635_2025", label:"T0635 — SES Structures Lead Advisor", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/43744d20-b898-4487-9fa6-34dce974d648",
+      meta:{ noticeId:"43744d20-b898-4487-9fa6-34dce974d648", awardDate:"2025-01-21", start:"2025-01-21", end:"2025-03-31",
+             valueGBP: 98768.74, location:"Any region", cpv:"73220000", buyer:"National Highways" } },
+
+    { id:"c_t0344_2022", label:"T0344 — Strategic Cycle Routes (feasibility)", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/67c1de3f-1b0f-47bf-bb25-b151a8148243",
+      meta:{ noticeId:"67c1de3f-1b0f-47bf-bb25-b151a8148243", awardDate:"2022-08-23", start:"2022-08-23", end:"2023-03-31",
+             valueGBP: 189610.70, location:"South East", cpv:"73000000", buyer:"Highways England" } },
+
+    { id:"c_task17a_2016", label:"Task Order 17A — Lower Thames Crossing", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/d3d75c8d-3159-4673-886b-d81ecbf5ccda",
+      meta:{ noticeId:"d3d75c8d-3159-4673-886b-d81ecbf5ccda", awardDate:"2016-01-06", start:"2015-12-01", end:"2015-12-31",
+             valueGBP: 130227.73, location:"Any region", cpv:"79000000", buyer:"Highways Agency" } },
+
+    { id:"c_projdir_2020", label:"Project Director (STA)", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/notice/26a72d13-b737-4fbb-a890-97f883aa9dd4",
+      meta:{ noticeId:"26a72d13-b737-4fbb-a890-97f883aa9dd4", awardDate:"2020-07-01", start:"2020-07-01", end:"2020-07-17",
+             valueGBP: 20930, location:"London", cpv:"71311210", buyer:"Department for Transport" } },
+
+    { id:"c_hydrogen_2024", label:"P0021 — Hydrogen Expertise", type:"Contract",
+      url:"https://www.contractsfinder.service.gov.uk/Notice/a4996afe-09ae-49d1-af0c-2d4193d2338d",
+      meta:{ noticeId:"a4996afe-09ae-49d1-af0c-2d4193d2338d", awardDate:"2024-02-12", start:"2024-02-01", end:"2024-03-29",
+             valueGBP: 38750, location:"Any region", cpv:"71311200", buyer:"National Highways",
+             note:"Notice lists supplier Ove Arup & Partners Limited (Newcastle upon Tyne)." } },
+
+    // Underlying (audited / referenced) contracts as nodes
+    { id:"c_under_commercial_partner", label:"Commercial Partner Contract (under audit)", type:"Contract",
+      meta:{ note:"Referenced in F0030 audit scope (Turner & Townsend)." } },
+    { id:"c_under_technical_partner", label:"Technical Partner Contract (under audit)", type:"Contract",
+      meta:{ note:"Referenced in F0031 audit scope (Cascade JV)." } },
+    { id:"c_under_da2", label:"Pre-enabling Works DA2 (under audit)", type:"Contract",
+      meta:{ note:"Referenced in F0022 audit scope." } },
+  ],
+
+  links: [
+    // Project-to-site
+    { source:"proj_ltc", target:"site_ltc", type:"SCOPED_TO" },
+
+    // Project -> contracts
+    { source:"proj_ltc", target:"c_gantries_2026", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_insurance_2026", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_finance_erp_2026", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_dco_2024", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_f0030_2024", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_f0031_2024", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_f0022_2024", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_t0635_2025", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_t0344_2022", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_task17a_2016", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_projdir_2020", type:"HAS_CONTRACT" },
+    { source:"proj_ltc", target:"c_hydrogen_2024", type:"HAS_CONTRACT" },
+
+    // Contract -> site (delivery/association)
+    { source:"c_gantries_2026", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_insurance_2026", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_finance_erp_2026", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_dco_2024", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_f0030_2024", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_f0031_2024", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_f0022_2024", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_t0635_2025", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_t0344_2022", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_task17a_2016", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_projdir_2020", target:"site_ltc", type:"DELIVERS_TO" },
+    { source:"c_hydrogen_2024", target:"site_ltc", type:"DELIVERS_TO" },
+
+    // Contract -> buyer org
+    { source:"c_gantries_2026", target:"org_nh_ltd", type:"BUYER" },
+    { source:"c_insurance_2026", target:"org_nh_ltd", type:"BUYER" },
+    { source:"c_finance_erp_2026", target:"org_nh_ltd", type:"BUYER" },
+    { source:"c_dco_2024", target:"org_nh", type:"BUYER" },
+    { source:"c_f0030_2024", target:"org_nh", type:"BUYER" },
+    { source:"c_f0031_2024", target:"org_nh", type:"BUYER" },
+    { source:"c_f0022_2024", target:"org_nh", type:"BUYER" },
+    { source:"c_t0635_2025", target:"org_nh", type:"BUYER" },
+    { source:"c_t0344_2022", target:"org_highways_england", type:"BUYER" },
+    { source:"c_task17a_2016", target:"org_highways_agency", type:"BUYER" },
+    { source:"c_projdir_2020", target:"org_dft", type:"BUYER" },
+    { source:"c_hydrogen_2024", target:"org_nh", type:"BUYER" },
+
+    // Contract -> supplier org
+    { source:"c_gantries_2026", target:"org_atkinsrealis_pps", type:"SUPPLIES" },
+    { source:"c_insurance_2026", target:"org_marsh", type:"SUPPLIES" },
+    { source:"c_finance_erp_2026", target:"org_ve3", type:"SUPPLIES" },
+    { source:"c_dco_2024", target:"org_dentons", type:"SUPPLIES" },
+    { source:"c_f0030_2024", target:"org_deloitte", type:"SUPPLIES" },
+    { source:"c_f0031_2024", target:"org_orange", type:"SUPPLIES" },
+    { source:"c_f0022_2024", target:"org_orange", type:"SUPPLIES" },
+    { source:"c_t0635_2025", target:"org_futran", type:"SUPPLIES" },
+    { source:"c_t0344_2022", target:"org_wsp", type:"SUPPLIES" },
+    { source:"c_task17a_2016", target:"org_cmp_jv", type:"SUPPLIES" },
+    { source:"c_projdir_2020", target:"org_jacobs", type:"SUPPLIES" },
+    { source:"c_hydrogen_2024", target:"org_arup", type:"SUPPLIES" },
+
+    // Org -> location (BASED_IN)
+    { source:"org_nh_ltd", target:"loc_b4_6ga", type:"BASED_IN" },
+    { source:"org_nh", target:"loc_b1_1rn", type:"BASED_IN" },
+    { source:"org_highways_agency", target:"loc_ls11_9at", type:"BASED_IN" },
+    { source:"org_highways_england", target:"loc_b1_1rn", type:"BASED_IN" },
+    { source:"org_he_company", target:"loc_gu1_4lz", type:"BASED_IN" },
+
+    { source:"org_atkinsrealis_pps", target:"loc_kt18_5bw", type:"BASED_IN" },
+    { source:"org_marsh", target:"loc_ec3r_5bu", type:"BASED_IN" },
+    { source:"org_ve3", target:"loc_ec2a_4ne", type:"BASED_IN" },
+    { source:"org_cmp_jv", target:"loc_w6_7ef", type:"BASED_IN" },
+    { source:"org_jacobs", target:"loc_rg41_5tu", type:"BASED_IN" },
+
+    // Supplier city-centre proxies
+    { source:"org_dentons", target:"loc_sw1a_1aa", type:"BASED_IN" },
+    { source:"org_deloitte", target:"loc_mk9_1aa", type:"BASED_IN" },
+    { source:"org_orange", target:"loc_cv8_1ed", type:"BASED_IN" },
+    { source:"org_futran", target:"loc_rg41_5tu", type:"BASED_IN" },
+    { source:"org_wsp", target:"loc_rg21_7aa", type:"BASED_IN" },
+    { source:"org_arup", target:"loc_ne1_7al", type:"BASED_IN" },
+
+    // Contract -> frameworks
+    { source:"c_insurance_2026", target:"fw_rm6323", type:"CALL_OFF" },
+    { source:"c_f0030_2024", target:"fw_faf", type:"CALL_OFF" },
+    { source:"c_f0031_2024", target:"fw_faf", type:"CALL_OFF" },
+    { source:"c_f0022_2024", target:"fw_faf", type:"CALL_OFF" },
+
+    { source:"c_t0344_2022", target:"fw_spats2", type:"CALL_OFF" },
+    { source:"c_t0635_2025", target:"fw_spats2", type:"CALL_OFF" },
+
+    // Audit contracts -> audited contracts
+    { source:"c_f0030_2024", target:"c_under_commercial_partner", type:"AUDITS" },
+    { source:"c_f0031_2024", target:"c_under_technical_partner", type:"AUDITS" },
+    { source:"c_f0022_2024", target:"c_under_da2", type:"AUDITS" },
+
+    // Underlying contracts -> stakeholders mentioned
+    { source:"c_under_commercial_partner", target:"org_turner_townsend", type:"HELD_BY" },
+    { source:"c_under_technical_partner", target:"org_cascade_jv", type:"HELD_BY" }
+  ]
+};
+
+// ---------- Styling / types ----------
+const TYPE_STYLES = {
+  "Project": { color: "#a78bfa", radius: 10, markerShape: "square" },
+  "Site": { color: "#60a5fa", radius: 11, markerShape: "ring" },
+  "Contract": { color: "#22c55e", radius: 8, markerShape: "circle" },
+  "Organisation": { color: "#f59e0b", radius: 8, markerShape: "circle" },
+  "Location": { color: "#94a3b8", radius: 7, markerShape: "circle" },
+  "Framework": { color: "#ef4444", radius: 8, markerShape: "square" }
+};
+
+const LINK_STYLES = {
+  "HAS_CONTRACT": { color: "rgba(255,255,255,0.22)" },
+  "DELIVERS_TO":  { color: "rgba(96,165,250,0.55)" },
+  "BUYER":        { color: "rgba(245,158,11,0.55)" },
+  "SUPPLIES":     { color: "rgba(34,197,94,0.55)" },
+  "BASED_IN":     { color: "rgba(148,163,184,0.45)" },
+  "CALL_OFF":     { color: "rgba(239,68,68,0.55)" },
+  "AUDITS":       { color: "rgba(167,139,250,0.55)" },
+  "HELD_BY":      { color: "rgba(255,255,255,0.30)" },
+  "SCOPED_TO":    { color: "rgba(255,255,255,0.18)" }
+};
+
+// ---------- Build UI filters ----------
+const ALL_NODE_TYPES = Array.from(new Set(DATA.nodes.map(n => n.type))).sort();
+const ALL_LINK_TYPES = Array.from(new Set(DATA.links.map(l => l.type))).sort();
+
+const state = {
+  selectedId: null,
+  egoOnly: false,
+  mapLines: false,
+  nodeTypeOn: Object.fromEntries(ALL_NODE_TYPES.map(t => [t, true])),
+  linkTypeOn: Object.fromEntries(ALL_LINK_TYPES.map(t => [t, true])),
+  minAwardYear: 2015,
+  pinned: new Set()
+};
+
+function awardYearForNode(n){
+  const d = n?.meta?.awardDate;
+  if (!d) return null;
+  const y = Number(String(d).slice(0,4));
+  return Number.isFinite(y) ? y : null;
+}
+
+function buildChecks(){
+  const nodeWrap = document.getElementById("nodeTypeChecks");
+  nodeWrap.innerHTML = "";
+  ALL_NODE_TYPES.forEach(t => {
+    const id = `chk_node_${slug(t)}`;
+    const label = document.createElement("label");
+    label.className = "chk";
+    label.innerHTML = `<input id="${id}" type="checkbox" checked /> ${t}`;
+    nodeWrap.appendChild(label);
+    document.getElementById(id).addEventListener("change", (e) => {
+      state.nodeTypeOn[t] = e.target.checked;
+      updateVisibility();
+    });
+  });
+
+  const linkWrap = document.getElementById("linkTypeChecks");
+  linkWrap.innerHTML = "";
+  ALL_LINK_TYPES.forEach(t => {
+    const id = `chk_link_${slug(t)}`;
+    const label = document.createElement("label");
+    label.className = "chk";
+    label.innerHTML = `<input id="${id}" type="checkbox" checked /> ${t}`;
+    linkWrap.appendChild(label);
+    document.getElementById(id).addEventListener("change", (e) => {
+      state.linkTypeOn[t] = e.target.checked;
+      updateVisibility();
+      redrawMapLines();
+    });
+  });
+}
+buildChecks();
+
+document.getElementById("badgeYear").textContent = state.minAwardYear;
+
+document.getElementById("yearRange").addEventListener("input", (e) => {
+  state.minAwardYear = Number(e.target.value);
+  document.getElementById("badgeYear").textContent = state.minAwardYear;
+  updateVisibility();
+  redrawMapLines();
+});
+
+function updateBadges(){
+  const visibleNodes = getVisibleNodeSet();
+  const visibleLinks = getVisibleLinks(visibleNodes);
+  document.getElementById("badgeNodes").textContent = `${visibleNodes.size}/${DATA.nodes.length}`;
+  document.getElementById("badgeLinks").textContent = `${visibleLinks.length}/${DATA.links.length}`;
+}
+
+// ---------- Legend ----------
+function buildLegend(){
+  const legend = document.getElementById("legendGrid");
+  legend.innerHTML = "";
+  Object.entries(TYPE_STYLES).forEach(([t, st]) => {
+    const row = document.createElement("div");
+    row.className = "key";
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.background = st.color;
+    if (st.markerShape === "square") dot.classList.add("square");
+    if (st.markerShape === "ring") { dot.classList.add("ring"); dot.style.borderColor = st.color; }
+    row.appendChild(dot);
+    const txt = document.createElement("span");
+    txt.textContent = t;
+    row.appendChild(txt);
+    legend.appendChild(row);
+  });
+}
+buildLegend();
+
+// ---------- Map ----------
+const map = L.map("map", { zoomControl: true, worldCopyJump: true }).setView(
+  [COORDS["Lower Thames Crossing"].lat, COORDS["Lower Thames Crossing"].lon], 8
+);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const markersLayer = L.layerGroup().addTo(map);
+const linesLayer = L.layerGroup().addTo(map);
+
+const nodeById = new Map(DATA.nodes.map(n => [n.id, n]));
+function nodeCoords(n){
+  if (n?.lat != null && n?.lon != null) return [n.lat, n.lon];
+  // If org: try to infer from BASED_IN
+  return null;
+}
+
+const markerByNodeId = new Map();
+
+function addMarkers(){
+  markersLayer.clearLayers();
+  markerByNodeId.clear();
+  const visibleNodes = getVisibleNodeSet();
+  for (const n of DATA.nodes){
+    if (!visibleNodes.has(n.id)) continue;
+    if (n.lat == null || n.lon == null) continue;
+    const st = TYPE_STYLES[n.type] || { color:"#fff", radius:7, markerShape:"circle" };
+    const opts = {
+      radius: st.radius,
+      color: "rgba(255,255,255,0.30)",
+      weight: 1,
+      fillColor: st.color,
+      fillOpacity: 0.85
+    };
+    if (st.markerShape === "ring"){
+      opts.fillOpacity = 0.10;
+      opts.color = st.color;
+      opts.weight = 2;
+    }
+    const m = L.circleMarker([n.lat, n.lon], opts).addTo(markersLayer);
+    m.bindTooltip(`<b>${n.label}</b><br/><span style="opacity:.85">${n.type}</span>`, {direction:"top", opacity:0.95});
+    m.on("click", () => selectNode(n.id, { from:"map" }));
+    markerByNodeId.set(n.id, m);
+  }
+}
+
+function highlightMarker(nodeId, on){
+  const m = markerByNodeId.get(nodeId);
+  if (!m) return;
+  const n = nodeById.get(nodeId);
+  const st = TYPE_STYLES[n.type] || { color:"#fff", radius:7, markerShape:"circle" };
+  if (on){
+    m.setStyle({ weight: 3, color: "rgba(255,255,255,0.92)", fillOpacity: 0.95 });
+  } else {
+    const opts = {
+      weight: 1,
+      color: "rgba(255,255,255,0.30)",
+      fillOpacity: 0.85
+    };
+    if (st.markerShape === "ring"){
+      opts.fillOpacity = 0.10;
+      opts.color = st.color;
+      opts.weight = 2;
+    }
+    m.setStyle(opts);
+  }
+}
+
+function redrawMapLines(){
+  linesLayer.clearLayers();
+  if (!state.mapLines) return;
+
+  const visibleNodes = getVisibleNodeSet();
+  const visibleLinks = getVisibleLinks(visibleNodes);
+
+  for (const l of visibleLinks){
+    const s = nodeById.get(l.source.id ?? l.source);
+    const t = nodeById.get(l.target.id ?? l.target);
+    if (!s || !t) continue;
+    if (s.lat == null || s.lon == null) continue;
+    if (t.lat == null || t.lon == null) continue;
+
+    const ls = LINK_STYLES[l.type] || {color:"rgba(255,255,255,0.25)"};
+    const poly = L.polyline([[s.lat, s.lon], [t.lat, t.lon]], {
+      color: ls.color,
+      weight: 2,
+      opacity: 0.65,
+      dashArray: l.type === "BASED_IN" ? "6 8" : null
+    }).addTo(linesLayer);
+
+    poly.on("click", () => {
+      // Clicking a line selects its source (heuristic)
+      selectNode(s.id ?? l.source, { from:"mapLine" });
+    });
+  }
+}
+
+// ---------- Graph ----------
+const graphHost = document.getElementById("graph");
+const svg = d3.select(graphHost).append("svg");
+const gZoom = svg.append("g");
+const gLinks = gZoom.append("g").attr("class","links");
+const gNodes = gZoom.append("g").attr("class","nodes");
+
+const zoom = d3.zoom()
+  .scaleExtent([0.25, 3.5])
+  .on("zoom", (event) => gZoom.attr("transform", event.transform));
+
+svg.call(zoom);
+
+let width = 600, height = 400;
+function resize(){
+  const rect = graphHost.getBoundingClientRect();
+  width = Math.max(300, rect.width);
+  height = Math.max(240, rect.height);
+  svg.attr("viewBox", `0 0 ${width} ${height}`);
+  simulation.force("center", d3.forceCenter(width/2, height/2));
+  simulation.alpha(0.3).restart();
+}
+new ResizeObserver(resize).observe(graphHost);
+
+const nodes = DATA.nodes.map(n => ({...n}));
+const links = DATA.links.map(l => ({...l}));
+
+const idToNodeObj = new Map(nodes.map(n => [n.id, n]));
+
+links.forEach(l => {
+  l.source = idToNodeObj.get(l.source);
+  l.target = idToNodeObj.get(l.target);
+});
+
+const simulation = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(links).id(d => d.id).distance(d => {
+    // bring structural relations a bit tighter than geographic/administrative relations
+    if (d.type === "BASED_IN") return 70;
+    if (d.type === "HAS_CONTRACT") return 85;
+    if (d.type === "DELIVERS_TO") return 85;
+    return 95;
+  }).strength(0.8))
+  .force("charge", d3.forceManyBody().strength(-220))
+  .force("collide", d3.forceCollide().radius(d => (TYPE_STYLES[d.type]?.radius ?? 7) + 10))
+  .force("center", d3.forceCenter(width/2, height/2))
+  .force("x", d3.forceX(width/2).strength(0.03))
+  .force("y", d3.forceY(height/2).strength(0.03));
+
+const linkSel = gLinks.selectAll("line")
+  .data(links, d => `${d.source.id}::${d.type}::${d.target.id}`)
+  .enter()
+  .append("line")
+  .attr("class", "link")
+  .attr("stroke", d => (LINK_STYLES[d.type]?.color ?? "rgba(255,255,255,0.20)"));
+
+const nodeSel = gNodes.selectAll("g.node")
+  .data(nodes, d => d.id)
+  .enter()
+  .append("g")
+  .attr("class", "node")
+  .style("cursor","pointer")
+  .on("click", (event, d) => selectNode(d.id, { from:"graph" }))
+  .call(
+    d3.drag()
+      .on("start", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0.25).restart();
+        d.fx = d.x; d.fy = d.y;
+      })
+      .on("drag", (event, d) => {
+        d.fx = event.x; d.fy = event.y;
+      })
+      .on("end", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0);
+        if (!state.pinned.has(d.id)){
+          d.fx = null; d.fy = null;
+        }
+      })
+  );
+
+nodeSel.append("circle")
+  .attr("class","nodeCircle")
+  .attr("r", d => TYPE_STYLES[d.type]?.radius ?? 7)
+  .attr("fill", d => TYPE_STYLES[d.type]?.color ?? "#fff");
+
+nodeSel.append("text")
+  .attr("class","label")
+  .attr("x", d => (TYPE_STYLES[d.type]?.radius ?? 7) + 7)
+  .attr("y", 4)
+  .text(d => d.label);
+
+simulation.on("tick", () => {
+  linkSel
+    .attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+    .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+
+  nodeSel.attr("transform", d => `translate(${d.x},${d.y})`);
+});
+
+// ---------- Visibility logic (filters + year gate) ----------
+function getVisibleNodeSet(){
+  const set = new Set();
+  for (const n of nodes){
+    if (!state.nodeTypeOn[n.type]) continue;
+    if (n.type === "Contract"){
+      const y = awardYearForNode(n);
+      if (y != null && y < state.minAwardYear) continue;
+    }
+    set.add(n.id);
+  }
+  return set;
+}
+
+function getVisibleLinks(visibleNodes){
+  const out = [];
+  for (const l of links){
+    if (!state.linkTypeOn[l.type]) continue;
+    if (!visibleNodes.has(l.source.id) || !visibleNodes.has(l.target.id)) continue;
+    // If a contract is filtered out by year, links connected to it will already be removed by node-set check.
+    out.push(l);
+  }
+  return out;
+}
+
+function updateVisibility(){
+  const visibleNodes = getVisibleNodeSet();
+  const visibleLinks = getVisibleLinks(visibleNodes);
+
+  // links
+  const visibleLinkKeys = new Set(visibleLinks.map(d => `${d.source.id}::${d.type}::${d.target.id}`));
+  linkSel.classed("hidden", d => !visibleLinkKeys.has(`${d.source.id}::${d.type}::${d.target.id}`));
+
+  // nodes + labels
+  nodeSel.selectAll(".nodeCircle").classed("hidden", d => !visibleNodes.has(d.id));
+  nodeSel.selectAll(".label").classed("hidden", d => !visibleNodes.has(d.id));
+
+  // Update counts
+  updateBadges();
+
+  // Update map markers
+  addMarkers();
+  redrawMapLines();
+
+  // Re-apply selection visuals (if selection node got hidden, clear it)
+  if (state.selectedId && !visibleNodes.has(state.selectedId)){
+    clearSelection();
+  } else {
+    applyHighlight();
+  }
+}
+updateVisibility();
+
+// ---------- Selection & highlighting ----------
+const adjacency = new Map(); // id -> Set(neighbors)
+for (const n of nodes) adjacency.set(n.id, new Set());
+for (const l of links){
+  adjacency.get(l.source.id).add(l.target.id);
+  adjacency.get(l.target.id).add(l.source.id);
+}
+
+function selectNode(id, opts={}){
+  if (state.selectedId === id) return;
+  state.selectedId = id;
+  applyHighlight();
+  renderDetails();
+}
+
+function clearSelection(){
+  state.selectedId = null;
+  applyHighlight();
+  renderDetails();
+}
+
+function applyHighlight(){
+  // clear classes
+  nodeSel.classed("selected", false).classed("neighbor", false).classed("faded", false);
+  linkSel.classed("hi", false).classed("faded", false);
+
+  // clear marker highlights
+  for (const id of markerByNodeId.keys()){
+    highlightMarker(id, false);
+  }
+
+  const visibleNodes = getVisibleNodeSet();
+  if (!state.selectedId) return;
+  if (!visibleNodes.has(state.selectedId)) return;
+
+  const nbrs = adjacency.get(state.selectedId) || new Set();
+  const egoSet = new Set([state.selectedId, ...nbrs]);
+
+  nodeSel.each(function(d){
+    const sel = d3.select(this);
+    if (d.id === state.selectedId) sel.classed("selected", true);
+    else if (nbrs.has(d.id)) sel.classed("neighbor", true);
+
+    if (state.egoOnly){
+      sel.classed("faded", !egoSet.has(d.id));
+    } else {
+      sel.classed("faded", false);
+    }
+  });
+
+  linkSel.each(function(d){
+    const sel = d3.select(this);
+    const involved = (d.source.id === state.selectedId || d.target.id === state.selectedId);
+    sel.classed("hi", involved);
+    if (state.egoOnly){
+      sel.classed("faded", !involved);
+    } else {
+      sel.classed("faded", false);
+    }
+  });
+
+  // map marker highlight + optionally fade others by reducing opacity
+  for (const id of markerByNodeId.keys()){
+    const m = markerByNodeId.get(id);
+    if (!m) continue;
+    if (id === state.selectedId || nbrs.has(id)){
+      m.setStyle({ opacity: 1.0, fillOpacity: 0.95 });
+    } else if (state.egoOnly) {
+      m.setStyle({ opacity: 0.25, fillOpacity: 0.25 });
+    } else {
+      // restore (non-highlight) style
+      highlightMarker(id, false);
+    }
+  }
+  highlightMarker(state.selectedId, true);
+}
+
+// ---------- Details panel ----------
+const detailsTitle = document.getElementById("detailsTitle");
+const detailsMeta = document.getElementById("detailsMeta");
+const btnFly = document.getElementById("btnFly");
+const btnOpen = document.getElementById("btnOpen");
+const btnPin = document.getElementById("btnPin");
+const btnUnpin = document.getElementById("btnUnpin");
+
+function renderDetails(){
+  detailsMeta.innerHTML = "";
+  if (!state.selectedId){
+    detailsTitle.textContent = "Select something…";
+    btnFly.disabled = true;
+    btnOpen.disabled = true;
+    btnPin.disabled = true;
+    btnUnpin.disabled = true;
+    return;
+  }
+  const n = idToNodeObj.get(state.selectedId);
+  detailsTitle.textContent = `${n.label}  ·  ${n.type}`;
+
+  const rows = [];
+  rows.push(["id", `<code>${n.id}</code>`]);
+
+  if (n.lat != null && n.lon != null){
+    rows.push(["coords", `<code>${n.lat.toFixed(5)}, ${n.lon.toFixed(5)}</code>`]);
+  }
+
+  // Helpful contract fields
+  if (n.type === "Contract"){
+    if (n.meta?.noticeId) rows.push(["noticeId", `<code>${n.meta.noticeId}</code>`]);
+    if (n.meta?.cpv) rows.push(["cpv", `<code>${n.meta.cpv}</code>`]);
+    if (n.meta?.location) rows.push(["location", `${n.meta.location}`]);
+    if (n.meta?.awardDate) rows.push(["awardDate", `${fmtDate(n.meta.awardDate)}`]);
+    if (n.meta?.start) rows.push(["start", `${fmtDate(n.meta.start)}`]);
+    if (n.meta?.end) rows.push(["end", `${fmtDate(n.meta.end)}`]);
+    if (n.meta?.valueGBP != null) rows.push(["value", `${fmtGBP(n.meta.valueGBP)}`]);
+    if (n.meta?.buyer) rows.push(["buyer", `${n.meta.buyer}`]);
+    if (n.meta?.framework) rows.push(["framework", `${n.meta.framework}`]);
+    if (n.meta?.auditTarget) rows.push(["auditTarget", `${n.meta.auditTarget}`]);
+  }
+
+  // Helpful org fields
+  if (n.type === "Organisation"){
+    const role = n.meta?.role ? n.meta.role.join(", ") : "";
+    if (role) rows.push(["role", `${role}`]);
+    if (n.meta?.address) rows.push(["address", `${n.meta.address}`]);
+    if (n.meta?.note) rows.push(["note", `${n.meta.note}`]);
+  }
+
+  if (n.type === "Framework"){
+    if (n.meta?.note) rows.push(["note", `${n.meta.note}`]);
+  }
+  if (n.type === "Site"){
+    if (n.meta?.note) rows.push(["note", `${n.meta.note}`]);
+  }
+
+  for (const [k,v] of rows){
+    const kEl = document.createElement("div");
+    kEl.className = "k";
+    kEl.textContent = k;
+    const vEl = document.createElement("div");
+    vEl.className = "v";
+    vEl.innerHTML = v;
+    detailsMeta.appendChild(kEl);
+    detailsMeta.appendChild(vEl);
+  }
+
+  btnFly.disabled = !(n.lat != null && n.lon != null);
+  btnOpen.disabled = !(n.url);
+  btnPin.disabled = false;
+  btnUnpin.disabled = !state.pinned.has(n.id);
+}
+
+btnFly.addEventListener("click", () => {
+  const n = idToNodeObj.get(state.selectedId);
+  if (!n || n.lat == null || n.lon == null) return;
+  map.flyTo([n.lat, n.lon], Math.max(map.getZoom(), 10), { duration: 0.8 });
+});
+btnOpen.addEventListener("click", () => {
+  const n = idToNodeObj.get(state.selectedId);
+  if (!n?.url) return;
+  window.open(n.url, "_blank", "noopener,noreferrer");
+});
+
+btnPin.addEventListener("click", () => {
+  const n = idToNodeObj.get(state.selectedId);
+  if (!n) return;
+  state.pinned.add(n.id);
+  n.fx = n.x; n.fy = n.y;
+  btnUnpin.disabled = false;
+  simulation.alpha(0.15).restart();
+});
+btnUnpin.addEventListener("click", () => {
+  const n = idToNodeObj.get(state.selectedId);
+  if (!n) return;
+  state.pinned.delete(n.id);
+  n.fx = null; n.fy = null;
+  btnUnpin.disabled = true;
+  simulation.alpha(0.15).restart();
+});
+
+// ---------- Top buttons ----------
+const btnHelp = document.getElementById("btnHelp");
+const drawer = document.getElementById("drawer");
+const btnCloseHelp = document.getElementById("btnCloseHelp");
+btnHelp.addEventListener("click", () => {
+  drawer.classList.toggle("open");
+  btnHelp.classList.toggle("on", drawer.classList.contains("open"));
+});
+btnCloseHelp.addEventListener("click", () => {
+  drawer.classList.remove("open");
+  btnHelp.classList.remove("on");
+});
+
+const btnMapLines = document.getElementById("btnMapLines");
+btnMapLines.addEventListener("click", () => {
+  state.mapLines = !state.mapLines;
+  btnMapLines.textContent = `Map lines: ${state.mapLines ? "ON" : "OFF"}`;
+  btnMapLines.classList.toggle("on", state.mapLines);
+  redrawMapLines();
+});
+
+const btnEgo = document.getElementById("btnEgo");
+btnEgo.addEventListener("click", () => {
+  state.egoOnly = !state.egoOnly;
+  btnEgo.textContent = `Ego highlight: ${state.egoOnly ? "ON" : "OFF"}`;
+  btnEgo.classList.toggle("on", state.egoOnly);
+  applyHighlight();
+});
+
+document.getElementById("btnReset").addEventListener("click", () => {
+  // Clear filters
+  for (const t of ALL_NODE_TYPES) state.nodeTypeOn[t] = true;
+  for (const t of ALL_LINK_TYPES) state.linkTypeOn[t] = true;
+  for (const t of ALL_NODE_TYPES){
+    const el = document.getElementById(`chk_node_${slug(t)}`);
+    if (el) el.checked = true;
+  }
+  for (const t of ALL_LINK_TYPES){
+    const el = document.getElementById(`chk_link_${slug(t)}`);
+    if (el) el.checked = true;
+  }
+  state.minAwardYear = 2015;
+  document.getElementById("yearRange").value = String(state.minAwardYear);
+  document.getElementById("badgeYear").textContent = state.minAwardYear;
+
+  state.egoOnly = false;
+  btnEgo.textContent = "Ego highlight: OFF";
+  btnEgo.classList.remove("on");
+
+  state.mapLines = false;
+  btnMapLines.textContent = "Map lines: OFF";
+  btnMapLines.classList.remove("on");
+  linesLayer.clearLayers();
+
+  // Clear selection & pins (pins remain? keep them to avoid surprise? Let's clear.)
+  for (const id of state.pinned){
+    const n = idToNodeObj.get(id);
+    if (n){ n.fx = null; n.fy = null; }
+  }
+  state.pinned.clear();
+
+  clearSelection();
+
+  // Reset zoom/pan
+  svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity);
+  map.flyTo([COORDS["Lower Thames Crossing"].lat, COORDS["Lower Thames Crossing"].lon], 8, { duration: 0.6 });
+
+  updateVisibility();
+  simulation.alpha(0.35).restart();
+});
+
+// ---------- Initial layout + marker linking ----------
+(function seedNodeCoords(){
+  // Give map-located nodes a gentle initial bias toward their geo positions projected into the graph panel.
+  const geoNodes = nodes.filter(n => n.lat != null && n.lon != null);
+  if (!geoNodes.length) return;
+
+  // Normalize lat/lon to graph space
+  const lats = geoNodes.map(n => n.lat), lons = geoNodes.map(n => n.lon);
+  const latMin = Math.min(...lats), latMax = Math.max(...lats);
+  const lonMin = Math.min(...lons), lonMax = Math.max(...lons);
+
+  function proj(n){
+    const x = (n.lon - lonMin) / Math.max(1e-9, (lonMax - lonMin));
+    const y = 1 - (n.lat - latMin) / Math.max(1e-9, (latMax - latMin));
+    return [ 40 + x * (width - 80), 40 + y * (height - 80) ];
+  }
+
+  geoNodes.forEach(n => {
+    const [x,y] = proj(n);
+    n.x = x + (Math.random()-0.5)*18;
+    n.y = y + (Math.random()-0.5)*18;
+  });
+})();
+
+addMarkers();
+renderDetails();
+updateBadges();
+
+// When map moves, keep tooltip positions consistent; and re-draw lines if enabled (optional)
+map.on("zoomend moveend", () => {
+  if (state.mapLines) redrawMapLines();
+});
+</script>
+
+<!--
+Sources (for humans):
+- Contract award notices: Contracts Finder (links embedded per contract node).
+- Postcode centroid coordinates: doogal.co.uk (per postcode pages).
+- Lower Thames Crossing approximate centroid: latitude.to article.
+-->
+</body>
+</html>

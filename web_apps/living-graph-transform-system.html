@@ -443,6 +443,23 @@
 
       <div class="panel">
         <div class="row" style="align-items:center;gap:8px">
+          <label>Rewrite: dependency pruning</label>
+          <button class="explainer" data-explain="sandboxPruning">Explain it</button>
+        </div>
+        <div id="sandboxPruning" class="explain">
+          <p><strong>Goal:</strong> keep only the edges that can still influence a chosen output (milestone/goal node), and drop everything else.</p>
+          <p><strong>Intuition:</strong> imagine shining a flashlight backward from the output. Every edge you can reach is “influential.” Anything not lit up can’t affect that output and is safe to prune.</p>
+          <ol>
+            <li>Pick outputs (e.g., tag nodes as <code>output</code> or <code>milestone</code> in your JSON).</li>
+            <li>Walk backward along incoming edges to collect the dependency chain.</li>
+            <li>Strip edges and nodes that are not on any path to those outputs.</li>
+          </ol>
+          <p class="small">Result: a tight causal subgraph you can explain in a single slide—“these are the only dependencies that can move this outcome.”</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
           <label>Interface archetypes</label>
           <button class="explainer" data-explain="sandboxArchetypes">Why?</button>
         </div>

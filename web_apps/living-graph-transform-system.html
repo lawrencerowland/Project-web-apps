@@ -460,6 +460,23 @@
 
       <div class="panel">
         <div class="row" style="align-items:center;gap:8px">
+          <label>Rewrite: interface braiding</label>
+          <button class="explainer" data-explain="sandboxBraiding">Explain it</button>
+        </div>
+        <div id="sandboxBraiding" class="explain">
+          <p><strong>Goal:</strong> replace cross‑lane edges with explicit, typed interface nodes (scope/contract/permit/power) so coordination happens through a small, inspectable interface.</p>
+          <p><strong>Intuition:</strong> think of braiding cables through a connector. Instead of every team wiring directly into every other team, they all plug into a shared interface node that declares the type of handoff.</p>
+          <ol>
+            <li>Detect edges that jump lanes (e.g., Engineering → Regulatory).</li>
+            <li>Insert a typed interface node like <code>permit:EnvApproval</code> or <code>contract:GridTie</code>.</li>
+            <li>Replace the cross‑lane edge with two local edges: <em>source → interface</em> and <em>interface → target</em>.</li>
+          </ol>
+          <p class="small">Result: fewer cross‑lane edges, clearer accountability, and a lower coordination degree because many links reuse the same interface node.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="row" style="align-items:center;gap:8px">
           <label>Interface archetypes</label>
           <button class="explainer" data-explain="sandboxArchetypes">Why?</button>
         </div>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Assurance Bundle Prototype</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: #f7f7fb;
+        color: #1b1b1f;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+      }
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+      .subtitle {
+        font-size: 1.05rem;
+        color: #4a4a60;
+      }
+      .layout {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+      .card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(22, 21, 26, 0.08);
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #e9ecff;
+        color: #3342a8;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      ul {
+        padding-left: 18px;
+        margin: 12px 0 0;
+      }
+      .timeline {
+        display: grid;
+        gap: 12px;
+      }
+      .timeline-step {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #3aa76d;
+      }
+      .dot.warn {
+        background: #e6a23c;
+      }
+      .dot.fail {
+        background: #e05757;
+      }
+      .section-title {
+        margin: 0 0 12px;
+        font-size: 1.1rem;
+      }
+      .pill-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .pill {
+        padding: 6px 10px;
+        border-radius: 10px;
+        background: #f0f0f7;
+        font-size: 0.85rem;
+      }
+      .footer {
+        margin-top: 32px;
+        font-size: 0.85rem;
+        color: #6b6b7a;
+      }
+      .callout {
+        border-left: 4px solid #4c6ef5;
+        padding-left: 12px;
+        color: #2a2a40;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="badge">Prototype UI</span>
+      <h1>Assurance Bundle Prototype</h1>
+      <div class="subtitle">
+        Reliable replay + rule receipts + lineage map to sell proof of good behavior.
+      </div>
+    </header>
+
+    <section class="layout">
+      <article class="card">
+        <h2 class="section-title">Replay Proof</h2>
+        <p class="callout">
+          Rebuild a past run with the same inputs and confirm identical outputs.
+        </p>
+        <div class="timeline">
+          <div class="timeline-step">
+            <span class="dot"></span>
+            <div>Run captured with input snapshot + workflow steps.</div>
+          </div>
+          <div class="timeline-step">
+            <span class="dot warn"></span>
+            <div>Replay requested: retry policy applied.</div>
+          </div>
+          <div class="timeline-step">
+            <span class="dot"></span>
+            <div>Replay hash matches original output.</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2 class="section-title">Rule Receipts</h2>
+        <p class="callout">
+          Every run ships with a ledger of rule checks and outcomes.
+        </p>
+        <ul>
+          <li>Data boundary verified (pass)</li>
+          <li>Human approval present (pass)</li>
+          <li>Change size below threshold (warn)</li>
+        </ul>
+        <div class="pill-list">
+          <span class="pill">Rule ID: DATA-001</span>
+          <span class="pill">Rule ID: APPROVAL-003</span>
+          <span class="pill">Rule ID: SIZE-008</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2 class="section-title">Lineage Map</h2>
+        <p class="callout">
+          Trace any output back to inputs, decisions, and approvals.
+        </p>
+        <ul>
+          <li>Run → Step → Artifact</li>
+          <li>Step → RuleReceipt → Decision</li>
+          <li>Actor → Approval → Step</li>
+        </ul>
+        <div class="pill-list">
+          <span class="pill">Show anomalies</span>
+          <span class="pill">Filter: rule failures</span>
+          <span class="pill">Toggle: decision trail</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2 class="section-title">Process Variants</h2>
+        <p class="callout">
+          Compare the top path variants and flag drift in real time.
+        </p>
+        <ul>
+          <li>Variant A: 62% (healthy)</li>
+          <li>Variant B: 24% (warnings)</li>
+          <li>Variant C: 14% (red path)</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2 class="section-title">Prototype Scope</h2>
+        <p>
+          One critical flow. Deterministic replay. Rule enforcement. Lineage view.
+        </p>
+        <div class="pill-list">
+          <span class="pill">Workflow engine</span>
+          <span class="pill">Policy gate</span>
+          <span class="pill">Event log</span>
+          <span class="pill">Process mining</span>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2 class="section-title">Next 90 Days</h2>
+        <ul>
+          <li>Standardize event schema.</li>
+          <li>Wire workflow + policy checks.</li>
+          <li>Ship replay + receipts demo.</li>
+        </ul>
+      </article>
+    </section>
+
+    <p class="footer">
+      See <strong>SPEC.md</strong> in this folder for detailed requirements and schema.
+    </p>
+  </body>
+</html>

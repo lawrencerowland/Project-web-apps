@@ -71,8 +71,11 @@
       background: var(--panel); border: 1px solid #1e2433; border-radius: var(--radius); box-shadow: var(--shadow);
       overflow: hidden; display:flex; flex-direction: column; min-height: 220px;
     }
-    .panel h2{ margin:0; padding:12px 14px; font-size: 14px; letter-spacing:0.3px;
-      border-bottom:1px solid #1f2433; background: linear-gradient(180deg, #151b28,#121828); color:#cfe1ff;}
+    .panel h2{ margin:0; font-size: 14px; letter-spacing:0.3px; color:#cfe1ff; }
+    .panel-head{
+      padding:12px 14px; display:flex; flex-direction:column; gap:10px;
+      border-bottom:1px solid #1f2433; background: linear-gradient(180deg, #151b28,#121828);
+    }
     .panel .body{ padding: 10px 12px; overflow:auto; }
     .panel .foot{ padding: 10px 12px; border-top:1px solid #1f2433; background: var(--panel-2); }
 
@@ -172,8 +175,8 @@
   <main>
     <!-- Left: Scenario Fibre Library -->
     <section class="panel">
-      <h2>Scenario Fibre Library</h2>
-      <div class="body">
+      <div class="panel-head">
+        <h2>Scenario Fibre Library</h2>
         <div class="searchbar">
           <input id="search" type="text" placeholder="Search fibres (name, tags, type) …" />
           <select id="filterType" title="Filter by type">
@@ -183,6 +186,8 @@
             <option value="tech">Tech</option>
           </select>
         </div>
+      </div>
+      <div class="body">
         <div id="libList"></div>
       </div>
       <div class="foot">
@@ -225,8 +230,8 @@
 
     <!-- Right: Decision Atelier & Anchors -->
     <section class="panel">
-      <h2>Decision Atelier & Delivery Anchors</h2>
-      <div class="body" id="atelier">
+      <div class="panel-head">
+        <h2>Decision Atelier & Delivery Anchors</h2>
         <div class="explain">
           <div class="pill">CSPL explanation buttons</div>
           <div class="explain-grid">
@@ -236,13 +241,14 @@
           </div>
           <div class="note">Tap a button for a clean explanation you can drop into stakeholder conversations.</div>
         </div>
-        <div class="hr"></div>
-        <div id="milestoneList"></div>
-        <div class="hr"></div>
         <div class="row" style="justify-content:space-between;align-items:center;">
           <div class="pill">Anchors (minimal viable commitments)</div>
           <button class="btn small" id="btnAddMilestone">Add Milestone</button>
         </div>
+      </div>
+      <div class="body" id="atelier">
+        <div id="milestoneList"></div>
+        <div class="hr"></div>
         <div class="anchors" id="anchors"></div>
         <div class="hr"></div>
         <div class="note">Robustness = how invariant a commitment remains across the current top‑ranked fabrics under your risk appetite.</div>

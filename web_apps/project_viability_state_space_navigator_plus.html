@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Project Viability State-Space Navigator (Plus)</title>
 
-<!-- Cytoscape.js + fCoSE -->
-<script src="https://unpkg.com/cytoscape@3.29.6/dist/cytoscape.min.js"></script>
-<script src="https://unpkg.com/cytoscape-fcose@2.2.2/cytoscape-fcose.js"></script>
+<!-- D3.js -->
+<script src="https://unpkg.com/d3@7.9.0/dist/d3.min.js"></script>
 
 <style>
   :root{
@@ -40,6 +39,14 @@
     overflow:auto; padding:12px;
   }
   #cy{ flex:1; min-width:0; }
+  #cy svg{ width:100%; height:100%; display:block; }
+  .node circle{ stroke:#0f1115; }
+  .node.start circle{ stroke:var(--accent); stroke-width:5; }
+  .node.attractor circle{ stroke-dasharray:4 2; stroke-width:6; }
+  .node.selected circle{ stroke:var(--accent); }
+  .link{ fill:none; stroke:#667099; stroke-opacity:0.9; }
+  .link.selected{ stroke:var(--accent); }
+  .edge-label{ font-size:9px; fill:#e7e9ee; paint-order:stroke; stroke:#0f1115; stroke-width:3; }
   .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   .col{ display:flex; flex-direction:column; gap:6px; }
   .section{
@@ -227,45 +234,6 @@
 /* ---------------------------
    Utility: cloning + RNG
 ---------------------------- */
-function loadScript(src){
-  return new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = src;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load ${src}`));
-    document.head.appendChild(script);
-  });
-}
-
-async function ensureCytoscape(){
-  if (window.cytoscape) return true;
-  await loadScript("https://unpkg.com/cytoscape@3.29.6/dist/cytoscape.min.js");
-  return Boolean(window.cytoscape);
-}
-
-async function ensureFcose(){
-  if (window.cytoscapeFcose) return true;
-  try {
-    await loadScript("https://unpkg.com/cytoscape-fcose@2.2.2/cytoscape-fcose.js");
-  } catch (err) {
-    console.warn("fCoSE layout failed to load; falling back to cose.", err);
-  }
-  return Boolean(window.cytoscapeFcose);
-}
-
-function showCytoscapeError(message){
-  const cyEl = document.getElementById("cy");
-  if (cyEl) {
-    cyEl.innerHTML = `
-      <div style="padding:16px; font-size:13px; color:#ffb4b4;">
-        <strong>Graph renderer unavailable.</strong><br/>
-        ${message}
-      </div>`;
-  }
-  console.error(message);
-}
-
 function deepClone(obj){
   if (typeof structuredClone === "function") return structuredClone(obj);
   return JSON.parse(JSON.stringify(obj));
@@ -343,103 +311,226 @@ let startId = model?.meta?.start || (model.states[0]?.id ?? "S1");
 let heat = { node:{}, edge:{} }; // counts from walks
 
 /* ---------------------------
-   Cytoscape init
+   D3 graph state
 ---------------------------- */
-let cy = null;
-let layoutName = "cose";
+let svg = null;
+let g = null;
+let linkGroup = null;
+let labelGroup = null;
+let nodeGroup = null;
+let simulation = null;
+let zoom = null;
+let width = 800;
+let height = 600;
+let graphNodes = [];
+let graphLinks = [];
+let nodeById = new Map();
 
-function initCytoscape(){
-  const hasFcose = Boolean(window.cytoscapeFcose);
-  if (hasFcose) {
-    cytoscape.use(window.cytoscapeFcose);
-  }
-  layoutName = hasFcose ? "fcose" : "cose";
+function nodeRadius(d){
+  return 22 + clamp01(d.v ?? 0.5) * 22;
+}
 
-  cy = cytoscape({
-    container: document.getElementById("cy"),
-    elements: [],
-    style: [
-      {
-        selector: "node",
-        style: {
-          "label": "data(label)",
-          "color": "#e7e9ee",
-          "text-valign": "center",
-          "text-halign": "center",
-          "font-size": 10,
-          "text-outline-width": 2,
-          "text-outline-color": "#0f1115",
-          "background-color": "#999",
-          "border-width": "mapData(h, 0, 1, 1, 8)",
-          "border-color": "#0f1115",
-          "width": "mapData(v, 0, 1, 22, 44)",
-          "height": "mapData(v, 0, 1, 22, 44)"
-        }
-      },
-      {
-        selector: "node.start",
-        style: {
-          "border-color": "#7aa2ff",
-          "border-width": 5
-        }
-      },
-      {
-        selector: "node.attractor",
-        style: {
-          "border-style": "dashed",
-          "border-width": 6
-        }
-      },
-      {
-        selector: "node.selected",
-        style: { "text-outline-color": "#7aa2ff" }
-      },
-      {
-        selector: "edge",
-        style: {
-          "curve-style": "bezier",
-          "target-arrow-shape": "triangle",
-          "line-color": "#667099",
-          "target-arrow-color": "#667099",
-          "width": "mapData(w, 0, 1, 1, 7)",
-          "opacity": 0.9
-        }
-      },
-      {
-        selector: "edge.selected",
-        style: { "line-color": "#7aa2ff", "target-arrow-color": "#7aa2ff" }
-      },
-      {
-        selector: "edge[labelVisible = 'true']",
-        style: {
-          "label": "data(label)",
-          "font-size": 9,
-          "text-background-opacity": 1,
-          "text-background-color": "#0f1115",
-          "text-background-padding": 2,
-          "color": "#e7e9ee",
-          "text-rotation": "autorotate"
-        }
-      }
-    ],
-    layout: { name:layoutName, quality:"default", randomize:true, animate:false, packComponents:true }
+function initD3(){
+  const container = document.getElementById("cy");
+  container.innerHTML = "";
+
+  const rect = container.getBoundingClientRect();
+  width = rect.width || 800;
+  height = rect.height || 600;
+
+  svg = d3.select(container)
+    .append("svg")
+    .attr("width", "100%")
+    .attr("height", "100%")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("role", "img")
+    .attr("aria-label", "Project viability state-space graph");
+
+  const defs = svg.append("defs");
+  defs.append("marker")
+    .attr("id", "arrow")
+    .attr("viewBox", "0 -5 10 10")
+    .attr("refX", 12)
+    .attr("refY", 0)
+    .attr("markerWidth", 6)
+    .attr("markerHeight", 6)
+    .attr("orient", "auto")
+    .append("path")
+    .attr("d", "M0,-5L10,0L0,5")
+    .attr("fill", "#667099");
+
+  g = svg.append("g").attr("class", "graph-layer");
+  linkGroup = g.append("g").attr("class", "links");
+  labelGroup = g.append("g").attr("class", "labels");
+  nodeGroup = g.append("g").attr("class", "nodes");
+
+  zoom = d3.zoom()
+    .scaleExtent([0.2, 4])
+    .on("zoom", (event) => g.attr("transform", event.transform));
+
+  svg.call(zoom);
+  svg.on("click", (event) => {
+    if (event.target === svg.node()) clearSelection();
   });
+
+  simulation = d3.forceSimulation()
+    .force("link", d3.forceLink().id(d => d.id).distance(140).strength(0.2))
+    .force("charge", d3.forceManyBody().strength(-420))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collision", d3.forceCollide().radius(d => nodeRadius(d) + 6));
+
+  simulation.on("tick", ticked);
+
+  const resizeObserver = new ResizeObserver(() => {
+    const next = container.getBoundingClientRect();
+    width = next.width || width;
+    height = next.height || height;
+    svg.attr("viewBox", `0 0 ${width} ${height}`);
+    simulation.force("center", d3.forceCenter(width / 2, height / 2));
+    simulation.alpha(0.3).restart();
+  });
+  resizeObserver.observe(container);
+}
+
+function ticked(){
+  linkGroup.selectAll("path")
+    .attr("d", d => {
+      const s = d.source;
+      const t = d.target;
+      if (!s || !t) return "";
+      return `M${s.x},${s.y} L${t.x},${t.y}`;
+    });
+
+  labelGroup.selectAll("text")
+    .attr("x", d => (d.source?.x + d.target?.x) / 2)
+    .attr("y", d => (d.source?.y + d.target?.y) / 2);
+
+  nodeGroup.selectAll("g.node")
+    .attr("transform", d => `translate(${d.x},${d.y})`);
+}
+
+function updateSimulationLinks(){
+  const visibleLinks = graphLinks.filter(l => l.visible);
+  simulation.force("link").links(visibleLinks);
+  simulation.force("collision", d3.forceCollide().radius(d => nodeRadius(d) + 6));
+  simulation.alpha(0.6).restart();
+}
+
+function updateGraph(){
+  nodeById = new Map(graphNodes.map(n => [n.id, n]));
+  graphLinks.forEach(l => {
+    l.source = nodeById.get(l.sourceId);
+    l.target = nodeById.get(l.targetId);
+  });
+
+  simulation.nodes(graphNodes);
+
+  const linkSel = linkGroup.selectAll("path").data(graphLinks, d => d.id);
+  linkSel.exit().remove();
+  linkSel.enter()
+    .append("path")
+    .attr("class", "link")
+    .attr("marker-end", "url(#arrow)")
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      selectEdge(d);
+    });
+
+  const labelSel = labelGroup.selectAll("text").data(graphLinks, d => d.id);
+  labelSel.exit().remove();
+  labelSel.enter()
+    .append("text")
+    .attr("class", "edge-label")
+    .attr("text-anchor", "middle")
+    .style("pointer-events", "none");
+
+  const nodeSel = nodeGroup.selectAll("g.node").data(graphNodes, d => d.id);
+  nodeSel.exit().remove();
+  const nodeEnter = nodeSel.enter()
+    .append("g")
+    .attr("class", "node")
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      selectNode(d);
+    })
+    .call(d3.drag()
+      .on("start", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on("drag", (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on("end", (event, d) => {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+    );
+
+  nodeEnter.append("circle");
+  nodeEnter.append("text")
+    .attr("class", "node-label")
+    .attr("text-anchor", "middle")
+    .attr("dy", "0.35em");
+
+  updateGraphStyles();
+  updateSimulationLinks();
+}
+
+function updateGraphStyles(){
+  nodeGroup.selectAll("g.node")
+    .classed("start", d => d.isStart)
+    .classed("attractor", d => d.isAttractor)
+    .classed("selected", d => selected.kind === "node" && selected.id === d.id)
+    .select("circle")
+    .attr("r", d => nodeRadius(d))
+    .attr("fill", d => colourForViability(d.v))
+    .attr("stroke-width", d => {
+      const base = 1 + 7 * (d.h ?? 0);
+      if (selected.kind === "node" && selected.id === d.id) return Math.max(base, 5);
+      if (d.isStart) return Math.max(base, 5);
+      if (d.isAttractor) return Math.max(base, 6);
+      return base;
+    })
+    .attr("stroke-dasharray", d => (d.isAttractor ? "4 2" : null))
+    .attr("stroke", d => {
+      if (selected.kind === "node" && selected.id === d.id) return "#7aa2ff";
+      if (d.isStart) return "#7aa2ff";
+      return "#0f1115";
+    });
+
+  nodeGroup.selectAll("g.node text")
+    .text(d => d.label)
+    .attr("font-size", 10)
+    .attr("fill", "#e7e9ee");
+
+  linkGroup.selectAll("path")
+    .classed("selected", d => selected.kind === "edge" && selected.id === d.id)
+    .style("display", d => d.visible ? null : "none")
+    .attr("stroke", d => (selected.kind === "edge" && selected.id === d.id) ? "#7aa2ff" : "#667099")
+    .attr("stroke-width", d => 1 + 6 * (d.w ?? 0));
+
+  labelGroup.selectAll("text")
+    .text(d => d.labelText ?? "")
+    .style("display", d => (d.visible && d.labelVisible) ? null : "none");
+
+  const marker = svg.select("#arrow path");
+  if (!marker.empty()) marker.attr("fill", "#667099");
 }
 
 function runLayout(){
-  cy.layout({
-    name:layoutName,
-    quality:"default",
-    randomize:true,
-    animate:false,
-    packComponents:true,
-    nodeRepulsion: 8000,
-    idealEdgeLength: 120
-  }).run();
+  graphNodes.forEach(n => {
+    n.fx = null;
+    n.fy = null;
+  });
+  simulation.alpha(1).restart();
 }
 
 /* ---------------------------
-   Model <-> Cytoscape render
+   Model <-> graph render
 ---------------------------- */
 function normalizeModel(m){
   if (!m || !Array.isArray(m.states) || !Array.isArray(m.transitions)) {
@@ -496,48 +587,76 @@ function normalizeModel(m){
   return m;
 }
 
-function buildElementsFromModel(m){
-  const els = [];
-  for (const s of m.states){
-    els.push({ data:{ id:s.id, label:s.label, v:s.viability, notes:s.notes, h:0 } });
-  }
-  for (const t of m.transitions){
-    const eid = t.from + "->" + t.to;
-    els.push({ data:{ id:eid, source:t.from, target:t.to, p:t.p, dv:t.dv, label:t.label, w:0, labelVisible:"false" } });
-  }
-  return els;
+function buildGraphFromModel(m){
+  graphNodes = m.states.map(s => ({
+    id: s.id,
+    label: s.label,
+    v: s.viability,
+    notes: s.notes,
+    h: 0,
+    isStart: false,
+    isAttractor: false
+  }));
+
+  graphLinks = m.transitions.map(t => ({
+    id: `${t.from}->${t.to}`,
+    sourceId: t.from,
+    targetId: t.to,
+    source: t.from,
+    target: t.to,
+    p: t.p,
+    dv: t.dv,
+    label: t.label,
+    labelText: "",
+    labelVisible: false,
+    w: 0,
+    visible: true
+  }));
 }
 
 function capturePositions(){
   const pos = new Map();
-  cy.nodes().forEach(n => pos.set(n.id(), { x:n.position("x"), y:n.position("y") }));
+  graphNodes.forEach(n => {
+    if (Number.isFinite(n.x) && Number.isFinite(n.y)) {
+      pos.set(n.id, { x:n.x, y:n.y, fx:n.fx, fy:n.fy });
+    }
+  });
   return pos;
 }
 
 function restorePositions(posMap){
   if (!posMap) return;
-  cy.nodes().forEach(n => {
-    const p = posMap.get(n.id());
-    if (p) n.position({ x:p.x, y:p.y });
+  graphNodes.forEach(n => {
+    const p = posMap.get(n.id);
+    if (p) {
+      n.x = p.x;
+      n.y = p.y;
+      n.fx = p.fx ?? p.x;
+      n.fy = p.fy ?? p.y;
+    }
   });
 }
 
 function applyImportedLayout(m){
   if (!m?.layout?.positions) return;
   const posMap = new Map(m.layout.positions.map(p => [p.id, {x:p.x, y:p.y}]));
-  restorePositions(posMap);
+  graphNodes.forEach(n => {
+    const p = posMap.get(n.id);
+    if (p) {
+      n.x = p.x;
+      n.y = p.y;
+      n.fx = p.x;
+      n.fy = p.y;
+    }
+  });
 }
 
 function renderModel({preservePositions=true, relayout=false} = {}){
   const posMap = preservePositions ? capturePositions() : null;
 
-  cy.elements().remove();
-  cy.add(buildElementsFromModel(model));
+  buildGraphFromModel(model);
 
-  // restore from captured positions (for "soft" updates)
   restorePositions(posMap);
-
-  // restore explicit imported layout if present
   applyImportedLayout(model);
 
   ensureStartState();
@@ -545,6 +664,8 @@ function renderModel({preservePositions=true, relayout=false} = {}){
   updateEdgeLabelVisibility();
   applyEdgeFilter();
   recomputeAnalysisAndStyle();
+
+  updateGraph();
 
   if (relayout) runLayout();
 }
@@ -559,38 +680,34 @@ function colourForViability(v){
 }
 
 function applyEdgeFilter(){
-  cy.edges().forEach(e => {
-    const p = Number(e.data("p") ?? 1);
-    if (p < pCut) e.hide();
-    else e.show();
+  graphLinks.forEach(e => {
+    e.visible = Number(e.p ?? 1) >= pCut;
   });
 }
 
 function updateEdgeLabelVisibility(){
   const show = document.getElementById("showEdgeLabels").checked;
-  cy.edges().forEach(e => {
+  graphLinks.forEach(e => {
     if (!show) {
-      e.data("labelVisible", "false");
+      e.labelVisible = false;
       return;
     }
-    const p = Number(e.data("p") ?? 1);
-    const dv = Number(e.data("dv") ?? 0);
-    const label = e.data("label");
+    const p = Number(e.p ?? 1);
+    const dv = Number(e.dv ?? 0);
+    const label = e.label;
     const composed = (label && label.trim().length)
       ? label
       : `p=${p.toFixed(2)} dv=${dv.toFixed(2)}`;
-    e.data("label", composed);
-    e.data("labelVisible", "true");
+    e.labelText = composed;
+    e.labelVisible = true;
   });
 }
 
 function buildAdjacencyFromVisibleEdges(){
   const ids = model.states.map(s => s.id);
   const adj = new Map(ids.map(id => [id, []]));
-  cy.edges(":visible").forEach(e => {
-    const from = e.data("source");
-    const to = e.data("target");
-    if (adj.has(from)) adj.get(from).push(to);
+  graphLinks.filter(e => e.visible).forEach(e => {
+    if (adj.has(e.sourceId)) adj.get(e.sourceId).push(e.targetId);
   });
   return adj;
 }
@@ -672,53 +789,47 @@ function detectAttractors(ids, adj, sccs){
 }
 
 function recomputeAnalysisAndStyle(){
-  // heat normalisation
   const maxNodeHeat = Math.max(1, ...Object.values(heat.node));
   const maxEdgeHeat = Math.max(1, ...Object.values(heat.edge));
 
-  // update node data + base classes
-  cy.nodes().forEach(n => {
-    const v = Number(n.data("v") ?? 0.5);
-    n.style("background-color", colourForViability(v));
+  graphNodes.forEach(n => {
+    const st = model.states.find(s => s.id === n.id);
+    if (st) {
+      n.v = st.viability;
+      n.label = st.label;
+      n.notes = st.notes;
+    }
 
-    const h = (heat.node[n.id()] ?? 0) / maxNodeHeat;
-    n.data("h", clamp01(h));
+    const h = (heat.node[n.id] ?? 0) / maxNodeHeat;
+    n.h = clamp01(h);
 
-    n.removeClass("start attractor selected");
-    if (n.id() === startId) n.addClass("start");
+    n.isStart = n.id === startId;
+    n.isAttractor = false;
   });
 
-  // update edge weights for styling
-  cy.edges().forEach(e => {
-    const eid = e.id();
-    const h = (heat.edge[eid] ?? 0) / maxEdgeHeat;
-    // base width encodes probability; heat adds emphasis
-    const p = Number(e.data("p") ?? 1);
+  graphLinks.forEach(e => {
+    const h = (heat.edge[e.id] ?? 0) / maxEdgeHeat;
+    const p = Number(e.p ?? 1);
     const w = clamp01(0.15 + 0.85 * p) * 0.65 + clamp01(h) * 0.35;
-    e.data("w", clamp01(w));
-    e.removeClass("selected");
+    e.w = clamp01(w);
   });
 
-  // SCCs / attractors computed on visible edges
   const ids = model.states.map(s => s.id);
   const adj = buildAdjacencyFromVisibleEdges();
   const sccs = tarjanSCC(ids, adj);
   const { attractorNodes, attractorSccIdx } = detectAttractors(ids, adj, sccs);
 
-  cy.nodes().forEach(n => {
-    if (attractorNodes.has(n.id())) n.addClass("attractor");
+  graphNodes.forEach(n => {
+    if (attractorNodes.has(n.id)) n.isAttractor = true;
   });
 
   updateStats({ ids, adj, sccs, attractorNodes, attractorSccIdx });
   updateHistoryUI();
+  updateGraphStyles();
 }
 
 function updateStats({ ids, adj, sccs, attractorNodes }){
-  const nodes = cy.nodes();
-  const visEdges = cy.edges(":visible");
-  const allEdges = cy.edges();
-
-  const vs = nodes.map(n => Number(n.data("v") ?? 0.5));
+  const vs = graphNodes.map(n => Number(n.v ?? 0.5));
   const avgV = vs.reduce((a,b)=>a+b,0) / Math.max(1, vs.length);
 
   let stable=0, marginal=0, bad=0;
@@ -728,25 +839,30 @@ function updateStats({ ids, adj, sccs, attractorNodes }){
     else bad++;
   }
 
-  // "risk heuristic": high degree + low viability
-  const risk = nodes.map(n => {
-    const v = Number(n.data("v") ?? 0.5);
-    const deg = n.indegree() + n.outdegree();
+  const degreeMap = new Map(graphNodes.map(n => [n.id, { in:0, out:0 }]));
+  graphLinks.forEach(e => {
+    const source = degreeMap.get(e.sourceId);
+    const target = degreeMap.get(e.targetId);
+    if (source) source.out += 1;
+    if (target) target.in += 1;
+  });
+
+  const risk = graphNodes.map(n => {
+    const v = Number(n.v ?? 0.5);
+    const deg = (degreeMap.get(n.id)?.in ?? 0) + (degreeMap.get(n.id)?.out ?? 0);
     const score = (deg + 1) * (1 - v);
-    return { id:n.id(), label:n.data("label"), v, deg, score };
+    return { id:n.id, label:n.label, v, deg, score };
   }).sort((a,b)=>b.score-a.score).slice(0,5);
 
-  // summarise attractors
   const attractorList = [];
   if (attractorNodes.size){
-    // group by SCC via adjacency recomputation over ids: quick by re-tarjan on current view
-    // (we already have sccs upstream; but for display, we just list nodes)
     attractorList.push([...attractorNodes].join(", "));
   }
 
+  const visibleEdges = graphLinks.filter(e => e.visible).length;
   document.getElementById("stats").textContent =
 `title: ${model?.meta?.title ?? "Untitled"}
-nodes: ${nodes.length} | edges: ${allEdges.length} (visible ${visEdges.length})
+nodes: ${graphNodes.length} | edges: ${graphLinks.length} (visible ${visibleEdges})
 avg viability: ${avgV.toFixed(3)} | threshold: ${thr.toFixed(2)}
 stable/marginal/bad: ${stable}/${marginal}/${bad}
 
@@ -806,7 +922,6 @@ function undo(){
 
   renderModel({preservePositions:false, relayout:false});
 
-  // restore positions from snapshot
   const posMap = new Map(snap.positions.map(p => [p.id, {x:p.x, y:p.y}]));
   restorePositions(posMap);
 
@@ -835,25 +950,23 @@ let selected = { kind:null, id:null };
 
 function clearSelection(){
   selected = {kind:null,id:null};
-  cy.nodes().removeClass("selected");
-  cy.edges().removeClass("selected");
+  updateGraphStyles();
   document.getElementById("inspector").innerHTML = "Nothing selected.";
 }
 
 function selectNode(n){
-  clearSelection();
-  selected = { kind:"node", id:n.id() };
-  n.addClass("selected");
+  selected = { kind:"node", id:n.id };
+  updateGraphStyles();
 
-  const s = model.states.find(x => x.id === n.id());
-  const v = Number(s?.viability ?? n.data("v") ?? 0.5);
+  const s = model.states.find(x => x.id === n.id);
+  const v = Number(s?.viability ?? n.v ?? 0.5);
 
   document.getElementById("inspector").innerHTML = `
     <div class="col">
-      <div><span class="mono">id</span>: <span class="mono">${n.id()}</span></div>
+      <div><span class="mono">id</span>: <span class="mono">${n.id}</span></div>
 
       <label>label</label>
-      <input id="i_label" type="text" value="${escapeHtml(s?.label ?? n.data("label") ?? n.id())}"/>
+      <input id="i_label" type="text" value="${escapeHtml(s?.label ?? n.label ?? n.id)}"/>
 
       <label>viability <span class="mono" id="i_vLabel">${v.toFixed(2)}</span></label>
       <input id="i_v" type="range" min="0" max="1" step="0.01" value="${v.toFixed(2)}"/>
@@ -874,28 +987,28 @@ function selectNode(n){
   vSlider.addEventListener("input", e => vLab.textContent = Number(e.target.value).toFixed(2));
 
   document.getElementById("i_apply").addEventListener("click", () => {
-    pushUndo(`edit node ${n.id()}`);
+    pushUndo(`edit node ${n.id}`);
     const label = document.getElementById("i_label").value;
     const viability = clamp01(Number(document.getElementById("i_v").value));
     const notes = document.getElementById("i_notes").value;
 
-    const st = model.states.find(x => x.id === n.id());
+    const st = model.states.find(x => x.id === n.id);
     if (st){
       st.label = label;
       st.viability = viability;
       st.notes = notes;
     }
-    n.data("label", label);
-    n.data("v", viability);
-    n.data("notes", notes);
+    n.label = label;
+    n.v = viability;
+    n.notes = notes;
 
     recomputeAnalysisAndStyle();
     selectNode(n);
   });
 
   document.getElementById("i_setStart").addEventListener("click", () => {
-    pushUndo(`set start ${n.id()}`);
-    startId = n.id();
+    pushUndo(`set start ${n.id}`);
+    startId = n.id;
     model.meta.start = startId;
     recomputeAnalysisAndStyle();
     updateStartDropdown();
@@ -904,19 +1017,18 @@ function selectNode(n){
 }
 
 function selectEdge(e){
-  clearSelection();
-  selected = { kind:"edge", id:e.id() };
-  e.addClass("selected");
+  selected = { kind:"edge", id:e.id };
+  updateGraphStyles();
 
-  const t = model.transitions.find(x => (x.from + "->" + x.to) === e.id());
-  const p = Number(t?.p ?? e.data("p") ?? 1);
-  const dv = Number(t?.dv ?? e.data("dv") ?? 0);
-  const label = String(t?.label ?? e.data("label") ?? "");
+  const t = model.transitions.find(x => (x.from + "->" + x.to) === e.id);
+  const p = Number(t?.p ?? e.p ?? 1);
+  const dv = Number(t?.dv ?? e.dv ?? 0);
+  const label = String(t?.label ?? e.label ?? "");
 
   document.getElementById("inspector").innerHTML = `
     <div class="col">
-      <div><span class="mono">edge</span>: <span class="mono">${escapeHtml(e.id())}</span></div>
-      <div class="small">from <span class="mono">${escapeHtml(e.data("source"))}</span> to <span class="mono">${escapeHtml(e.data("target"))}</span></div>
+      <div><span class="mono">edge</span>: <span class="mono">${escapeHtml(e.id)}</span></div>
+      <div class="small">from <span class="mono">${escapeHtml(e.sourceId)}</span> to <span class="mono">${escapeHtml(e.targetId)}</span></div>
 
       <label>label (optional)</label>
       <input id="e_label" type="text" value="${escapeHtml(label)}"/>
@@ -943,20 +1055,20 @@ function selectEdge(e){
   dvSlider.addEventListener("input", ev => dvLab.textContent = Number(ev.target.value).toFixed(2));
 
   document.getElementById("e_apply").addEventListener("click", () => {
-    pushUndo(`edit edge ${e.id()}`);
+    pushUndo(`edit edge ${e.id}`);
     const newLabel = document.getElementById("e_label").value;
     const newP = clamp01(Number(document.getElementById("e_p").value));
     const newDv = Number(document.getElementById("e_dv").value);
 
-    const tr = model.transitions.find(x => (x.from + "->" + x.to) === e.id());
+    const tr = model.transitions.find(x => (x.from + "->" + x.to) === e.id);
     if (tr){
       tr.label = newLabel;
       tr.p = newP;
       tr.dv = newDv;
     }
-    e.data("label", newLabel);
-    e.data("p", newP);
-    e.data("dv", newDv);
+    e.label = newLabel;
+    e.p = newP;
+    e.dv = newDv;
 
     updateEdgeLabelVisibility();
     applyEdgeFilter();
@@ -1015,7 +1127,6 @@ function probe(){
     addHistoryLabel(`probe: p ${edgeKey(t)} += ${delta.toFixed(2)}`);
   }
   else if (type === "add"){
-    // try a few times to find a new pair
     const existing = new Set(model.transitions.map(edgeKey));
     let tries = 30;
     while (tries--){
@@ -1044,7 +1155,6 @@ function probe(){
       const to = ids[Math.floor(rng()*ids.length)];
       if (to === t.from) continue;
       const k = t.from + "->" + to;
-      // avoid duplicates
       if (model.transitions.some(x => (x.from + "->" + x.to) === k)) continue;
       t.to = to;
       break;
@@ -1052,7 +1162,6 @@ function probe(){
     addHistoryLabel(`probe: rewire ${old} -> ${edgeKey(t)}`);
   }
 
-  // structural changes: rerender
   const structural = (type === "add" || type === "rm" || type === "rew");
   const autoRelayout = document.getElementById("autoRelayout").checked;
   renderModel({preservePositions:true, relayout: structural && autoRelayout});
@@ -1070,49 +1179,39 @@ function walk(steps){
 
   let current = startId;
 
-  // precompute outgoing edges per node (visible edges only)
   function outgoingEdges(id){
-    const edges = cy.edges(`:visible[source = "${id}"]`);
-    const arr = [];
-    edges.forEach(e => {
-      const p = Number(e.data("p") ?? 1);
-      arr.push({ e, p });
-    });
-    return arr;
+    return graphLinks.filter(e => e.visible && e.sourceId === id).map(e => ({ e, p: Number(e.p ?? 1) }));
   }
 
   for (let i=0;i<steps;i++){
     const outs = outgoingEdges(current);
     if (!outs.length){
-      // dead end: teleport to start
       current = startId;
       continue;
     }
     const chosen = weightedChoice(outs, outs.map(x => x.p));
     const e = chosen.e;
-    const next = e.data("target");
+    const next = e.targetId;
 
-    // accumulate heat
     heat.node[next] = (heat.node[next] ?? 0) + 1;
-    heat.edge[e.id()] = (heat.edge[e.id()] ?? 0) + 1;
+    heat.edge[e.id] = (heat.edge[e.id] ?? 0) + 1;
 
     if (applyDv){
-      const dv = Number(e.data("dv") ?? 0);
+      const dv = Number(e.dv ?? 0);
       const st = model.states.find(s => s.id === next);
       if (st){
         st.viability = clamp01(st.viability + dv);
       }
-      const n = cy.getElementById(next);
-      if (n && n.length) n.data("v", model.states.find(s=>s.id===next)?.viability ?? n.data("v"));
+      const n = graphNodes.find(n => n.id === next);
+      if (n) n.v = model.states.find(s=>s.id===next)?.viability ?? n.v;
     }
 
     current = next;
   }
 
-  // sync viability values from model into cy nodes (if dv impacts were applied)
-  cy.nodes().forEach(n => {
-    const st = model.states.find(s => s.id === n.id());
-    if (st) n.data("v", st.viability);
+  graphNodes.forEach(n => {
+    const st = model.states.find(s => s.id === n.id);
+    if (st) n.v = st.viability;
   });
 
   recomputeAnalysisAndStyle();
@@ -1123,8 +1222,7 @@ function walk(steps){
 ---------------------------- */
 function exportJSON(){
   const m = deepClone(model);
-  // include positions as layout for reproducibility
-  m.layout = { positions: cy.nodes().map(n => ({ id:n.id(), x:n.position("x"), y:n.position("y") })) };
+  m.layout = { positions: graphNodes.map(n => ({ id:n.id, x:n.x ?? 0, y:n.y ?? 0 })) };
   m.meta = m.meta || {};
   m.meta.start = startId;
 
@@ -1149,11 +1247,9 @@ function importJSON(file){
       model = parsed;
       startId = model.meta.start;
 
-      // reset heat on import (usually what you want)
       heat = { node:{}, edge:{} };
 
       renderModel({preservePositions:false, relayout:false});
-      // if imported layout exists, we already applied it in renderModel()
       recomputeAnalysisAndStyle();
     } catch (err){
       alert("Import failed: " + (err?.message ?? err));
@@ -1163,13 +1259,31 @@ function importJSON(file){
 }
 
 function exportPNG(){
-  const png = cy.png({ full:true, scale:2, bg:"#0f1115" });
-  const a = document.createElement("a");
-  a.href = png;
-  a.download = "viability-graph.png";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  const serializer = new XMLSerializer();
+  const svgString = serializer.serializeToString(svg.node());
+  const svgBlob = new Blob([svgString], {type:"image/svg+xml;charset=utf-8"});
+  const url = URL.createObjectURL(svgBlob);
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width * 2;
+    canvas.height = height * 2;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#0f1115";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(2, 2);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(url);
+
+    const png = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = png;
+    a.download = "viability-graph.png";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+  img.src = url;
 }
 
 /* ---------------------------
@@ -1186,6 +1300,7 @@ function wireUi(){
     pCut = Number(e.target.value);
     document.getElementById("pCutLabel").textContent = pCut.toFixed(2);
     applyEdgeFilter();
+    updateSimulationLinks();
     recomputeAnalysisAndStyle();
   });
 
@@ -1198,6 +1313,7 @@ function wireUi(){
 
   document.getElementById("showEdgeLabels").addEventListener("change", () => {
     updateEdgeLabelVisibility();
+    updateGraphStyles();
   });
 
   document.getElementById("startSelect").addEventListener("change", (e) => {
@@ -1230,9 +1346,9 @@ function wireUi(){
   });
 
   document.getElementById("focusAttractorsBtn").addEventListener("click", () => {
-    const attractors = cy.nodes(".attractor");
+    const attractors = graphNodes.filter(n => n.isAttractor);
     if (!attractors.length) return;
-    cy.fit(attractors, 40);
+    focusNodes(attractors);
   });
 
   document.getElementById("exportBtn").addEventListener("click", () => exportJSON());
@@ -1244,7 +1360,6 @@ function wireUi(){
     e.target.value = "";
   });
 
-  // keyboard shortcut: ctrl/cmd+z for undo
   document.addEventListener("keydown", (e) => {
     const isUndo = (e.key.toLowerCase() === "z") && (e.ctrlKey || e.metaKey);
     if (isUndo){
@@ -1254,33 +1369,45 @@ function wireUi(){
   });
 }
 
-/* ---------------------------
-   Cytoscape interactions
----------------------------- */
-function wireCytoscapeInteractions(){
-  cy.on("tap", (evt) => {
-    if (evt.target === cy) clearSelection();
-  });
-  cy.on("tap", "node", (evt) => selectNode(evt.target));
-  cy.on("tap", "edge", (evt) => selectEdge(evt.target));
+function focusNodes(nodes){
+  const xs = nodes.map(n => n.x).filter(Number.isFinite);
+  const ys = nodes.map(n => n.y).filter(Number.isFinite);
+  if (!xs.length || !ys.length) return;
+
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+
+  const padding = 60;
+  const boundsWidth = Math.max(1, maxX - minX);
+  const boundsHeight = Math.max(1, maxY - minY);
+  const scale = Math.min(width / (boundsWidth + padding), height / (boundsHeight + padding), 4);
+
+  const translateX = (width - scale * (minX + maxX)) / 2;
+  const translateY = (height - scale * (minY + maxY)) / 2;
+
+  svg.transition().duration(500).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(translateX, translateY).scale(scale)
+  );
 }
 
 /* ---------------------------
    Boot
 ---------------------------- */
-async function boot(){
-  const loaded = await ensureCytoscape().catch((err) => {
-    showCytoscapeError(err?.message ?? String(err));
-    return false;
-  });
-  if (!loaded || !window.cytoscape) {
-    showCytoscapeError("Cytoscape.js is required to render the graph. Check network access to the CDN.");
+function boot(){
+  if (!window.d3){
+    document.getElementById("cy").innerHTML = `
+      <div style="padding:16px; font-size:13px; color:#ffb4b4;">
+        <strong>Graph renderer unavailable.</strong><br/>
+        D3.js is required to render the graph. Check network access to the CDN.
+      </div>`;
     return;
   }
-  await ensureFcose();
-  initCytoscape();
+
+  initD3();
   wireUi();
-  wireCytoscapeInteractions();
 
   model = normalizeModel(model);
   thr = Number(document.getElementById("thr").value);
@@ -1298,6 +1425,7 @@ async function boot(){
 }
 
 boot();
+
 </script>
 </body>
 </html>

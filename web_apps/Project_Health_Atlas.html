@@ -46,7 +46,8 @@
   .tileinfo:focus{outline:2px solid #6a7dff66; outline-offset:2px}
 
   .grid{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-  .meters{display:flex;gap:8px}
+  .meters{display:flex;gap:10px;align-items:flex-end}
+  .meterGroup{display:flex;flex-direction:column;align-items:center;gap:4px}
   .meter{--v:0; width:8px; height:52px; border-radius:6px; background:#222a4a; position:relative; overflow:hidden; cursor:pointer}
   .meter::after{
     content:""; position:absolute; bottom:0; left:0; right:0; height:calc(var(--v) * 1%);
@@ -57,7 +58,7 @@
   .meter[data-kind="mat"]::after{ background:linear-gradient(180deg,var(--warn),#e9b62d 60%,#946d12 100%);}
   .meter[data-kind="perf"]::after{ background:linear-gradient(180deg,var(--bad),#f06b78 60%,#7d2a34 100%);}
 
-  .labels{display:flex;gap:8px;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+  .meterLabel{font-size:11px;color:var(--muted);line-height:1}
   .spark{height:62px; width:120px; border-radius:8px; background:#121733; border:1px solid var(--border); position:relative; overflow:hidden}
   .spark canvas{position:absolute; inset:0}
   .dag{
@@ -374,12 +375,18 @@
       <div class="grid">
         <div>
           <div class="meters" aria-label="Gap meters (click for meaning)">
-            <div class="meter" data-kind="cap" title="Capability gap (click)"></div>
-            <div class="meter" data-kind="mat" title="Maturity gap (click)"></div>
-            <div class="meter" data-kind="perf" title="Performance gap (click)"></div>
-          </div>
-          <div class="labels" aria-hidden="true">
-            <span>Cap</span><span>Mat</span><span>Perf</span>
+            <div class="meterGroup">
+              <div class="meter" data-kind="cap" title="Capability gap (click)"></div>
+              <span class="meterLabel" aria-hidden="true">Cap</span>
+            </div>
+            <div class="meterGroup">
+              <div class="meter" data-kind="mat" title="Maturity gap (click)"></div>
+              <span class="meterLabel" aria-hidden="true">Mat</span>
+            </div>
+            <div class="meterGroup">
+              <div class="meter" data-kind="perf" title="Performance gap (click)"></div>
+              <span class="meterLabel" aria-hidden="true">Perf</span>
+            </div>
           </div>
         </div>
         <div class="spark" title="Synthetic KPI trend (placeholder)"><canvas></canvas></div>

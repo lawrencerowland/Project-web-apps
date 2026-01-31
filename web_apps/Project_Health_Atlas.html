@@ -32,8 +32,14 @@
       radial-gradient(120% 100% at 20% 0%, #1b2140 10%, #121733 55%, #0f1220 100%);
     overflow:hidden; padding:12px 12px 14px; transition:transform .18s ease, filter .18s ease;
     box-shadow: 0 10px 24px #00000033 inset, 0 0 0 1px #00000014 inset;
+    transform: perspective(900px)
+      rotateX(var(--tilt-x,0deg))
+      rotateY(var(--tilt-y,0deg))
+      skew(var(--skew-x,0deg),var(--skew-y,0deg))
+      translateY(var(--hover-raise,0px));
+    transform-style: preserve-3d;
   }
-  .tile:hover{transform:translateY(-2px);filter:saturate(1.05);}
+  .tile:hover{--hover-raise:-2px;filter:saturate(1.05);}
   .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px}
   .name{font-weight:600;letter-spacing:.2px}
   .tag{font-size:12px;color:#bcc5d6;background:#1b2140;border:1px solid #273058;padding:2px 8px;border-radius:999px;white-space:nowrap}
@@ -74,8 +80,7 @@
     background:
       radial-gradient(120px 90px at var(--bulge-x,70%) var(--bulge-y,20%), #3b46ff20, transparent 60%),
       conic-gradient(from 0deg at 60% 40%, #ffffff0f, #0000 40%, #ffffff12 60%, #0000 100%);
-    transform: perspective(800px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) skew(var(--skew-x,0deg),var(--skew-y,0deg));
-    transition: transform .25s ease, background .3s ease, opacity .25s ease;
+    transition: background .3s ease, opacity .25s ease;
   }
 
   /* Legend + controls */
@@ -325,25 +330,90 @@
   const wrap = document.getElementById('wrap');
 
   // Tiny inline Graphviz‑style SVG (replace with yEd/Graphviz export per project)
-  function miniDAGSVG({accent="#6a7dff", warn="#e0a400", bad="#e05263"}) {
+  function miniDAGSVG({accent="#6a7dff", warn="#e0a400", bad="#e05263", variant=0}) {
+    const layouts = [
+      {
+        nodes: [
+          {x:18,y:78,fill:accent},{x:24,y:36,fill:"#6f7aa6"},
+          {x:52,y:96,fill:bad},{x:82,y:36,fill:warn},{x:96,y:58,fill:"#8fbf9f"}
+        ],
+        paths: [
+          {d:"M18,78 C38,70 58,50 80,40"},
+          {d:"M24,36 C40,46 54,58 70,70"},
+          {d:"M52,96 C64,78 78,62 96,58", highlight:true}
+        ]
+      },
+      {
+        nodes: [
+          {x:16,y:88,fill:accent},{x:34,y:28,fill:"#6f7aa6"},
+          {x:44,y:70,fill:bad},{x:82,y:24,fill:warn},{x:98,y:70,fill:"#8fbf9f"}
+        ],
+        paths: [
+          {d:"M16,88 C34,78 58,66 74,54"},
+          {d:"M34,28 C48,36 58,52 70,66", highlight:true},
+          {d:"M44,70 C60,72 78,72 98,70"}
+        ]
+      },
+      {
+        nodes: [
+          {x:20,y:90,fill:accent},{x:18,y:38,fill:"#6f7aa6"},
+          {x:60,y:96,fill:bad},{x:90,y:34,fill:warn},{x:96,y:64,fill:"#8fbf9f"}
+        ],
+        paths: [
+          {d:"M18,38 C38,46 52,54 66,62"},
+          {d:"M20,90 C40,86 64,80 84,72", highlight:true},
+          {d:"M60,96 C70,78 84,66 96,64"}
+        ]
+      },
+      {
+        nodes: [
+          {x:24,y:82,fill:accent},{x:26,y:30,fill:"#6f7aa6"},
+          {x:66,y:92,fill:bad},{x:90,y:46,fill:warn},{x:96,y:68,fill:"#8fbf9f"}
+        ],
+        paths: [
+          {d:"M26,30 C44,38 58,54 72,66", highlight:true},
+          {d:"M24,82 C44,78 58,70 76,60"},
+          {d:"M66,92 C78,80 88,70 96,68"}
+        ]
+      },
+      {
+        nodes: [
+          {x:16,y:74,fill:accent},{x:32,y:34,fill:"#6f7aa6"},
+          {x:46,y:96,fill:bad},{x:88,y:30,fill:warn},{x:98,y:58,fill:"#8fbf9f"}
+        ],
+        paths: [
+          {d:"M16,74 C34,70 58,58 78,46"},
+          {d:"M32,34 C48,42 60,56 72,66"},
+          {d:"M46,96 C60,82 78,70 98,58", highlight:true}
+        ]
+      },
+      {
+        nodes: [
+          {x:22,y:86,fill:accent},{x:20,y:32,fill:"#6f7aa6"},
+          {x:54,y:90,fill:bad},{x:84,y:28,fill:warn},{x:98,y:66,fill:"#8fbf9f"}
+        ],
+        paths: [
+          {d:"M20,32 C38,38 54,50 72,60"},
+          {d:"M22,86 C42,80 64,72 86,64", highlight:true},
+          {d:"M54,90 C68,78 82,70 98,66"}
+        ]
+      }
+    ];
+
+    const layout = layouts[variant % layouts.length];
+    const markerId = `arrow-${variant}`;
     return `
 <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <defs>
-    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+    <marker id="${markerId}" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
       <path d="M0,0 L0,6 L7,3 z" fill="#aab4c8"/>
     </marker>
   </defs>
-  <g fill="none" stroke="#aab4c8" stroke-width="1.2" marker-end="url(#arrow)" opacity=".9">
-    <path d="M20,80 C40,70 60,50 80,40" />
-    <path d="M20,40 C36,48 50,58 68,66" />
-    <path d="M50,95 C62,78 74,62 92,58" stroke="${bad}" stroke-width="2.6"/>
+  <g fill="none" stroke="#aab4c8" stroke-width="1.2" marker-end="url(#${markerId})" opacity=".9">
+    ${layout.paths.map(p=>`<path d="${p.d}" ${p.highlight ? `stroke="${bad}" stroke-width="2.6"` : ""} />`).join("")}
   </g>
   <g>
-    <circle cx="20" cy="80" r="7" fill="${accent}" />
-    <circle cx="20" cy="40" r="7" fill="#6f7aa6" />
-    <circle cx="50" cy="95" r="7" fill="${bad}" />
-    <circle cx="80" cy="40" r="7" fill="${warn}" />
-    <circle cx="92" cy="58" r="7" fill="#8fbf9f" />
+    ${layout.nodes.map(n=>`<circle cx="${n.x}" cy="${n.y}" r="7" fill="${n.fill}" />`).join("")}
   </g>
 </svg>`;
   }
@@ -354,7 +424,7 @@
     perf:"Performance gap = delivery/output shortfall (schedule, cost, quality, throughput, operational stability)."
   };
 
-  function tile(project){
+  function tile(project, index){
     const el = document.createElement('div');
     el.className = 'tile';
     el.dataset.cap = project.capGap;
@@ -393,7 +463,7 @@
       </div>
 
       <div class="deform"></div>
-      <div class="dag" title="Mini dependency DAG (swap with yEd/Graphviz SVG)">${miniDAGSVG({})}</div>
+      <div class="dag" title="Mini dependency DAG (swap with yEd/Graphviz SVG)">${miniDAGSVG({variant:index})}</div>
     `;
 
     // Set meters
@@ -462,13 +532,12 @@
     const bulgeX = (50 + 35*wx).toFixed(1)+'%';
     const bulgeY = (35 - 25*wy).toFixed(1)+'%';
 
-    const d = el.querySelector('.deform');
-    d.style.setProperty('--tilt-x', tiltX+'deg');
-    d.style.setProperty('--tilt-y', tiltY+'deg');
-    d.style.setProperty('--skew-x', skewX+'deg');
-    d.style.setProperty('--skew-y', skewY+'deg');
-    d.style.setProperty('--bulge-x', bulgeX);
-    d.style.setProperty('--bulge-y', bulgeY);
+    el.style.setProperty('--tilt-x', tiltX+'deg');
+    el.style.setProperty('--tilt-y', tiltY+'deg');
+    el.style.setProperty('--skew-x', skewX+'deg');
+    el.style.setProperty('--skew-y', skewY+'deg');
+    el.style.setProperty('--bulge-x', bulgeX);
+    el.style.setProperty('--bulge-y', bulgeY);
 
     // Store values for explainers
     el.dataset.wx = wx.toFixed(3);
@@ -494,7 +563,7 @@
 
   function mount(){
     wrap.innerHTML='';
-    projects.forEach(p=>wrap.appendChild(tile(p)));
+    projects.forEach((p, index)=>wrap.appendChild(tile(p, index)));
   }
 
   function randomize(){
@@ -868,8 +937,7 @@
 
   mount();
 
-  // Example: swap DAG on first tile after load (demonstrates the API)
-  setTimeout(()=>setDAGFor(0, miniDAGSVG({accent:"#4ae3b5", warn:"#f4c851", bad:"#ff6b7a"})), 250);
+  // Example usage: setDAGFor(0, miniDAGSVG({accent:"#4ae3b5", warn:"#f4c851", bad:"#ff6b7a", variant:3}));
 </script>
 </body>
 </html>

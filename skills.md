@@ -1,5 +1,4 @@
 ---
-layout: default
 title: Skills for Board Meeting Contributions
 ---
 
@@ -55,4 +54,3 @@ Use this guide when preparing materials or support for a board meeting. It outli
 - Keep language clear, formal, and concise.
 - Avoid acronyms unless defined.
 - Use visuals for trends and comparisons.
-

@@ -96,3 +96,53 @@
 3. **Introduce typed propagation profiles** (default to current behavior).  
 4. **Add dashboards** for delta subgraph/trace/table.  
 5. **Ship demo presets** and short README snippet for each.
+
+---
+
+# Typed-Graph Governance Micro-App Additions (Living Graph Transform Fit)
+
+## Feasible additions to fold into the living graph transform app
+1. **Typed graph schema + validation layer.**  
+   Add node/edge type definitions with required fields and validate on import.  
+   - **Node types:** WorkPackage, Interface, Risk, Milestone, Control.  
+   - **Edge types:** depends_on, satisfies, hazards, mitigates, blocks, informs.  
+   - **Validation UX:** missing-field warnings surfaced in the right panel.  
+   **Acceptance:** invalid nodes render with warning badges; valid nodes continue to render normally.
+
+2. **Rule receipts for query-driven boards.**  
+   Each saved view stores its JSON rules plus a hash (rule receipt) and is shown in the log panel.  
+   - **Receipt fields:** view_id, rules_json, hash, timestamp.  
+   **Acceptance:** selecting a view shows the exact rules and hash used to generate it.
+
+3. **Three canonical query views (as presets).**  
+   Add PMO / Risk / Engineering as preset queries to the view selector.  
+   - **PMO:** milestones due ≤90 days with upstream open hazards and no approved mitigates.  
+   - **Risk:** interfaces with ≥1 red risk lacking owner; show linked controls + next review.  
+   - **Engineering:** work packages blocked by unresolved interfaces; show dependency chain.  
+   **Acceptance:** each preset returns a list and a lineage explanation for inclusion.
+
+4. **Drill-down: 2-hop neighborhood + lineage.**  
+   Extend the existing neighborhood graph view with a lineage panel showing which rule/edge caused inclusion.  
+   **Acceptance:** clicking an item shows its 2-hop neighborhood and a deterministic lineage trail.
+
+5. **CSV import/export bridge (SharpCloud/Atlas compatible).**  
+   Support `nodes.csv` + `edges.csv` with type columns and stable IDs; preserve IDs on export.  
+   **Acceptance:** round-trip import/export keeps IDs stable and does not fork items.
+
+6. **Audit bundle export (lightweight).**  
+   Export a ZIP with `rules.json`, `lineage.svg`, `timestamp.txt`, `sha256.txt`.  
+   **Acceptance:** a single click produces a deterministic bundle with hash and lineage.
+
+7. **Seed data pack (small).**  
+   Add a demo dataset sized for the UI (not a full production pack).  
+   **Acceptance:** demo includes at least one red risk without owner and one missing evidence warning.
+
+## Out of scope for the living graph transform app (keep external)
+1. **Full SharpCloud/Atlas “source of truth” sync or bidirectional edits.**  
+   Maintain CSV import/export only; avoid deep API coupling or live sync.
+2. **Heavyweight ETL for large BIM/IFC datasets in-browser.**  
+   Keep preprocessing server-side; the web app should consume graph-ready inputs.
+3. **Full enterprise audit bundle automation.**  
+   Limit to lightweight ZIP export (rules + lineage) rather than multi-system evidence aggregation.
+4. **Large production seed pack (dozens of entities).**  
+   Provide a concise demo dataset; defer expansive sample data curation.

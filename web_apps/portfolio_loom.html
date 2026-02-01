@@ -660,17 +660,23 @@
     for(let ti=0; ti<ticks.length; ti++){
       let pos = 0, neg = 0;
       for(let i=0; i<active.length; i++){
-        const fi = active[i]; const ai = act[fi.id][ti]; if(ai===0) continue;
-        for(let j=i+1; j<active.length; j++){
-          const fj = active[j]; const aj = act[fj.id][ti]; if(aj===0) continue;
-          // dot product in effect space with appetite weighting
-          let dot = 0;
-          for(let k=0; k<EFFECTS.length; k++){
-            const w = State.effectWeights[EFFECTS[k]];
-            dot += (V[fi.id][k] * V[fj.id][k]) * w * w;
+        const fi = active[i];
+        const ai = act[fi.id][ti];
+        if(ai !== 0){
+          for(let j=i+1; j<active.length; j++){
+            const fj = active[j];
+            const aj = act[fj.id][ti];
+            if(aj !== 0){
+              // dot product in effect space with appetite weighting
+              let dot = 0;
+              for(let k=0; k<EFFECTS.length; k++){
+                const w = State.effectWeights[EFFECTS[k]];
+                dot += (V[fi.id][k] * V[fj.id][k]) * w * w;
+              }
+              const s = dot * ai * aj;
+              if(s>=0) pos += s; else neg += -s;
+            }
           }
-          const s = dot * ai * aj;
-          if(s>=0) pos += s; else neg += -s;
         }
       }
       field[ti].pos = pos;
@@ -682,9 +688,11 @@
       const tIndex = clamp(monthsBetween(State.startDate, new Date(ms.date)), 0, ticks.length-1);
       const vec = new Array(EFFECTS.length).fill(0);
       for(const f of active){
-        const a = act[f.id][tIndex]; if(a===0) continue;
-        for(let k=0;k<EFFECTS.length;k++){
-          vec[k] += (f.effects[EFFECTS[k]]||0) * a;
+        const a = act[f.id][tIndex];
+        if(a !== 0){
+          for(let k=0;k<EFFECTS.length;k++){
+            vec[k] += (f.effects[EFFECTS[k]]||0) * a;
+          }
         }
       }
       // Weighted magnitude (risk appetite scales penalty on negative/positive)
@@ -881,27 +889,28 @@
     elAnchors.innerHTML = "";
     for(const ms of State.milestones){
       const probe = milestoneProbes[ms.id];
-      if(!probe){ continue; }
-      // Compute per‑dim pressure (absolute)
-      const abs = EFFECTS.map((k,i)=> Math.abs(probe.vec[i]));
-      // Pick anchors greedily covering the top pressure dims with minimal items
-      const items = [];
-      const ranked = EFFECTS.map((k,i)=>({k, v:abs[i]})).sort((a,b)=> b.v-a.v);
-      for(const r of ranked){
-        const rules = ANCHOR_RULES.filter(x=> x.dim===r.k).sort((a,b)=> b.thresh-a.thresh);
-        const match = rules.find(x=> r.v >= x.thresh);
-        if(match){ items.push({dim:r.k, text:match.text, level: r.v}); }
-        if(items.length>=3) break; // keep minimal
-      }
-      if(items.length===0){
-        items.push({dim:"none", text:"No anchor change recommended at current appetite; monitor drift.", level:0});
-      }
+      if(probe){
+        // Compute per‑dim pressure (absolute)
+        const abs = EFFECTS.map((k,i)=> Math.abs(probe.vec[i]));
+        // Pick anchors greedily covering the top pressure dims with minimal items
+        const items = [];
+        const ranked = EFFECTS.map((k,i)=>({k, v:abs[i]})).sort((a,b)=> b.v-a.v);
+        for(const r of ranked){
+          const rules = ANCHOR_RULES.filter(x=> x.dim===r.k).sort((a,b)=> b.thresh-a.thresh);
+          const match = rules.find(x=> r.v >= x.thresh);
+          if(match){ items.push({dim:r.k, text:match.text, level: r.v}); }
+          if(items.length>=3) break; // keep minimal
+        }
+        if(items.length===0){
+          items.push({dim:"none", text:"No anchor change recommended at current appetite; monitor drift.", level:0});
+        }
 
-      for(const it of items){
-        const div = document.createElement("div"); div.className="anchor";
-        div.innerHTML = `<div>${it.text} <div class="note">${ms.label} · pressure(${it.dim})=${fmt.format(it.level)}</div></div>
-                         <div><span class="pill">Anchor</span></div>`;
-        elAnchors.appendChild(div);
+        for(const it of items){
+          const div = document.createElement("div"); div.className="anchor";
+          div.innerHTML = `<div>${it.text} <div class="note">${ms.label} · pressure(${it.dim})=${fmt.format(it.level)}</div></div>
+                           <div><span class="pill">Anchor</span></div>`;
+          elAnchors.appendChild(div);
+        }
       }
     }
   }

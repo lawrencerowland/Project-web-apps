@@ -456,6 +456,11 @@
           </ol>
           <p class="small">Result: a tight causal subgraph you can explain in a single slide—“these are the only dependencies that can move this outcome.”</p>
         </div>
+        <div class="row small"><span>Output tag</span><input id="pruneTag" type="text" placeholder="output, milestone" /></div>
+        <div class="row small"><span>Output node ids</span><input id="pruneIds" type="text" placeholder="S4, milestone-1" /></div>
+        <div class="row">
+          <button class="btn" id="pruneRun">Prune dependencies</button>
+        </div>
       </div>
 
       <div class="panel">
@@ -472,6 +477,21 @@
             <li>Replace the cross‑lane edge with two local edges: <em>source → interface</em> and <em>interface → target</em>.</li>
           </ol>
           <p class="small">Result: fewer cross‑lane edges, clearer accountability, and a lower coordination degree because many links reuse the same interface node.</p>
+        </div>
+        <div class="row small">
+          <span>Lane key</span>
+          <select id="braidLane" style="flex:1">
+            <option value="owner">Owner</option>
+            <option value="type">Type</option>
+          </select>
+        </div>
+        <div class="row small"><span>Interface tags (priority)</span><input id="braidTags" type="text" value="scope, contract, permit, power" /></div>
+        <div class="row small"><span>Fallback type</span><input id="braidFallback" type="text" value="handoff" /></div>
+        <div class="row small">
+          <label><input id="braidReuse" type="checkbox" checked /> Reuse interface nodes per lane pair</label>
+        </div>
+        <div class="row">
+          <button class="btn" id="braidRun">Braid interfaces</button>
         </div>
       </div>
 
@@ -1250,6 +1270,14 @@
   const filterEnd = document.getElementById('filterEnd');
   const contractMode = document.getElementById('contractMode');
   const contractTag = document.getElementById('contractTag');
+  const pruneTag = document.getElementById('pruneTag');
+  const pruneIds = document.getElementById('pruneIds');
+  const pruneRunBtn = document.getElementById('pruneRun');
+  const braidLane = document.getElementById('braidLane');
+  const braidTags = document.getElementById('braidTags');
+  const braidFallback = document.getElementById('braidFallback');
+  const braidReuse = document.getElementById('braidReuse');
+  const braidRunBtn = document.getElementById('braidRun');
 
   const agentPreset = document.getElementById('agentPreset');
   const loadPresetBtn = document.getElementById('loadPreset');
@@ -1485,7 +1513,7 @@
       { id:'S1', label:'Scope draft', tags:['scope'], owner:'PMO', type:'scope', date:'2025-02-01' },
       { id:'S2', label:'Permit check', tags:['permit','risk'], owner:'Reg', type:'permit', date:'2025-02-05' },
       { id:'S3', label:'Contract gate', tags:['contract'], owner:'Legal', type:'contract', date:'2025-02-10' },
-      { id:'S4', label:'Power interface', tags:['power','interface'], owner:'Utilities', type:'power', date:'2025-02-12' },
+      { id:'S4', label:'Power interface', tags:['power','interface','output'], owner:'Utilities', type:'power', date:'2025-02-12' },
       { id:'S5', label:'Design pack', tags:['design'], owner:'Eng', type:'scope', date:'2025-02-15' }
     ],
     edges: [
@@ -1791,26 +1819,14 @@
     }
     const filtered = applyFilters(sandboxState.original);
     const { graph: contracted, note } = contractGraph(filtered);
-    const critical = computeCriticalPath(contracted);
-    const summary = buildSandboxSummary(contracted, critical);
-    const exports = buildExports(contracted, critical);
-
-    sandboxState.current = contracted;
-    sandboxState.lastSummary = summary;
-    sandboxState.lastExports = exports;
-    sandboxState.lastCritical = critical;
-    pushSandboxHistory({
-      label: `Transform: ${note} + filters + critical path`,
-      graph: contracted
-    });
-    updateSandboxUI();
+    commitSandboxGraph(contracted, `Transform: ${note} + filters + critical path`);
   }
 
   function resetSandboxFromHistory(){
     const entry = sandboxState.history[sandboxState.historyIndex];
     if(entry){
-      sandboxState.current = entry.graph;
       const critical = computeCriticalPath(entry.graph);
+      sandboxState.current = entry.graph;
       sandboxState.lastSummary = buildSandboxSummary(entry.graph, critical);
       sandboxState.lastExports = buildExports(entry.graph, critical);
       sandboxState.lastCritical = critical;
@@ -1826,8 +1842,8 @@
     try{
       const graph = parseSandboxInput(sandboxInput.value);
       sandboxState.original = graph;
-      sandboxState.current = graph;
       const critical = computeCriticalPath(graph);
+      sandboxState.current = graph;
       sandboxState.lastSummary = buildSandboxSummary(graph, critical);
       sandboxState.lastExports = buildExports(graph, critical);
       sandboxState.lastCritical = critical;
@@ -1851,6 +1867,177 @@
       sandboxState.historyIndex += 1;
       resetSandboxFromHistory();
     }
+  });
+
+  function commitSandboxGraph(graph, label, note){
+    const critical = computeCriticalPath(graph);
+    sandboxState.current = graph;
+    const summary = buildSandboxSummary(graph, critical);
+    sandboxState.lastSummary = note ? `${summary} • ${note}` : summary;
+    sandboxState.lastExports = buildExports(graph, critical);
+    sandboxState.lastCritical = critical;
+    pushSandboxHistory({ label, graph });
+    updateSandboxUI();
+  }
+
+  function getSandboxBaseGraph(){
+    if(!sandboxState.current){
+      sandboxSummary.textContent = 'Parse a graph first.';
+      return null;
+    }
+    return sandboxState.current;
+  }
+
+  function collectOutputTargets(graph){
+    const targets = new Set();
+    const tagText = pruneTag.value.trim().toLowerCase();
+    if(tagText){
+      graph.nodes.forEach(node => {
+        const tagHit = (node.tags || []).some(tag => tag.toLowerCase().includes(tagText));
+        const typeHit = (node.type || '').toLowerCase() === tagText;
+        if(tagHit || typeHit){
+          targets.add(node.id);
+        }
+      });
+    }
+    const ids = pruneIds.value.split(',').map(id => id.trim()).filter(Boolean);
+    ids.forEach(id => targets.add(id));
+    return [...targets];
+  }
+
+  function pruneDependencies(graph, outputIds){
+    const idx = buildGraphIndex(graph);
+    const validTargets = outputIds.filter(id => idx.nodeIds.includes(id));
+    const keepNodes = new Set(validTargets);
+    const keepEdges = new Set();
+    const queue = [...validTargets];
+    while(queue.length){
+      const id = queue.pop();
+      (idx.preds[id] || []).forEach(edge => {
+        const edgeId = `${edge.source}->${edge.target}`;
+        keepEdges.add(edgeId);
+        if(!keepNodes.has(edge.source)){
+          keepNodes.add(edge.source);
+          queue.push(edge.source);
+        }
+      });
+    }
+    const nodes = graph.nodes.filter(node => keepNodes.has(node.id));
+    const edges = graph.edges.filter(edge => keepEdges.has(`${edge.source}->${edge.target}`));
+    return {
+      graph: { nodes, edges },
+      droppedNodes: graph.nodes.length - nodes.length,
+      droppedEdges: graph.edges.length - edges.length,
+      targets: validTargets
+    };
+  }
+
+  function sanitizeId(raw){
+    return String(raw).replace(/[^a-zA-Z0-9:_-]/g, '-');
+  }
+
+  function inferInterfaceType(source, target, priority, fallback){
+    const tags = new Set([...(source.tags || []), ...(target.tags || [])].map(tag => tag.toLowerCase()));
+    const match = priority.find(tag => tags.has(tag));
+    return match || fallback || 'handoff';
+  }
+
+  function braidInterfaces(graph, options){
+    const laneKey = options.laneKey;
+    const reuseInterfaces = options.reuseInterfaces;
+    const priority = options.priority;
+    const fallback = options.fallback;
+    const nodeMap = new Map(graph.nodes.map(node => [node.id, node]));
+    const interfaceNodes = new Map();
+    const nodes = graph.nodes.map(node => ({ ...node }));
+    const edges = [];
+    let braidedEdges = 0;
+
+    function laneOf(node){
+      if(!node) return 'unassigned';
+      const value = laneKey === 'type' ? node.type : node.owner;
+      return value ? value : 'unassigned';
+    }
+
+    function ensureInterfaceNode(laneA, laneB, type){
+      const key = reuseInterfaces ? `${laneA}->${laneB}:${type}` : `${laneA}->${laneB}:${type}:${interfaceNodes.size}`;
+      if(interfaceNodes.has(key)){
+        return interfaceNodes.get(key);
+      }
+      let idBase = sanitizeId(`if:${laneA}->${laneB}:${type}`);
+      let id = idBase;
+      let counter = 1;
+      while(nodeMap.has(id)){
+        id = `${idBase}-${counter++}`;
+      }
+      const interfaceNode = {
+        id,
+        label: `interface:${type}`,
+        tags: ['interface', type],
+        owner: `${laneA}→${laneB}`,
+        type: `interface:${type}`
+      };
+      nodes.push(interfaceNode);
+      nodeMap.set(id, interfaceNode);
+      interfaceNodes.set(key, interfaceNode);
+      return interfaceNode;
+    }
+
+    graph.edges.forEach(edge => {
+      const source = nodeMap.get(edge.source);
+      const target = nodeMap.get(edge.target);
+      const laneA = laneOf(source);
+      const laneB = laneOf(target);
+      if(laneA !== laneB){
+        const type = inferInterfaceType(source || {}, target || {}, priority, fallback);
+        const iface = ensureInterfaceNode(laneA, laneB, type);
+        edges.push({ source: edge.source, target: iface.id, lag: edge.lag || 0, duration: edge.duration || 0 });
+        edges.push({ source: iface.id, target: edge.target, lag: edge.lag || 0, duration: edge.duration || 0 });
+        braidedEdges += 1;
+      }else{
+        edges.push(edge);
+      }
+    });
+
+    return { graph: { nodes, edges }, braidedEdges, interfaceCount: interfaceNodes.size };
+  }
+
+  pruneRunBtn.addEventListener('click', () => {
+    const base = getSandboxBaseGraph();
+    if(!base) return;
+    const targets = collectOutputTargets(base);
+    if(!targets.length){
+      sandboxSummary.textContent = 'Dependency pruning needs at least one output tag or node id.';
+      return;
+    }
+    const { graph, droppedNodes, droppedEdges, targets: validTargets } = pruneDependencies(base, targets);
+    if(!validTargets.length){
+      sandboxSummary.textContent = 'No matching output nodes found for pruning.';
+      return;
+    }
+    commitSandboxGraph(
+      graph,
+      `Rewrite: dependency pruning (${validTargets.length} target${validTargets.length === 1 ? '' : 's'})`,
+      `pruned ${droppedNodes} nodes, ${droppedEdges} edges`
+    );
+  });
+
+  braidRunBtn.addEventListener('click', () => {
+    const base = getSandboxBaseGraph();
+    if(!base) return;
+    const priority = braidTags.value.split(',').map(tag => tag.trim().toLowerCase()).filter(Boolean);
+    const fallback = braidFallback.value.trim().toLowerCase() || 'handoff';
+    const { graph, braidedEdges, interfaceCount } = braidInterfaces(base, {
+      laneKey: braidLane.value,
+      reuseInterfaces: braidReuse.checked,
+      priority,
+      fallback
+    });
+    commitSandboxGraph(
+      graph,
+      `Rewrite: interface braiding (${braidLane.value})`,
+      `braided ${braidedEdges} cross-lane edge${braidedEdges === 1 ? '' : 's'} into ${interfaceCount} interface node${interfaceCount === 1 ? '' : 's'}`
+    );
   });
 
   [exportJsonBtn, exportCsvBtn, exportDotBtn].forEach((btn, idx) => {

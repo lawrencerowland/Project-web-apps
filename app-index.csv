@@ -53,3 +53,5 @@
 49,interface_maturity_simulator,"SharpCloud-style interface maturity simulator with coupling, spillover, network, and KPI views.",ChatGPT,GPT-5.2-Codex,"simulation, interfaces, governance, visualization, network",,
 50,Project_Health_Atlas,"Project health atlas with deforming tiles, mini DAGs, and explainers.",ChatGPT,GPT-5.2-Codex,"visualization, portfolio_management, health, dashboard, decision_support",,
 51,lower_thames_crossing_geo_kg,"Lower Thames Crossing geo-framed knowledge graph with map + network filters.",ChatGPT,GPT-5.2-Codex,"knowledge_graph, mapping, visualization, procurement",,
+52,Graph to sharp,"Project Graph → SharpCloud (role views, audit bundle, and graph ingest).",ChatGPT,GPT-5.2-Codex,"graph, sharpcloud, visualization, data_ingest, audit",,
+53,Graph-sharp1,"Project Graph → SharpCloud variant with role views and audit bundle outputs.",ChatGPT,GPT-5.2-Codex,"graph, sharpcloud, visualization, data_ingest, audit",,

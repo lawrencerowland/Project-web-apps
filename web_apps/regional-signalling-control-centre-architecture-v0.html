@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regional Signalling Control Centre – Concept &amp; Architecture (v0)</title>
+
+<!-- ■■■ CRITICAL CSS ■■■ -->
+<style>
+html,body{margin:0;padding:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fafafa;color:#111;}
+h1{font-size:clamp(1.6rem,2.5vw,2.2rem);margin:0.5rem 0;text-align:center;}
+#app{display:flex;flex-direction:column;align-items:center;gap:1rem;min-height:64vh;padding:1rem;}
+.tab-buttons{display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;}
+button{padding:0.45rem 0.9rem;font-size:1rem;border:none;border-radius:0.3rem;background:#e0e0e0;cursor:pointer;transition:background .17s;}
+button[aria-selected="true"]{background:#1565c0;color:#fff;}
+svg{width:100%;height:auto;max-width:960px;border:1px solid #ddd;background:#fff;}
+article{max-width:880px;margin-inline:auto;padding:0 1rem;line-height:1.55;}
+h2{margin:.4rem 0 .2rem;font-size:1.25rem;color:#1565c0;border-bottom:2px solid #e0e0e0;}
+h3{margin:.6rem 0 .25rem;font-size:1.1rem;color:#333;}
+ul{margin:.15rem 0 .6rem 1.2rem;padding:0;}
+/* legend */
+.legend{display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem;font-size:.9rem;}
+.swatch{display:inline-block;width:1.2rem;height:1.2rem;border:1px solid #666;margin-right:.25rem;}
+/* toast */
+.toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:.75rem 1rem;border-radius:.5rem;opacity:0;transition:opacity .3s;}
+.toast.show{opacity:1;}
+/* reserve svg height to avoid CLS */
+svg[data-view="plan"]{min-height:24rem;}
+svg[data-view="section"]{min-height:20rem;}
+/* table for interfaces */
+table{border-collapse:collapse;width:100%;margin:.4rem 0 1rem;}
+th,td{border:1px solid #ccc;padding:0.35rem 0.4rem;font-size:.95rem;}
+th{background:#e0e0e0;text-align:left;}
+</style>
+<noscript>Please enable JavaScript to use the interactive tabs.</noscript>
+</head>
+<body>
+<div id="app" data-timeout="3000">
+
+  <h1>Regional Signalling Control Centre – Concept, Architecture v0 &amp; Interfaces</h1>
+
+  <!-- TAB CONTROLS -->
+  <div class="tab-buttons" role="tablist">
+    <button role="tab" id="tab-plan" data-target="panel-plan" aria-controls="panel-plan" aria-selected="true">Plan View</button>
+    <button role="tab" id="tab-section" data-target="panel-section" aria-controls="panel-section" aria-selected="false">Section View</button>
+    <button role="tab" id="tab-app1" data-target="panel-app1" aria-controls="panel-app1" aria-selected="false">Approach 1</button>
+    <button role="tab" id="tab-app2" data-target="panel-app2" aria-controls="panel-app2" aria-selected="false">Approach 2</button>
+    <button role="tab" id="tab-app3" data-target="panel-app3" aria-controls="panel-app3" aria-selected="false">Approach 3</button>
+    <button role="tab" id="tab-archv0" data-target="panel-archv0" aria-controls="panel-archv0" aria-selected="false">Architecture v0</button>
+    <button role="tab" id="tab-intf" data-target="panel-intf" aria-controls="panel-intf" aria-selected="false">Interface List v0</button>
+  </div>
+
+  <!-- ■■■ ORIGINAL PLAN ■■■ -->
+  <div id="panel-plan" role="tabpanel">
+    <svg viewBox="0 0 1000 600" data-view="plan">
+      <!-- Canal -->
+      <rect x="0" y="520" width="1000" height="80" fill="#4FC3F7" data-info="Canal – ground level waterway (southern boundary)" />
+      <!-- Road -->
+      <rect x="0" y="0" width="90" height="600" fill="#8D6E63" data-info="Road – western boundary, crosses canal on bridge" />
+      <!-- Road bridge across canal -->
+      <rect x="0" y="520" width="90" height="20" fill="#6D4C41" />
+      <!-- Railway -->
+      <polygon points="0,100 1000,600 1000,540 0,40" fill="#9E9E9E" data-info="Railway viaduct – NW to SE alignment flying over road &amp; canal" />
+      <!-- Transmission line -->
+      <line x1="500" y1="0" x2="500" y2="600" stroke="#F44336" stroke-width="6" stroke-dasharray="20 10" data-info="High-voltage transmission line (overhead)" />
+      <!-- Site outline -->
+      <rect x="1" y="1" width="998" height="598" fill="none" stroke="#bbb" stroke-dasharray="4 4"/>
+      <!-- Labels -->
+      <text x="500" y="570" font-size="24" text-anchor="middle" fill="#fff">Canal</text>
+      <text x="45" y="300" font-size="18" text-anchor="middle" transform="rotate(-90 45 300)" fill="#fff">Road</text>
+      <text x="750" y="350" font-size="18" text-anchor="middle" fill="#212121" transform="rotate(-30 750 350)">Railway Viaduct</text>
+      <text x="515" y="200" font-size="14" fill="#D32F2F">HV Line</text>
+    </svg>
+  </div>
+
+  <!-- ■■■ ORIGINAL SECTION ■■■ -->
+  <div id="panel-section" role="tabpanel" hidden>
+    <svg viewBox="0 0 1000 500" data-view="section">
+      <!-- Ground -->
+      <rect x="0" y="300" width="1000" height="200" fill="#A1887F" data-info="Ground level" />
+      <!-- Canal cut -->
+      <rect x="300" y="300" width="150" height="50" fill="#4FC3F7" data-info="Canal water at ground level" />
+      <!-- Road bridge -->
+      <rect x="290" y="260" width="170" height="20" fill="#6D4C41" data-info="Road deck crossing canal" />
+      <!-- Railway viaduct -->
+      <rect x="250" y="170" width="500" height="30" fill="#9E9E9E" data-info="Railway viaduct (elevated)" />
+      <rect x="260" y="200" width="20" height="100" fill="#757575"/>
+      <rect x="710" y="200" width="20" height="100" fill="#757575"/>
+      <!-- Mining passage -->
+      <rect x="200" y="380" width="600" height="20" fill="#5D4037" data-info="Old mining passage – 10 m below ground" />
+      <!-- HV line towers -->
+      <line x1="500" y1="0" x2="500" y2="120" stroke="#D32F2F" stroke-width="6" />
+      <polygon points="490,120 510,120 530,150 470,150" fill="#D32F2F"/>
+      <text x="515" y="160" font-size="14" fill="#D32F2F">HV Line</text>
+      <!-- Height labels -->
+      <text x="850" y="315" font-size="12">Ground 0 m</text>
+      <text x="850" y="185" font-size="12">+6 m (Railway)</text>
+      <text x="850" y="395" font-size="12">–10 m (Mine)</text>
+    </svg>
+  </div>
+
+  <!-- ■■■ APPROACH PANELS ■■■ -->
+  <div id="panel-app1" role="tabpanel" hidden>
+    <article>
+      <h2>Approach 1 – Integrated Podium Deck</h2>
+
+      <h3>Approach to System Architecture &amp; Engineering</h3>
+      <ul>
+        <li>Create a single reinforced-concrete podium that <strong>bridges across the canal and the mining void</strong>, tying into piled foundations positioned clear of the old passage.</li>
+        <li>House the control-centre building on top of the podium so that occupied floors start at +7 m, matching (or slightly below) railway viaduct soffit. Utilities run inside the deck, away from mining risk.</li>
+        <li>Design podium edges as crash-rated barriers where they meet the road, allowing an at-grade service loop road on the west side.</li>
+        <li>Use vibration-isolating bearings where podium meets viaduct piers to decouple rail-borne vibration.</li>
+      </ul>
+
+      <h3>Approach to Infrastructure Interface Definition</h3>
+      <ul>
+        <li><em>Internal (Rail)</em> – structural bearings plus shared inspection gallery beneath viaduct constitute the controlled interface; <abbr title="Network Rail’s asset protection agreement">ASPRO</abbr> scope captured.</li>
+        <li><em>External (Canal &amp; Road)</em> – podium soffit clearance fixed at 5.7 m (canal authority) and structural loads over bridge deck agreed with highway authority.</li>
+        <li><em>External (HV Line)</em> – magnetic-field and lightning-protection study defines safe vertical offset (&gt;6 m); earthing mat interface with DNO.</li>
+        <li><em>External (Mining)</em> – compensation-grouting easement envelope, secured via deed with Coal Authority, becomes a “no-drill zone”.</li>
+      </ul>
+
+      <h3>Justification</h3>
+      <ul>
+        <li>One civil contract, fewer foundations, eliminates interference with mine void and canal bank stability.</li>
+        <li>Deck offers future capacity for building extension or PV arrays.</li>
+        <li>Clear, single-line interfaces simplify contract packaging and reduce multi-party risk.</li>
+      </ul>
+    </article>
+  </div>
+
+  <div id="panel-app2" role="tabpanel" hidden>
+    <article>
+      <h2>Approach 2 – Distributed Modular Clusters</h2>
+
+      <h3>Approach to System Architecture &amp; Engineering</h3>
+      <ul>
+        <li>Divide the facility into three prefabricated steel-frame modules (operations, resilience, staff welfare) positioned in <strong>low-risk ground strips</strong> between constraints.</li>
+        <li>Link modules at first-floor level with enclosed bridges to clear the canal and service highway.</li>
+        <li>Place plant rooms at roof level; each module has its own independent pile group sized to miss the mining passage completely.</li>
+        <li>Underground services run in micro-tunnel PVC ducts bored at –4 m, shallow enough to avoid the mine yet below frost line.</li>
+      </ul>
+
+      <h3>Approach to Infrastructure Interface Definition</h3>
+      <ul>
+        <li><em>Internal (Rail)</em> – footbridge clear span set 3 m below viaduct; vibration design handled by tuned-mass dampers per module.</li>
+        <li><em>External (Road)</em> – air-rights licence for bridges acts as contract deliverable, road authority inspects parapets.</li>
+        <li><em>External (Canal)</em> – steel bridge abutments borne on mini-piles outside canal maintenance strip; navigation lighting interface defined.</li>
+        <li><em>External (HV Line)</em> – Faraday-cage analysis ensures module roof grids stay outside 45° safety cone.</li>
+      </ul>
+
+      <h3>Justification</h3>
+      <ul>
+        <li>Factory-built modules accelerate programme and reduce on-site labour near the live railway.</li>
+        <li>Failure in one module does not down the whole facility (good resilience).</li>
+        <li>Separate contracts per module allow staggered procurement, useful under CAPEX limits.</li>
+      </ul>
+    </article>
+  </div>
+
+  <div id="panel-app3" role="tabpanel" hidden>
+    <article>
+      <h2>Approach 3 – Lightweight Frame Suspended from Viaduct Pier Caps</h2>
+
+      <h3>Approach to System Architecture &amp; Engineering</h3>
+      <ul>
+        <li>Exploit <strong>air-rights under the viaduct</strong>; erect a trussed steel exoskeleton that is <em>suspended</em> from pier caps, keeping the ground almost untouched.</li>
+        <li>Office floors hung on cable-stayed members; glazed façades set back 3 m from track centre-line to satisfy Network Rail structural-gauge.</li>
+        <li>Equipment rooms sit in weather-tight modules between piers; canal remains fully open beneath.</li>
+        <li>HV line clearance verified via 3-D BIM clash detection; structure earthed via isolated down-conductors.</li>
+      </ul>
+
+      <h3>Approach to Infrastructure Interface Definition</h3>
+      <ul>
+        <li><em>Internal (Rail)</em> – lease of pier cap bearing capacity; periodic inspection access built into soffit walkways.</li>
+        <li><em>External (Canal)</em> – nothing touches water; Canal &amp; River Trust only reviews drip-shield design.</li>
+        <li><em>External (Road)</em> – no loads imposed; interface limited to traffic management during construction lifts.</li>
+        <li><em>External (Mining)</em> – no new ground loads =&gt; risk matrix closed.</li>
+      </ul>
+
+      <h3>Justification</h3>
+      <ul>
+        <li>Eliminates piling near historic workings and reduces construction carbon.</li>
+        <li>Creates an iconic architectural statement, potential community acceptance benefit.</li>
+        <li>Single, rail-led contract may streamline approvals, but demands early buy-in from rail asset owner.</li>
+      </ul>
+    </article>
+  </div>
+
+  <!-- ■■■ ARCHITECTURE V0 PANEL ■■■ -->
+  <div id="panel-archv0" role="tabpanel" hidden>
+    <article>
+      <h2>Version 0 – Non-Signalling Infrastructure System Architecture<br><small>(Approach 2 · Distributed Modular Clusters)</small></h2>
+
+      <svg viewBox="0 0 1000 600" data-view="arch-plan">
+        <rect x="1" y="1" width="998" height="598" fill="none" stroke="#bbb" stroke-dasharray="4 4"/>
+        <rect x="0" y="520" width="1000" height="80" fill="#4FC3F7" opacity=".55"/>
+        <rect x="0" y="0" width="90" height="600" fill="#8D6E63" opacity=".55"/>
+        <polygon points="0,100 1000,600 1000,540 0,40" fill="#9E9E9E" opacity=".45"/>
+        <line x1="500" y1="0" x2="500" y2="600" stroke="#F44336" stroke-width="6" stroke-dasharray="20 12" opacity=".6"/>
+
+        <rect x="130" y="200" width="150" height="180" fill="#FFD54F" stroke="#555"/>
+        <text x="205" y="295" text-anchor="middle" font-size="14">Staff Welfare Module</text>
+
+        <rect x="370" y="140" width="200" height="220" fill="#4DB6AC" stroke="#555"/>
+        <text x="470" y="255" text-anchor="middle" font-size="14" fill="#004D40">Operations Module</text>
+
+        <rect x="650" y="260" width="180" height="200" fill="#90CAF9" stroke="#555"/>
+        <text x="740" y="355" text-anchor="middle" font-size="14" fill="#0D47A1">Resilience Module</text>
+
+        <line x1="280" y1="280" x2="370" y2="250" stroke="#6D4C41" stroke-width="8"/>
+        <line x1="570" y1="250" x2="650" y2="320" stroke="#6D4C41" stroke-width="8"/>
+        <text x="325" y="240" font-size="12" text-anchor="middle" fill="#4E342E">Staff ↔ Ops Bridge (over Canal &amp; Road)</text>
+        <text x="610" y="235" font-size="12" text-anchor="middle" fill="#4E342E">Ops ↔ Resilience Bridge</text>
+
+        <line x1="150" y1="470" x2="850" y2="470" stroke="#FF5722" stroke-width="4" stroke-dasharray="10 6"/>
+        <text x="500" y="460" font-size="12" text-anchor="middle" fill="#BF360C">Micro-tunnel Services (–4 m)</text>
+      </svg>
+
+      <h3>Boundary Definition (v0)</h3>
+      <ul>
+        <li><strong>North:</strong> rail viaduct soffit envelope (+6 m) provides top-most limit; structural-gauge clearance maintained 3 m horizontally from track centre-line.</li>
+        <li><strong>South:</strong> canal waterline (0 m) plus 5 m maintenance strip; no permanent works within strip except footbridge clear-spans.</li>
+        <li><strong>West:</strong> road carriageway edge; air-rights licence governs works above (≥5.5 m clearance).</li>
+        <li><strong>East:</strong> HV transmission safety cone (45° from conductor) fixes maximum building roof height to +18 m.</li>
+        <li><strong>Below ground:</strong> mining passage at –10 m; piling “keep-out” zone radius = 6 m; micro-tunnel set at –4 m to avoid clash.</li>
+      </ul>
+
+      <h3>Primary System Elements</h3>
+      <ul>
+        <li>Three steel-frame <em>Modules</em> on independent piled rafts sized to avoid the mine void.</li>
+        <li>Enclosed <em>Footbridges</em> (Category C highway loading) linking modules, clear-spanning canal &amp; road.</li>
+        <li><em>Micro-tunnel Services Spine</em> housing power, fibre, chilled water loops at –4 m.</li>
+        <li>Roof-mounted <em>Plant Rooms</em> (HVAC, standby gensets) per module; vibration isolation specified.</li>
+      </ul>
+    </article>
+  </div>
+
+  <!-- ■■■ INTERFACE DEFINITION PANEL ■■■ -->
+  <div id="panel-intf" role="tabpanel" hidden>
+    <article>
+      <h2>Interface Definition Document – Version 0</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Interface</th><th>Parties / Assets</th><th>Type&nbsp;&amp;&nbsp;Key&nbsp;Spec</th><th>Contract / Deliverable</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>I-01</td>
+            <td>Viaduct Structural Clearance</td>
+            <td>Control-Centre Ops Module ↔ Network Rail Viaduct</td>
+            <td>Spatial (3 m horiz.; soffit +6 m); dynamic envelope</td>
+            <td>ASPRO agreement &amp; Form A/B</td>
+          </tr>
+          <tr>
+            <td>I-02</td>
+            <td>Rail-borne Vibration Attenuation</td>
+            <td>All Modules ↔ Track Vibration Source</td>
+            <td>Performance (≤ 65 dB re 20 µPa); tuned-mass dampers</td>
+            <td>Performance Spec PS-VIB-001</td>
+          </tr>
+          <tr>
+            <td>I-03</td>
+            <td>Canal Navigation Envelope</td>
+            <td>Footbridge ↔ Canal &amp; River Trust</td>
+            <td>Structural clear-span 24 m; soffit ≥5.7 m above water</td>
+            <td>CRT Works Licence</td>
+          </tr>
+          <tr>
+            <td>I-04</td>
+            <td>Road Air-Rights Licence</td>
+            <td>Footbridge ↔ Highway Authority</td>
+            <td>Parapet load Class C; clearance ≥5.5 m</td>
+            <td>Section 278 Agreement</td>
+          </tr>
+          <tr>
+            <td>I-05</td>
+            <td>Bridge Abutment Foundations</td>
+            <td>Pile Groups ↔ Canal Bank</td>
+            <td>Piles outside 5 m maintenance strip; <em>mini-piles Ø300 mm</em></td>
+            <td>Method Statement MS-FND-012</td>
+          </tr>
+          <tr>
+            <td>I-06</td>
+            <td>HV Line Clearance &amp; EM Field</td>
+            <td>Module Roofs ↔ DNO Transmission Line</td>
+            <td>Vertical gap ≥6 m; EM field ≤ 3 kV/m inside</td>
+            <td>DNO Asset-Protection Certificate</td>
+          </tr>
+          <tr>
+            <td>I-07</td>
+            <td>Mining Void Avoidance</td>
+            <td>Pile Caps ↔ Historic Mine Passage</td>
+            <td>“No-drill” radius 6 m; compensation-grouting standby</td>
+            <td>Coal Authority Permit CAP-17</td>
+          </tr>
+          <tr>
+            <td>I-08</td>
+            <td>Micro-tunnel Utility Corridor</td>
+            <td>Non-sig Infra ↔ DNO / Telco / Water</td>
+            <td>Dia 1.2 m, depth –4 m; sleeve pressure 8 bar</td>
+            <td>Multi-utility Service Agreement MUSA-01</td>
+          </tr>
+          <tr>
+            <td>I-09</td>
+            <td>Non-sig Infra ↔ Signalling System (internal future)</td>
+            <td>Main Distribution Frame ↔ Signalling Equip. Room</td>
+            <td>Patch panels (Cat-7 &amp; SM fibre); EMC Class B</td>
+            <td>To be developed in Deliverable #5</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><em>Note – v0 captures scope, ownership &amp; headline metrics only; detailed ICDs will evolve alongside GRIP Stage 4 design.</em></p>
+    </article>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <span><span class="swatch" style="background:#4FC3F7"></span>Canal</span>
+    <span><span class="swatch" style="background:#8D6E63"></span>Road</span>
+    <span><span class="swatch" style="background:#9E9E9E"></span>Railway Viaduct</span>
+    <span><span class="swatch" style="background:#F44336"></span>HV Line</span>
+    <span><span class="swatch" style="background:#FFD54F"></span>Staff Welfare</span>
+    <span><span class="swatch" style="background:#4DB6AC"></span>Operations</span>
+    <span><span class="swatch" style="background:#90CAF9"></span>Resilience</span>
+  </div>
+
+  <p style="max-width:60ch;text-align:center;font-size:.95rem">
+    Use the new tabs to view the v0 system blueprint and the first-cut interface register.
+  </p>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ■■■ JAVASCRIPT ■■■ -->
+<script>
+(function(){
+  const container=document.getElementById('app');
+  const toast=document.getElementById('toast');
+
+  const tabs=[...document.querySelectorAll('[role="tab"]')];
+  const panels=[...document.querySelectorAll('[role="tabpanel"]')];
+
+  function selectTab(tab){
+    const target=tab.dataset.target;
+    tabs.forEach(t=>t.setAttribute('aria-selected',t===tab));
+    panels.forEach(p=>p.hidden=(p.id!==target));
+  }
+  tabs.forEach(t=>t.addEventListener('click',()=>selectTab(t)));
+
+  function showToast(msg,dur=2500){
+    toast.textContent=msg;
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'),dur);
+  }
+
+  [...document.querySelectorAll('svg [data-info]')].forEach(el=>{
+    el.addEventListener('click',e=>{
+      e.stopPropagation();
+      showToast(el.dataset.info||'');
+    });
+  });
+
+  setTimeout(()=>{container.dataset.ready='1';},50);
+})();
+</script>
+</body>
+</html>

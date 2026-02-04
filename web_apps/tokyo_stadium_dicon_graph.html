@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Tokyo Olympic Stadium (Japan National Stadium) — DiCon Knowledge Graph</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#0f1730;
+      --panel2:#0d142b;
+      --text:#e9eefc;
+      --muted:#a9b4d6;
+      --accent:#7aa2ff;
+      --border:#22305a;
+      --shadow: rgba(0,0,0,.25);
+    }
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+    a{color:var(--accent); text-decoration:none;}
+    a:hover{text-decoration:underline;}
+    .app{
+      display:grid;
+      grid-template-columns: 320px 1fr 360px;
+      grid-template-rows: auto 1fr;
+      height:100%;
+    }
+    header{
+      grid-column: 1 / -1;
+      padding:14px 16px;
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(122,162,255,.14), rgba(122,162,255,0));
+    }
+    header h1{margin:0; font-size:16px; letter-spacing:.2px;}
+    header p{margin:6px 0 0; color:var(--muted); font-size:12px; max-width:1100px;}
+    .panel{
+      padding:14px 14px 10px;
+      border-right:1px solid var(--border);
+      background:var(--panel);
+      overflow:auto;
+    }
+    .panel.right{
+      border-right:none;
+      border-left:1px solid var(--border);
+      background:var(--panel2);
+    }
+    .card{
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      border-radius:12px;
+      padding:12px;
+      box-shadow: 0 10px 30px var(--shadow);
+      margin-bottom:12px;
+    }
+    .card h2{
+      font-size:13px;
+      margin:0 0 8px;
+      color:var(--text);
+      letter-spacing:.25px;
+    }
+    .row{display:flex; gap:10px; align-items:center;}
+    .row > *{flex:1;}
+    input[type="text"]{
+      width:100%;
+      padding:10px 10px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.25);
+      color:var(--text);
+      outline:none;
+    }
+    input[type="text"]::placeholder{color:#91a0c9;}
+    .btnbar{display:flex; gap:8px; flex-wrap:wrap;}
+    button{
+      padding:9px 10px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background: rgba(122,162,255,.10);
+      color:var(--text);
+      cursor:pointer;
+      font-weight:600;
+    }
+    button:hover{background: rgba(122,162,255,.18);}
+    button:active{transform: translateY(1px);}
+    .filters{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:8px;
+    }
+    .check{
+      display:flex; align-items:center; gap:10px;
+      padding:8px 10px; border-radius:10px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+    }
+    .check input{width:16px; height:16px;}
+    .swatch{width:10px; height:10px; border-radius:3px; display:inline-block; border:1px solid rgba(255,255,255,.18);}
+    .hint{color:var(--muted); font-size:12px; margin:8px 0 0;}
+    #graphWrap{
+      position:relative;
+      overflow:hidden;
+      background: radial-gradient(1200px 800px at 30% 20%, rgba(122,162,255,.10), rgba(0,0,0,0)),
+                  radial-gradient(1200px 800px at 70% 80%, rgba(70,255,210,.08), rgba(0,0,0,0));
+    }
+    svg{width:100%; height:100%;}
+    .tooltip{
+      position:absolute;
+      pointer-events:none;
+      background: rgba(14,20,45,.95);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:12px;
+      color:var(--text);
+      box-shadow: 0 10px 30px var(--shadow);
+      opacity:0;
+      transform: translate(10px, 10px);
+      max-width: 340px;
+    }
+    .kv{display:grid; grid-template-columns: 120px 1fr; gap:6px 10px; font-size:12px;}
+    .k{color:var(--muted);}
+    .pill{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      background: rgba(122,162,255,.16);
+      border:1px solid var(--border);
+      font-size:12px;
+      margin-left:6px;
+      color:var(--text);
+    }
+    .sources li{margin:6px 0;}
+    .small{font-size:12px; color:var(--muted);}
+    .legend{display:flex; flex-wrap:wrap; gap:8px;}
+    .legend .item{display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--border); border-radius:999px; background:rgba(0,0,0,.15);}
+    .badge{font-size:11px; color:var(--muted);}
+    .footerNote{font-size:11px; color:var(--muted); margin-top:10px;}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Tokyo Olympic Stadium (Japan National Stadium) — DiCon-aligned Knowledge Graph</h1>
+      <p>
+        Drag nodes to explore. Click a node to pin and see details; click empty space to clear.
+        Mousewheel/trackpad to zoom, drag the background to pan.
+        This is a compact “case study” model using DiCon patterns (Entities/Processes/Agents + activity-flow relations) rather than an exhaustive BIM graph.
+      </p>
+    </header>
+
+    <aside class="panel">
+      <div class="card">
+        <h2>Find & actions</h2>
+        <div class="row">
+          <input id="search" type="text" placeholder="Search (e.g., Kengo Kuma, Construction, ¥156.9B)…" />
+        </div>
+        <div class="hint">Tip: press <b>Enter</b> to jump & highlight the best match.</div>
+        <div style="height:10px"></div>
+        <div class="btnbar">
+          <button id="reset">Reset view</button>
+          <button id="unpin">Unpin all</button>
+          <button id="export">Export JSON</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Filters</h2>
+        <div class="filters" id="filters"></div>
+        <div class="hint">Filtering updates the simulation. If the layout gets “busy”, reset view.</div>
+      </div>
+
+      <div class="card">
+        <h2>Legend</h2>
+        <div class="legend" id="legend"></div>
+        <div class="footerNote">
+          DiCon activity-flow relations used here include <code>dice:hasAgent</code>, <code>dice:hasMaterial</code>, <code>dice:hasInformation</code>, <code>dice:occursIn</code> and <code>dicp:hasObject</code>.
+        </div>
+      </div>
+    </aside>
+
+    <main id="graphWrap">
+      <div class="tooltip" id="tip"></div>
+      <svg id="svg" aria-label="knowledge graph"></svg>
+    </main>
+
+    <aside class="panel right">
+      <div class="card" id="details">
+        <h2>Node details <span class="pill" id="detailType">—</span></h2>
+        <div class="small">Click a node to populate this panel.</div>
+        <div style="height:10px"></div>
+        <div class="kv" id="kv"></div>
+        <div style="height:10px"></div>
+        <div class="small"><b>Sources</b></div>
+        <ul class="sources" id="sources"></ul>
+      </div>
+
+      <div class="card">
+        <h2>What’s modeled (DiCon view)</h2>
+        <div class="small">
+          <ul>
+            <li><b>Building / location:</b> Japan National Stadium in Shinjuku, Tokyo.</li>
+            <li><b>Agents:</b> owner, designers, contractors, operators.</li>
+            <li><b>Activities:</b> design selection, construction, opening, operations.</li>
+            <li><b>Materials & systems:</b> timber elements, steel, solar panels, rainwater harvesting, turf.</li>
+            <li><b>Costs:</b> construction cost as a QUDT-like quantity (JPY).</li>
+          </ul>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+<script>
+/** -------------------------
+ * DiCon-inspired graph model
+ * --------------------------
+ * Nodes include:
+ *   - type (visual grouping)
+ *   - ontologyClass (IRI/prefix, e.g., dice:BuildingObject)
+ *   - props (simple attributes)
+ *   - sources (URLs used for this node)
+ *
+ * Links include:
+ *   - label (human)
+ *   - iri (property IRI/prefix, e.g., dice:hasAgent / dicp:hasObject)
+ */
+
+const graph = {
+  nodes: [
+    // Building & location
+    {
+      id: "stadium",
+      label: "Japan National Stadium (Tokyo Olympic Stadium)",
+      type: "Building",
+      ontologyClass: "dice:BuildingObject",
+      props: {
+        nativeName: "国立競技場",
+        location: "Kasumigaokamachi, Shinjuku, Tokyo, Japan",
+        opened: "2019-12-21",
+        capacity: "≈67,750",
+        floorArea: "≈192,000 m² (reported)",
+        primaryUses: "Athletics, ceremonies, football, rugby"
+      },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium",
+        "https://www.sports-tokyo-info.metro.tokyo.lg.jp/english/tokyoSportsFacilities/facility/02.html"
+      ]
+    },
+    {
+      id: "tokyo",
+      label: "Tokyo (Shinjuku)",
+      type: "Location",
+      ontologyClass: "dice:Location",
+      props: { country: "Japan" },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium"
+      ]
+    },
+
+    // Agents
+    {
+      id: "jsc",
+      label: "Japan Sport Council (Owner / Public client)",
+      type: "Agent",
+      ontologyClass: "dica:Organization",
+      props: { role: "Owner; commissioning body" },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium",
+        "https://www.paralympic.org/news/tokyo-2020-olympic-stadium-ready-games"
+      ]
+    },
+    {
+      id: "kengo_kuma",
+      label: "Kengo Kuma (Architect)",
+      type: "Agent",
+      ontologyClass: "dica:Person",
+      props: { profession: "Architect" },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium",
+        "https://kkaa.co.jp/en/project/japan-national-stadium/"
+      ]
+    },
+    {
+      id: "kkaa",
+      label: "Kengo Kuma & Associates (Design JV member)",
+      type: "Agent",
+      ontologyClass: "dica:Organization",
+      props: { role: "Architecture / design" },
+      sources: [
+        "https://kkaa.co.jp/en/project/japan-national-stadium/",
+        "https://www.archdaily.com/964848/japan-national-stadium-taisei-corporation-plus-azusa-sekkei-plus-kengo-kuma-and-associates"
+      ]
+    },
+    {
+      id: "taisei",
+      label: "Taisei Corporation (Main contractor / design JV member)",
+      type: "Agent",
+      ontologyClass: "dica:Organization",
+      props: { role: "Construction; design-build JV member" },
+      sources: [
+        "https://www.archdaily.com/964848/japan-national-stadium-taisei-corporation-plus-azusa-sekkei-plus-kengo-kuma-and-associates",
+        "https://www.paralympic.org/news/tokyo-2020-olympic-stadium-ready-games"
+      ]
+    },
+    {
+      id: "azusa",
+      label: "Azusa Sekkei (Design JV member)",
+      type: "Agent",
+      ontologyClass: "dica:Organization",
+      props: { role: "Design / engineering support" },
+      sources: [
+        "https://www.archdaily.com/964848/japan-national-stadium-taisei-corporation-plus-azusa-sekkei-plus-kengo-kuma-and-associates",
+        "https://www.paralympic.org/news/tokyo-2020-olympic-stadium-ready-games"
+      ]
+    },
+    {
+      id: "jnse",
+      label: "Japan National Stadium Entertainment (Operator)",
+      type: "Agent",
+      ontologyClass: "dica:Organization",
+      props: { note: "Operations/management transition referenced by JSC; operator shown in several sources." },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium",
+        "https://www.jpnsport.go.jp/corp/english/tabid/397/Default.aspx"
+      ]
+    },
+
+    // Activities
+    {
+      id: "design_selection",
+      label: "Design selection & planning (rebid; Kuma team selected)",
+      type: "Activity",
+      ontologyClass: "dicp:ObjectActivity",
+      props: { date: "2015 (selection announced Dec 2015)" },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium",
+        "https://www.nippon.com/en/guide-to-japan/gu900072/"
+      ]
+    },
+    {
+      id: "construction",
+      label: "Construction of the stadium",
+      type: "Activity",
+      ontologyClass: "dicp:ObjectActivity",
+      props: { start: "2016-12-01", end: "2019-11-30", peakWorkforce: "≈2,800/day (reported)" },
+      sources: [
+        "https://www.paralympic.org/news/tokyo-2020-olympic-stadium-ready-games",
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium"
+      ]
+    },
+    {
+      id: "opening",
+      label: "Stadium opening ceremony",
+      type: "Activity",
+      ontologyClass: "dice:Activity",
+      props: { date: "2019-12-21" },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium"
+      ]
+    },
+    {
+      id: "operations",
+      label: "Operations & event hosting",
+      type: "Activity",
+      ontologyClass: "dice:Activity",
+      props: { since: "2019", uses: "Athletics, football, rugby, ceremonies, cultural events" },
+      sources: [
+        "https://www.sports-tokyo-info.metro.tokyo.lg.jp/english/tokyoSportsFacilities/facility/02.html",
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium"
+      ]
+    },
+    {
+      id: "olympics_2020",
+      label: "Tokyo 2020 Olympic & Paralympic main venue (ceremonies, athletics)",
+      type: "Activity",
+      ontologyClass: "dice:Activity",
+      props: { note: "Used as main stadium; events held without spectators due to COVID-19 measures." },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium",
+        "https://apnews.com/article/847c7bdd00791d2ae28ad1ee0ab2cbde"
+      ]
+    },
+
+    // Information content
+    {
+      id: "design_concept",
+      label: "Design: layered eaves + wood louvers (Kuma concept)",
+      type: "Information",
+      ontologyClass: "dici:Design",
+      props: { theme: "Traditional eaves in contemporary form; human scale; integration with surroundings" },
+      sources: [
+        "https://kkaa.co.jp/en/project/japan-national-stadium/"
+      ]
+    },
+
+    // Materials / systems
+    {
+      id: "timber",
+      label: "Timber elements (cedar/larch; sourced across Japan)",
+      type: "Material",
+      ontologyClass: "dice:MaterialBatch",
+      props: { note: "Wood used in eaves/soffits; sourcing described as spanning Japan's prefectures." },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium",
+        "https://www.archpaper.com/2019/01/kengo-kuma-2020-tokyo-olympic-national-stadium/"
+      ]
+    },
+    {
+      id: "steel",
+      label: "Steel structure",
+      type: "Material",
+      ontologyClass: "dice:MaterialBatch",
+      props: { note: "Major structural material (roof and frame)." },
+      sources: [
+        "https://www.archdaily.com/964848/japan-national-stadium-taisei-corporation-plus-azusa-sekkei-plus-kengo-kuma-and-associates"
+      ]
+    },
+    {
+      id: "solar",
+      label: "Transparent solar panels (part of roof)",
+      type: "System",
+      ontologyClass: "dice:BuildingObject",
+      props: { note: "Solar panels described as integrated into part of the roof." },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium"
+      ]
+    },
+    {
+      id: "rainwater",
+      label: "Rainwater collection (cisterns → turf irrigation)",
+      type: "System",
+      ontologyClass: "dice:BuildingObject",
+      props: { note: "Rainwater reuse described for irrigating arena turf and plants." },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium"
+      ]
+    },
+    {
+      id: "turf",
+      label: "Grass playing surface (turf)",
+      type: "Material",
+      ontologyClass: "dice:MaterialBatch",
+      props: { surface: "Grass" },
+      sources: [
+        "https://en.wikipedia.org/wiki/Japan_National_Stadium"
+      ]
+    },
+
+    // Cost as quantity
+    {
+      id: "cost",
+      label: "Construction cost: ¥156.9B (incl. surroundings)",
+      type: "Cost",
+      ontologyClass: "qudt:QuantityValue",
+      props: { amount: 156.9, unit: "JPY (billion)", budgetCap: "¥159B planned (reported)" },
+      sources: [
+        "https://www.nippon.com/en/japan-topics/g00795/",
+        "https://www.paralympic.org/news/tokyo-2020-olympic-stadium-ready-games"
+      ]
+    }
+  ],
+  links: [
+    // Building in location
+    { source: "stadium", target: "tokyo", label: "located in", iri: "dice:occursIn" },
+
+    // Ownership & operation
+    { source: "stadium", target: "jsc", label: "owned by", iri: "dice:hasAgent" },
+    { source: "stadium", target: "jnse", label: "operated by", iri: "dice:hasAgent" },
+
+    // Design & construction activities
+    { source: "design_selection", target: "stadium", label: "object of activity", iri: "dicp:hasObject" },
+    { source: "construction", target: "stadium", label: "object of activity", iri: "dicp:hasObject" },
+    { source: "opening", target: "stadium", label: "object of activity", iri: "dicp:hasObject" },
+    { source: "operations", target: "stadium", label: "object of activity", iri: "dicp:hasObject" },
+
+    // Agents participating in activities (DiCon activity flows)
+    { source: "design_selection", target: "jsc", label: "has agent", iri: "dice:hasAgent" },
+    { source: "design_selection", target: "kengo_kuma", label: "has agent", iri: "dice:hasAgent" },
+    { source: "design_selection", target: "kkaa", label: "has agent", iri: "dice:hasAgent" },
+    { source: "design_selection", target: "taisei", label: "has agent", iri: "dice:hasAgent" },
+    { source: "design_selection", target: "azusa", label: "has agent", iri: "dice:hasAgent" },
+
+    { source: "construction", target: "taisei", label: "has agent", iri: "dice:hasAgent" },
+    { source: "construction", target: "kkaa", label: "has agent", iri: "dice:hasAgent" },
+    { source: "construction", target: "azusa", label: "has agent", iri: "dice:hasAgent" },
+    { source: "construction", target: "jsc", label: "has agent", iri: "dice:hasAgent" },
+
+    { source: "operations", target: "jnse", label: "has agent", iri: "dice:hasAgent" },
+
+    // Information objects
+    { source: "design_selection", target: "design_concept", label: "has information", iri: "dice:hasInformation" },
+    { source: "design_concept", target: "stadium", label: "describes", iri: "dici:describes" },
+
+    // Materials and systems linked as activity flows / parts
+    { source: "construction", target: "timber", label: "has material", iri: "dice:hasMaterial" },
+    { source: "construction", target: "steel", label: "has material", iri: "dice:hasMaterial" },
+    { source: "construction", target: "turf", label: "has material", iri: "dice:hasMaterial" },
+    { source: "construction", target: "solar", label: "installs system", iri: "dicp:hasObject" },
+    { source: "construction", target: "rainwater", label: "installs system", iri: "dicp:hasObject" },
+
+    // Cost linkage
+    { source: "construction", target: "cost", label: "has cost", iri: "dicv:hasVariable (modeled)" },
+    { source: "cost", target: "stadium", label: "cost of", iri: "dicp:hasObject" },
+
+    // Olympic use
+    { source: "olympics_2020", target: "stadium", label: "hosted at", iri: "dice:occursIn" },
+    { source: "operations", target: "olympics_2020", label: "includes milestone", iri: "prov:wasInformedBy" }
+  ]
+};
+
+// Node types & colors
+const typePalette = new Map([
+  ["Building", "#7aa2ff"],
+  ["Location", "#4de0ff"],
+  ["Agent", "#ffb86b"],
+  ["Activity", "#64f2a2"],
+  ["Material", "#ff6b9d"],
+  ["System", "#b58bff"],
+  ["Information", "#ffd86b"],
+  ["Cost", "#f6ff7a"]
+]);
+
+const nodeTypes = Array.from(new Set(graph.nodes.map(n => n.type))).sort((a,b) => a.localeCompare(b));
+
+// ---------- UI: filters + legend ----------
+const filtersEl = document.getElementById("filters");
+const legendEl = document.getElementById("legend");
+
+let activeTypes = new Set(nodeTypes);
+
+function addLegendItem(t){
+  const item = document.createElement("div");
+  item.className = "item";
+  const sw = document.createElement("span");
+  sw.className = "swatch";
+  sw.style.background = typePalette.get(t) || "#ccc";
+  const label = document.createElement("span");
+  label.textContent = t;
+  item.append(sw,label);
+  legendEl.appendChild(item);
+}
+nodeTypes.forEach(addLegendItem);
+
+function addFilter(t){
+  const wrap = document.createElement("label");
+  wrap.className = "check";
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = true;
+  cb.addEventListener("change", () => {
+    if (cb.checked) activeTypes.add(t); else activeTypes.delete(t);
+    updateFilteredGraph();
+  });
+  const sw = document.createElement("span");
+  sw.className = "swatch";
+  sw.style.background = typePalette.get(t) || "#ccc";
+  const txt = document.createElement("span");
+  txt.textContent = t;
+  const badge = document.createElement("span");
+  badge.className = "badge";
+  badge.textContent = "";
+  wrap.append(cb, sw, txt, badge);
+  filtersEl.appendChild(wrap);
+}
+nodeTypes.forEach(addFilter);
+
+// ---------- D3 graph ----------
+const svg = d3.select("#svg");
+const tip = document.getElementById("tip");
+const wrap = document.getElementById("graphWrap");
+
+const g = svg.append("g");
+const linkLayer = g.append("g").attr("stroke-opacity", 0.55);
+const nodeLayer = g.append("g");
+
+const defs = svg.append("defs");
+defs.append("marker")
+  .attr("id","arrow")
+  .attr("viewBox","0 -5 10 10")
+  .attr("refX", 15)
+  .attr("refY", 0)
+  .attr("markerWidth", 6)
+  .attr("markerHeight", 6)
+  .attr("orient", "auto")
+  .append("path")
+  .attr("d","M0,-5L10,0L0,5")
+  .attr("fill", "rgba(233,238,252,.65)");
+
+const zoom = d3.zoom()
+  .scaleExtent([0.2, 3])
+  .on("zoom", (event) => {
+    g.attr("transform", event.transform);
+    const k = event.transform.k;
+    
+simulation.on("tick", () => {
+  linkSel
+    .attr("x1", d => d.source.x)
+    .attr("y1", d => d.source.y)
+    .attr("x2", d => d.target.x)
+    .attr("y2", d => d.target.y);
+
+  linkLabelSel
+    .attr("x", d => (d.source.x + d.target.x)/2)
+    .attr("y", d => (d.source.y + d.target.y)/2);
+
+  nodeSel.attr("transform", d => `translate(${d.x},${d.y})`);
+});
+
+render();
+clearHighlight(); // start with labels hidden
+
+// ---------- Filtering ----------
+function updateFilteredGraph(){
+  const nodes = graph.nodes.filter(n => activeTypes.has(n.type));
+  const nodeIds = new Set(nodes.map(n => n.id));
+  const links = graph.links.filter(l => nodeIds.has(l.source) && nodeIds.has(l.target));
+
+  filtered = { nodes, links };
+
+  // update counts on filter chips
+  const counts = new Map();
+  nodes.forEach(n => counts.set(n.type, (counts.get(n.type)||0)+1));
+  // The filter list is static in DOM order; update badges:
+  Array.from(filtersEl.children).forEach(ch => {
+    const label = ch.querySelector("span:nth-child(3)")?.textContent;
+    const badge = ch.querySelector(".badge");
+    if(label && badge){
+      badge.textContent = `(${counts.get(label) || 0})`;
+    }
+  });
+
+  // reset selection if filtered out
+  if(selectedId && !nodeIds.has(selectedId)){
+    selectedId = null;
+    setDetails(null);
+  }
+  render();
+  clearHighlight();
+}
+updateFilteredGraph(); // set counts
+
+// ---------- Search ----------
+const search = document.getElementById("search");
+search.addEventListener("keydown", (e) => {
+  if(e.key !== "Enter") return;
+  const q = search.value.trim().toLowerCase();
+  if(!q) return;
+  // score by inclusion + startsWith
+  let best = null;
+  let bestScore = -Infinity;
+  filtered.nodes.forEach(n => {
+    const s = n.label.toLowerCase();
+    let score = 0;
+    if(s === q) score += 100;
+    if(s.startsWith(q)) score += 50;
+    if(s.includes(q)) score += 20;
+    // small boost if query matches type
+    if(n.type.toLowerCase().includes(q)) score += 10;
+    if(score > bestScore){ bestScore = score; best = n; }
+  });
+  if(!best) return;
+
+  // focus: zoom to node
+  const t = d3.zoomTransform(svg.node());
+  const k = Math.max(t.k, 1.35);
+  const x = best.x ?? width/2;
+  const y = best.y ?? height/2;
+  const tx = width/2 - k * x;
+  const ty = height/2 - k * y;
+
+  svg.transition().duration(650).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+
+  selectedId = best.id;
+  setDetails(best);
+  highlightNeighborhood(best.id);
+});
+
+// ---------- Buttons ----------
+document.getElementById("reset").addEventListener("click", () => {
+  svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+  simulation.alpha(0.8).restart();
+});
+
+document.getElementById("unpin").addEventListener("click", () => {
+  filtered.nodes.forEach(n => { n.fx = null; n.fy = null; });
+  simulation.alpha(0.6).restart();
+});
+
+document.getElementById("export").addEventListener("click", () => {
+  const json = JSON.stringify(graph, null, 2);
+  const blob = new Blob([json], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "tokyo_stadium_dicon_graph.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>

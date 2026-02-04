@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Stakeholder Sentiment – Legends Tower (Boardwalk at Bricktown)</title>
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css"/>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 14px; }
+    .muted { color: #666; }
+    #network { width: 100%; height: 520px; border: 1px solid #ddd; border-radius: 10px; }
+    .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; border:1px solid #ddd; font-size: 12px; }
+    .pill.supporter { background:#e7f7ee; }
+    .pill.opponent { background:#fdeaea; }
+    .pill.neutral { background:#f2f2f2; }
+    code { background:#f6f6f6; padding: 1px 4px; border-radius: 4px; }
+    a { color: #0b57d0; }
+  </style>
+
+  <!-- Libraries -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+
+<body>
+  <h1>Stakeholder Sentiment – Legends Tower (Boardwalk at Bricktown)</h1>
+  <p class="muted">
+    Interactive summary of sentiment extracted from selected <b>news</b> and <b>social-media</b> items about the proposed
+    <i>Legends Tower</i> supertall project in Oklahoma City.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Dataset</h2>
+      <ul>
+        <li><b>Total items:</b> 22</li>
+        <li><b>News items:</b> 10</li>
+        <li><b>Social items:</b> 12</li>
+        <li><b>Roles:</b> Supporter / Opponent / Neutral (manual stance classification)</li>
+      </ul>
+      <p class="muted">
+        Sentiment is computed two ways: <code>TextBlob polarity</code> (−1..+1) and a <code>tiny transparent lexicon</code> score (integer).
+        Lexicon score is only intended to make the scoring more responsive to project-specific words like “funded”, “hazard”, “doubt”.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Role breakdown</h2>
+      <div id="role_table"></div>
+      <div id="source_table" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:16px;">
+    <div class="card">
+      <h2>Average sentiment by role</h2>
+      <div id="chart_role"></div>
+    </div>
+    <div class="card">
+      <h2>Sentiment distribution</h2>
+      <div id="chart_dist"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h2>Stakeholder → Intention graph</h2>
+    <p class="muted">
+      Nodes are stakeholders and their extracted intentions. Edges represent <code>dica:hasIntention</code>.
+      Stakeholder node groups reflect manual stance role.
+    </p>
+    <div id="network"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px;">
+    <h2>Items</h2>
+    <p class="muted">Search, filter, and sort to explore stakeholder statements.</p>
+    <table id="items" class="display" style="width:100%">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Type</th>
+          <th>Source</th>
+          <th>Stakeholder</th>
+          <th>Role</th>
+          <th>Intention</th>
+          <th>Text</th>
+          <th>Polarity</th>
+          <th>Lex</th>
+          <th>Sentiment</th>
+          <th>URL</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+<script>
+  const RECORDS = [{"id": "news_01", "source_type": "news", "source_label": "NonDoc", "date": "2024-04-11", "url": "https://nondoc.com/2024/04/11/okc-planning-commission-advances-massive-legends-tower-proposed-jail-site/", "stakeholder": "Mark Zitzow (Johnson & Associates)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Support removing height cap / advance the SPUD for Legends Tower", "text": "This SPUD is identical to one approved several years ago, except for building height and signage.", "evidence_citation": "turn22view0", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": 1}, {"id": "news_02", "source_type": "news", "source_label": "NonDoc", "date": "2024-04-11", "url": "https://nondoc.com/2024/04/11/okc-planning-commission-advances-massive-legends-tower-proposed-jail-site/", "stakeholder": "Rob Budetti (AO Architects)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Argue demand exists and proceed with phased development", "text": "We have seen demand. There is a little bit of a ‘build it and they will come’ philosophy.", "evidence_citation": "turn22view0", "polarity": -0.1875, "subjectivity": 0.5, "sentiment": "negative", "lex_score": 1}, {"id": "news_03", "source_type": "news", "source_label": "The Journal Record", "date": "2024-06-04", "url": "https://journalrecord.com/2024/06/04/okc-council-approves-rezoning-for-1907-foot-legends-tower/", "stakeholder": "James Cooper (OKC City Council, Ward 2)", "stakeholder_kind": "Person", "stance_role": "Opponent", "intention": "Oppose rezoning / scrutinize affordable-housing + case-management commitments", "text": "That does not inspire confidence in me. I just worry that the commitment that you all have made is not going to find itself fulfilled.", "evidence_citation": "turn24view0", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": -9}, {"id": "news_04", "source_type": "news", "source_label": "The Journal Record", "date": "2024-06-04", "url": "https://journalrecord.com/2024/06/04/okc-council-approves-rezoning-for-1907-foot-legends-tower/", "stakeholder": "Nikki Nice (OKC City Council, Ward 7)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Support rezoning and exploring maximum tower height", "text": "This is the moment we have all been waiting for, to see how tall we can get.", "evidence_citation": "turn24view0", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": 0}, {"id": "news_05", "source_type": "news", "source_label": "Finance & Commerce", "date": "2024-03-18", "url": "https://finance-commerce.com/2024/03/developer-of-1907-foot-oklahoma-tower-has-secured-financing/", "stakeholder": "Scot Matteson (Matteson Capital)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Win approvals for the tower; revert to earlier plan if tower not approved", "text": "Matteson said they’re seeking approval for the tower and would revert to the already-approved plan if the tower isn’t approved.", "evidence_citation": "turn20view0", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": 2}, {"id": "news_06", "source_type": "news", "source_label": "Finance & Commerce", "date": "2024-03-18", "url": "https://finance-commerce.com/2024/03/developer-of-1907-foot-oklahoma-tower-has-secured-financing/", "stakeholder": "Randy Hogan (Local development partner)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Promote the project and downtown density benefits", "text": "Everybody’s got an opinion. I think everybody’s very excited about the density that Scot anticipates creating in downtown.", "evidence_citation": "turn20view0", "polarity": 0.48750000000000004, "subjectivity": 0.9750000000000001, "sentiment": "positive", "lex_score": 2}, {"id": "news_07", "source_type": "news", "source_label": "Architectural Record", "date": "2024-06-17", "url": "https://www.architecturalrecord.com/articles/16968-oklahoma-citys-legends-tower-could-be-the-tallest-in-us-following-city-council-approval", "stakeholder": "Rob Budetti (AO Architects)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Justify the project as part of wider entertainment-district investment", "text": "The city has invested a lot of money into this entertainment district, and Boardwalk at Bricktown is another piece of that puzzle.", "evidence_citation": "turn25view0", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": 1}, {"id": "news_08", "source_type": "news", "source_label": "Pager Power", "date": "2024-09-13", "url": "https://pagerpower.com/news/legends-tower-would-be-hazard-to-air-navigation-faa/", "stakeholder": "Julie Morgan (FAA Obstruction Evaluation Manager)", "stakeholder_kind": "Person", "stance_role": "Opponent", "intention": "Flag the tower as a hazard to air navigation", "text": "The proposed Legends Tower would be a hazard to air navigation.", "evidence_citation": "turn11view1", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": -3}, {"id": "news_09", "source_type": "news", "source_label": "Pager Power", "date": "2024-09-13", "url": "https://pagerpower.com/news/legends-tower-would-be-hazard-to-air-navigation-faa/", "stakeholder": "Jeff Mulder (Wiley Post Airport Director)", "stakeholder_kind": "Person", "stance_role": "Opponent", "intention": "Raise aviation-safety concerns and request FAA review", "text": "Mulder sent a letter expressing concerns over the height, citing potentially increased travel times and safety issues.", "evidence_citation": "turn11view1", "polarity": 0.0, "subjectivity": 1.0, "sentiment": "neutral", "lex_score": -1}, {"id": "news_10", "source_type": "news", "source_label": "Tortoise Media", "date": "2024-12-18", "url": "https://www.tortoisemedia.com/2024/12/18/americas-tallest-skyscraper-could-be-a-little-shorter/", "stakeholder": "Scot Matteson (Matteson Capital)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Remain flexible on height to secure approval", "text": "The tallest skyscraper in America could be a ‘little shorter’ if needed.", "evidence_citation": "turn11view2", "polarity": -0.1875, "subjectivity": 0.5, "sentiment": "negative", "lex_score": 0}, {"id": "social_01", "source_type": "social", "source_label": "Reddit r/skyscrapers", "date": null, "url": "https://www.reddit.com/r/skyscrapers/comments/1gz3vv8/thoughts_on_the_legends_tower/", "stakeholder": "Reddit user (post author)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Express support / excitement for the project", "text": "I think its pretty cool even if its a little impractical lol.", "evidence_citation": "turn12view0", "polarity": 0.303125, "subjectivity": 0.7124999999999999, "sentiment": "positive", "lex_score": 1}, {"id": "social_02", "source_type": "social", "source_label": "Reddit r/skyscrapers", "date": null, "url": "https://www.reddit.com/r/skyscrapers/comments/1gz3vv8/thoughts_on_the_legends_tower/", "stakeholder": "Reddit user (commenter)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Reinforce belief the project is funded", "text": "It’s funded now.", "evidence_citation": "turn12view0", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": 1}, {"id": "social_03", "source_type": "social", "source_label": "Reddit r/skyscrapers", "date": null, "url": "https://www.reddit.com/r/skyscrapers/comments/1gz3vv8/thoughts_on_the_legends_tower/", "stakeholder": "Reddit user (commenter)", "stakeholder_kind": "Person", "stance_role": "Opponent", "intention": "Doubt feasibility; question developer track record", "text": "As someone from Oklahoma City doubt it’s happening, maybe the 3 smaller towers will but the people behind the project already have a suspicious track record.", "evidence_citation": "turn12view0", "polarity": -0.2, "subjectivity": 0.6, "sentiment": "negative", "lex_score": -4}, {"id": "social_04", "source_type": "social", "source_label": "Reddit r/skyscrapers", "date": null, "url": "https://www.reddit.com/r/skyscrapers/comments/1gz3vv8/thoughts_on_the_legends_tower/", "stakeholder": "Reddit user (commenter)", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Support building even if tower is reduced in height", "text": "They claim the whole thing has been funded. The development team said that even if they have to shrink it, they will still build it.", "evidence_citation": "turn12view0", "polarity": 0.2, "subjectivity": 0.4, "sentiment": "positive", "lex_score": 1}, {"id": "social_05", "source_type": "social", "source_label": "Reddit r/skyscrapers", "date": null, "url": "https://www.reddit.com/r/skyscrapers/comments/1gz3vv8/thoughts_on_the_legends_tower/", "stakeholder": "Reddit user (commenter)", "stakeholder_kind": "Person", "stance_role": "Neutral", "intention": "Note lack of clear construction timeline", "text": "Last Ive heard it was approved but no construction timeline has been laid out yet.", "evidence_citation": "turn12view0", "polarity": 0.0, "subjectivity": 0.06666666666666667, "sentiment": "neutral", "lex_score": 0}, {"id": "social_06", "source_type": "social", "source_label": "Reddit r/skyscrapers", "date": null, "url": "https://www.reddit.com/r/skyscrapers/comments/1m4sixx/anyone_know_whats_going_on_with_this/", "stakeholder": "Reddit user (commenter)", "stakeholder_kind": "Person", "stance_role": "Opponent", "intention": "Dismiss project status; express skepticism", "text": "absofuckinglutey nothing.", "evidence_citation": "turn12view0", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": -2}, {"id": "social_07", "source_type": "social", "source_label": "Reddit r/skyscrapers", "date": null, "url": "https://www.reddit.com/r/skyscrapers/comments/1dhut99/the_legends_towerwhat_is_the_purpose_of_this/", "stakeholder": "Reddit user (post author)", "stakeholder_kind": "Person", "stance_role": "Opponent", "intention": "Question purpose; raise weather/tornado concerns", "text": "Why is OkC building the tallest skyscraper? Is there a real reason? Hopefully Oklahoma supercells don't see this and start walking towards it for lolz.", "evidence_citation": "turn14view0", "polarity": 0.2, "subjectivity": 0.30000000000000004, "sentiment": "positive", "lex_score": 0}, {"id": "social_08", "source_type": "social", "source_label": "Reddit r/okc", "date": null, "url": "https://www.reddit.com/r/okc/comments/1m5y21z/legends_tower_update/", "stakeholder": "Reddit user (post author)", "stakeholder_kind": "Person", "stance_role": "Neutral", "intention": "Share update and solicit opinion (poll)", "text": "Sounds like the Tower itself is ‘still in development,’ but it’s still on the table.", "evidence_citation": "turn18view1", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": 0}, {"id": "social_09", "source_type": "social", "source_label": "Reddit r/okc", "date": null, "url": "https://www.reddit.com/r/okc/comments/1m5y21z/legends_tower_update/", "stakeholder": "Reddit user beernerd76", "stakeholder_kind": "Person", "stance_role": "Neutral", "intention": "Predict it gets built but at lower height", "text": "I believe the project will get built just not to the height.....bet they go to like 900-1000 to be over Devon and be done.", "evidence_citation": "turn18view1", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": -1}, {"id": "social_10", "source_type": "social", "source_label": "Reddit r/okc", "date": null, "url": "https://www.reddit.com/r/okc/comments/1m5y21z/legends_tower_update/", "stakeholder": "Reddit user DifferentSoftware894", "stakeholder_kind": "Person", "stance_role": "Supporter", "intention": "Express simple excitement about a big tower", "text": "Big tower make brain happy", "evidence_citation": "turn18view1", "polarity": 0.4, "subjectivity": 0.55, "sentiment": "positive", "lex_score": 2}, {"id": "social_11", "source_type": "social", "source_label": "Reddit r/okc", "date": null, "url": "https://www.reddit.com/r/okc/comments/1m5y21z/legends_tower_update/", "stakeholder": "Reddit user lowiqreddituser", "stakeholder_kind": "Person", "stance_role": "Opponent", "intention": "Argue funding is insufficient", "text": "You cannot build that structure with that amount of funding.", "evidence_citation": "turn18view1", "polarity": 0.0, "subjectivity": 0.0, "sentiment": "neutral", "lex_score": -2}, {"id": "social_12", "source_type": "social", "source_label": "Reddit r/okc", "date": null, "url": "https://www.reddit.com/r/okc/comments/1m5y21z/legends_tower_update/", "stakeholder": "Reddit user bubbafatok", "stakeholder_kind": "Person", "stance_role": "Opponent", "intention": "Argue costs imply multiple billions; doubt feasibility", "text": "Beyond that, residential build out is much more expensive than office space build out. If this project was to happen as they promised we're talking multiple billions.", "evidence_citation": "turn18view1", "polarity": 0.0, "subjectivity": 0.39999999999999997, "sentiment": "neutral", "lex_score": 0}];
+  const SUMMARY_ROLE = [{"stance_role": "Neutral", "count": 3, "avg_polarity": 0.0, "avg_lex": -0.3333333333333333}, {"stance_role": "Opponent", "count": 8, "avg_polarity": 0.0, "avg_lex": -2.625}, {"stance_role": "Supporter", "count": 11, "avg_polarity": 0.09232954545454546, "avg_lex": 1.0909090909090908}];
+  const SUMMARY_SOURCE = [{"source_type": "news", "count": 10, "avg_polarity": 0.011250000000000005, "avg_lex": -0.6}, {"source_type": "social", "count": 12, "avg_polarity": 0.07526041666666666, "avg_lex": -0.3333333333333333}];
+  const NODES = [{"id": "stake_news_01", "label": "Mark Zitzow (Johnson & Associates)", "group": "stake_supporter"}, {"id": "intent_news_01", "label": "Support removing height cap / advance the SPUD for L…", "group": "intention"}, {"id": "stake_news_02", "label": "Rob Budetti (AO Architects)", "group": "stake_supporter"}, {"id": "intent_news_02", "label": "Argue demand exists and proceed with phased development", "group": "intention"}, {"id": "stake_news_03", "label": "James Cooper (OKC City Council, Ward 2)", "group": "stake_opponent"}, {"id": "intent_news_03", "label": "Oppose rezoning / scrutinize affordable-housing + ca…", "group": "intention"}, {"id": "stake_news_04", "label": "Nikki Nice (OKC City Council, Ward 7)", "group": "stake_supporter"}, {"id": "intent_news_04", "label": "Support rezoning and exploring maximum tower height", "group": "intention"}, {"id": "stake_news_05", "label": "Scot Matteson (Matteson Capital)", "group": "stake_supporter"}, {"id": "intent_news_05", "label": "Win approvals for the tower; revert to earlier plan …", "group": "intention"}, {"id": "stake_news_06", "label": "Randy Hogan (Local development partner)", "group": "stake_supporter"}, {"id": "intent_news_06", "label": "Promote the project and downtown density benefits", "group": "intention"}, {"id": "stake_news_07", "label": "Rob Budetti (AO Architects)", "group": "stake_supporter"}, {"id": "intent_news_07", "label": "Justify the project as part of wider entertainment-d…", "group": "intention"}, {"id": "stake_news_08", "label": "Julie Morgan (FAA Obstruction Evaluation Manager)", "group": "stake_opponent"}, {"id": "intent_news_08", "label": "Flag the tower as a hazard to air navigation", "group": "intention"}, {"id": "stake_news_09", "label": "Jeff Mulder (Wiley Post Airport Director)", "group": "stake_opponent"}, {"id": "intent_news_09", "label": "Raise aviation-safety concerns and request FAA review", "group": "intention"}, {"id": "stake_news_10", "label": "Scot Matteson (Matteson Capital)", "group": "stake_supporter"}, {"id": "intent_news_10", "label": "Remain flexible on height to secure approval", "group": "intention"}, {"id": "stake_social_01", "label": "Reddit user (post author)", "group": "stake_supporter"}, {"id": "intent_social_01", "label": "Express support / excitement for the project", "group": "intention"}, {"id": "stake_social_02", "label": "Reddit user (commenter)", "group": "stake_supporter"}, {"id": "intent_social_02", "label": "Reinforce belief the project is funded", "group": "intention"}, {"id": "stake_social_03", "label": "Reddit user (commenter)", "group": "stake_opponent"}, {"id": "intent_social_03", "label": "Doubt feasibility; question developer track record", "group": "intention"}, {"id": "stake_social_04", "label": "Reddit user (commenter)", "group": "stake_supporter"}, {"id": "intent_social_04", "label": "Support building even if tower is reduced in height", "group": "intention"}, {"id": "stake_social_05", "label": "Reddit user (commenter)", "group": "stake_neutral"}, {"id": "intent_social_05", "label": "Note lack of clear construction timeline", "group": "intention"}, {"id": "stake_social_06", "label": "Reddit user (commenter)", "group": "stake_opponent"}, {"id": "intent_social_06", "label": "Dismiss project status; express skepticism", "group": "intention"}, {"id": "stake_social_07", "label": "Reddit user (post author)", "group": "stake_opponent"}, {"id": "intent_social_07", "label": "Question purpose; raise weather/tornado concerns", "group": "intention"}, {"id": "stake_social_08", "label": "Reddit user (post author)", "group": "stake_neutral"}, {"id": "intent_social_08", "label": "Share update and solicit opinion (poll)", "group": "intention"}, {"id": "stake_social_09", "label": "Reddit user beernerd76", "group": "stake_neutral"}, {"id": "intent_social_09", "label": "Predict it gets built but at lower height", "group": "intention"}, {"id": "stake_social_10", "label": "Reddit user DifferentSoftware894", "group": "stake_supporter"}, {"id": "intent_social_10", "label": "Express simple excitement about a big tower", "group": "intention"}, {"id": "stake_social_11", "label": "Reddit user lowiqreddituser", "group": "stake_opponent"}, {"id": "intent_social_11", "label": "Argue funding is insufficient", "group": "intention"}, {"id": "stake_social_12", "label": "Reddit user bubbafatok", "group": "stake_opponent"}, {"id": "intent_social_12", "label": "Argue costs imply multiple billions; doubt feasibility", "group": "intention"}];
+  const EDGES = [{"from": "stake_news_01", "to": "intent_news_01", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=1, sentiment=neutral"}, {"from": "stake_news_02", "to": "intent_news_02", "label": "hasIntention", "value": 1, "title": "polarity=-0.19, lex=1, sentiment=negative"}, {"from": "stake_news_03", "to": "intent_news_03", "label": "hasIntention", "value": 9, "title": "polarity=0.00, lex=-9, sentiment=neutral"}, {"from": "stake_news_04", "to": "intent_news_04", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=0, sentiment=neutral"}, {"from": "stake_news_05", "to": "intent_news_05", "label": "hasIntention", "value": 2, "title": "polarity=0.00, lex=2, sentiment=neutral"}, {"from": "stake_news_06", "to": "intent_news_06", "label": "hasIntention", "value": 2, "title": "polarity=0.49, lex=2, sentiment=positive"}, {"from": "stake_news_07", "to": "intent_news_07", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=1, sentiment=neutral"}, {"from": "stake_news_08", "to": "intent_news_08", "label": "hasIntention", "value": 3, "title": "polarity=0.00, lex=-3, sentiment=neutral"}, {"from": "stake_news_09", "to": "intent_news_09", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=-1, sentiment=neutral"}, {"from": "stake_news_10", "to": "intent_news_10", "label": "hasIntention", "value": 1, "title": "polarity=-0.19, lex=0, sentiment=negative"}, {"from": "stake_social_01", "to": "intent_social_01", "label": "hasIntention", "value": 1, "title": "polarity=0.30, lex=1, sentiment=positive"}, {"from": "stake_social_02", "to": "intent_social_02", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=1, sentiment=neutral"}, {"from": "stake_social_03", "to": "intent_social_03", "label": "hasIntention", "value": 4, "title": "polarity=-0.20, lex=-4, sentiment=negative"}, {"from": "stake_social_04", "to": "intent_social_04", "label": "hasIntention", "value": 1, "title": "polarity=0.20, lex=1, sentiment=positive"}, {"from": "stake_social_05", "to": "intent_social_05", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=0, sentiment=neutral"}, {"from": "stake_social_06", "to": "intent_social_06", "label": "hasIntention", "value": 2, "title": "polarity=0.00, lex=-2, sentiment=neutral"}, {"from": "stake_social_07", "to": "intent_social_07", "label": "hasIntention", "value": 1, "title": "polarity=0.20, lex=0, sentiment=positive"}, {"from": "stake_social_08", "to": "intent_social_08", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=0, sentiment=neutral"}, {"from": "stake_social_09", "to": "intent_social_09", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=-1, sentiment=neutral"}, {"from": "stake_social_10", "to": "intent_social_10", "label": "hasIntention", "value": 2, "title": "polarity=0.40, lex=2, sentiment=positive"}, {"from": "stake_social_11", "to": "intent_social_11", "label": "hasIntention", "value": 2, "title": "polarity=0.00, lex=-2, sentiment=neutral"}, {"from": "stake_social_12", "to": "intent_social_12", "label": "hasIntention", "value": 1, "title": "polarity=0.00, lex=0, sentiment=neutral"}];
+
+  function fmt(n, digits=3) {
+    return (Math.round(n * Math.pow(10, digits)) / Math.pow(10, digits)).toFixed(digits);
+  }
+
+  function renderSummaryTable(targetId, rows, title) {
+    let html = `<table style="width:100%; border-collapse: collapse;">`;
+    html += `<tr><th style="text-align:left; border-bottom:1px solid #ddd; padding:6px 4px;">${title}</th>
+                 <th style="text-align:right; border-bottom:1px solid #ddd; padding:6px 4px;">Count</th>
+                 <th style="text-align:right; border-bottom:1px solid #ddd; padding:6px 4px;">Avg polarity</th>
+                 <th style="text-align:right; border-bottom:1px solid #ddd; padding:6px 4px;">Avg lex</th></tr>`;
+    for (const r of rows) {
+      html += `<tr>
+        <td style="padding:6px 4px;">${r.stance_role || r.source_type}</td>
+        <td style="padding:6px 4px; text-align:right;">${r.count}</td>
+        <td style="padding:6px 4px; text-align:right;">${fmt(r.avg_polarity, 3)}</td>
+        <td style="padding:6px 4px; text-align:right;">${fmt(r.avg_lex, 2)}</td>
+      </tr>`;
+    }
+    html += `</table>`;
+    document.getElementById(targetId).innerHTML = html;
+  }
+
+  renderSummaryTable("role_table", SUMMARY_ROLE, "Role");
+  renderSummaryTable("source_table", SUMMARY_SOURCE, "Source type");
+
+  // Plotly charts
+  const roleNames = SUMMARY_ROLE.map(r => r.stance_role);
+  Plotly.newPlot("chart_role", [
+    { type:"bar", name:"Avg polarity", x: roleNames, y: SUMMARY_ROLE.map(r => r.avg_polarity) },
+    { type:"bar", name:"Avg lex", x: roleNames, y: SUMMARY_ROLE.map(r => r.avg_lex) }
+  ], {
+    barmode: "group",
+    margin: {t: 30},
+    yaxis: {title: "score"}
+  });
+
+  const polarities = RECORDS.map(r => r.polarity);
+  const lexes = RECORDS.map(r => r.lex_score);
+
+  Plotly.newPlot("chart_dist", [
+    { type:"histogram", name:"Polarity", x: polarities, opacity: 0.75 },
+    { type:"histogram", name:"Lex score", x: lexes, opacity: 0.75 }
+  ], {
+    barmode: "overlay",
+    margin: {t: 30},
+    xaxis: {title: "score"}
+  });
+
+  // vis-network graph
+  const container = document.getElementById("network");
+  const data = {
+    nodes: new vis.DataSet(NODES),
+    edges: new vis.DataSet(EDGES)
+  };
+  const options = {
+    nodes: {
+      shape: "box",
+      font: { size: 12 },
+      margin: 10
+    },
+    edges: {
+      arrows: "to",
+      font: { align: "middle", size: 10 },
+      smooth: true
+    },
+    physics: {
+      stabilization: true
+    },
+    groups: {
+      "stake_supporter": { },
+      "stake_opponent": { },
+      "stake_neutral": { },
+      "intention": { shape: "ellipse" }
+    }
+  };
+  new vis.Network(container, data, options);
+
+  // DataTable
+  $(document).ready(function() {
+    $('#items').DataTable({
+      data: RECORDS,
+      pageLength: 10,
+      columns: [
+        { data: "id" },
+        { data: "source_type" },
+        { data: "source_label" },
+        { data: "stakeholder" },
+        {
+          data: "stance_role",
+          render: function(data) {
+            const cls = (data || "").toLowerCase();
+            return `<span class="pill ${cls}">${data}</span>`;
+          }
+        },
+        { data: "intention" },
+        { data: "text" },
+        {
+          data: "polarity",
+          render: function(data) { return fmt(data, 3); }
+        },
+        { data: "lex_score" },
+        { data: "sentiment" },
+        {
+          data: "url",
+          render: function(data) {
+            return `<a href="${data}" target="_blank" rel="noopener">link</a>`;
+          }
+        }
+      ]
+    });
+  });
+</script>
+
+</body>
+</html>

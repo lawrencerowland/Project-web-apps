@@ -1,7 +1,16 @@
 {
   "name": "project-web-apps",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
-    "test": "node test.js"
+    "test": "node test.js",
+    "min-scan": "node scan.js"
+  },
+  "dependencies": {
+    "broken-link-checker": "^0.7.8",
+    "csv-parse": "^5.5.6",
+    "csv-stringify": "^6.5.0",
+    "node-fetch": "^3.3.2",
+    "p-limit": "^5.0.0"
   }
 }

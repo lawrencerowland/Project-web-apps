@@ -55,3 +55,5 @@
 51,lower_thames_crossing_geo_kg,"Lower Thames Crossing geo-framed knowledge graph with map + network filters.",ChatGPT,GPT-5.2-Codex,"knowledge_graph, mapping, visualization, procurement",,
 52,Graph to sharp,"Project Graph → SharpCloud (role views, audit bundle, and graph ingest).",ChatGPT,GPT-5.2-Codex,"graph, sharpcloud, visualization, data_ingest, audit",,
 53,Graph-sharp1,"Project Graph → SharpCloud variant with role views and audit bundle outputs.",ChatGPT,GPT-5.2-Codex,"graph, sharpcloud, visualization, data_ingest, audit",,
+
+54,climate-sequential-decision-paths,"Sequential decision path diagram for a climate engineering mega-project with branching states, decisions, and information.",ChatGPT,GPT-5.2-Codex,"climate, decision, visualization, scenario, governance",,

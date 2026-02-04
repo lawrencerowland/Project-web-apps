@@ -105,6 +105,60 @@
   }
   .small{ font-size:12px; color:var(--muted); }
   .rightSpacer{ margin-left:auto; }
+  .modal{
+    position:fixed;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,0.65);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.2s ease;
+    z-index:50;
+    padding:24px;
+  }
+  .modal.open{
+    opacity:1;
+    pointer-events:auto;
+  }
+  .modal-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    max-width:820px;
+    width:100%;
+    box-shadow:0 18px 40px rgba(0,0,0,0.4);
+    display:flex;
+    flex-direction:column;
+    max-height:88vh;
+  }
+  .modal-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .modal-header h2{
+    margin:0;
+    font-size:16px;
+    letter-spacing:0.02em;
+  }
+  .modal-body{
+    padding:16px;
+    overflow:auto;
+    font-size:13px;
+    line-height:1.5;
+    color:var(--text);
+  }
+  .modal-body h3{
+    margin:16px 0 6px;
+    font-size:13px;
+    color:var(--muted);
+    letter-spacing:0.02em;
+  }
+  .modal-body p{ margin:0 0 10px; }
 </style>
 </head>
 
@@ -136,12 +190,48 @@
 
     <div class="rightSpacer"></div>
 
+    <button id="explainBtn">What you’re looking at</button>
     <button id="pngBtn">PNG</button>
     <button id="exportBtn">Export JSON</button>
     <label class="pill" style="cursor:pointer;">
       Import JSON
       <input id="importFile" type="file" accept=".json,application/json" style="display:none"/>
     </label>
+  </div>
+
+  <div id="explainModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="explainTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="explainTitle">What you’re looking at</h2>
+        <button id="closeExplainBtn">Close</button>
+      </div>
+      <div class="modal-body">
+        <p>This navigator is a thinking instrument, not a dashboard. It lets you explore a project (or programme, or organisation) as a state-space: discrete situations the system can occupy, with directed transitions between them, each carrying probabilities and side-effects. Instead of asking “are we on plan?”, it asks the prior question: what kinds of situations does this project tend to fall into, escape from, or get trapped in?</p>
+
+        <h3>Nodes are states, not tasks</h3>
+        <p>Each node represents a coherent project posture (e.g. “Baseline Ops”, “Automation”, “Industrial Action”). The node’s viability is a scalar proxy for “can we stay here without the project unravelling?”—a deliberately compressed notion that bundles cash, legitimacy, coordination load, political cover, etc. Colour encodes this viability relative to the threshold slider at the top; size grows with viability, not importance.</p>
+
+        <h3>Edges are tendencies, not dependencies</h3>
+        <p>Edges are not precedence constraints. They mean: from this state, the system tends to move to that state, with probability p. An edge may also carry a dv impact: what happens to viability when you traverse it. This is how second-order effects enter—stabilising moves that quietly degrade resilience, or shocks that paradoxically reset the system into a healthier basin.</p>
+
+        <h3>Start state, walks, and heat</h3>
+        <p>The blue-outlined node is the assumed current state. When you run a walk, the navigator performs a weighted random traversal from that state, accumulating heat on frequently visited nodes and edges. Heat answers a different question from colour: where does the system actually spend its time, not where it “should” be. A green node with high heat is robust; a green node with no heat is aspirational.</p>
+
+        <h3>Attractors and traps</h3>
+        <p>Dashed borders indicate attractors: strongly connected components with no outward escape under the currently visible transitions. These are not always bad—some are productive equilibria—but they are decisive. Once the project falls into an attractor, governance shifts from steering to containment. The “focus attractors” button zooms you directly to these regions.</p>
+
+        <h3>Safe-to-fail probes</h3>
+        <p>The probe button does not “optimise” anything. It injects small, reversible perturbations—nudging viabilities, probabilities, or even the structure of the graph—to see what breaks first. This is closer to Beer’s System-3* than to planning: discovering brittleness by poking it gently, not by simulating success.</p>
+
+        <h3>Editing and inspection</h3>
+        <p>Clicking a node or edge opens an inspector. This is intentional: the model is meant to be argued with. You can rename states, rewrite assumptions, change probabilities, or encode new causal beliefs and immediately see how the dynamics change. Undo exists because exploration should be cheap.</p>
+
+        <h3>What this is not</h3>
+        <p>This is not a schedule, a risk register, or a KPI tool. It does not predict dates. It does not tell you what to do next. It helps you see what kinds of futures your current structure makes easy or hard, and which interventions are likely to be structural rather than cosmetic.</p>
+
+        <p>If you leave with one habit, let it be this: before adding controls or acceleration, ask which attractor you’re already in—and whether your “fix” actually creates a new escape edge or just repaints the node.</p>
+      </div>
+    </div>
   </div>
 
   <div id="main">
@@ -1290,6 +1380,16 @@ function exportPNG(){
    Buttons + UI wiring
 ---------------------------- */
 function wireUi(){
+  const explainModal = document.getElementById("explainModal");
+  const openExplain = () => explainModal.classList.add("open");
+  const closeExplain = () => explainModal.classList.remove("open");
+
+  document.getElementById("explainBtn").addEventListener("click", openExplain);
+  document.getElementById("closeExplainBtn").addEventListener("click", closeExplain);
+  explainModal.addEventListener("click", (e) => {
+    if (e.target === explainModal) closeExplain();
+  });
+
   document.getElementById("thr").addEventListener("input", (e) => {
     thr = Number(e.target.value);
     document.getElementById("thrLabel").textContent = thr.toFixed(2);
@@ -1365,6 +1465,9 @@ function wireUi(){
     if (isUndo){
       e.preventDefault();
       undo();
+    }
+    if (e.key === "Escape"){
+      closeExplain();
     }
   });
 }

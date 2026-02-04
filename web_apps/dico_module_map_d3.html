@@ -1,0 +1,966 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Digital Construction Ontologies — Module Map</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #0f1733;
+      --panel2: #101a3a;
+      --text: #e7ecff;
+      --muted: #aab4e6;
+      --border: rgba(255,255,255,0.12);
+      --shadow: rgba(0,0,0,0.35);
+      --chip: rgba(255,255,255,0.08);
+      --chip2: rgba(255,255,255,0.12);
+      --accent: #6aa9ff;
+      --danger: #ff6a8a;
+      --ok: #5ef2c2;
+      --warn: #ffd36a;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(106,169,255,0.15), transparent 50%),
+                  radial-gradient(1000px 700px at 90% 90%, rgba(94,242,194,0.10), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      overflow: hidden;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      grid-template-rows: auto 1fr;
+      gap: 0;
+    }
+
+    header {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      backdrop-filter: blur(8px);
+    }
+
+    header .title {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 260px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0.2px;
+    }
+
+    header .subtitle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      box-shadow: 0 10px 30px var(--shadow);
+      min-width: 280px;
+    }
+    .search input {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      width: 100%;
+      font-size: 13px;
+    }
+    .search input::placeholder { color: rgba(231,236,255,0.55); }
+
+    .btn {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.05s ease, background 0.15s ease;
+      box-shadow: 0 10px 30px var(--shadow);
+      font-size: 12px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.07); }
+    .btn:active { transform: translateY(1px); }
+
+    .toggles {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      box-shadow: 0 10px 30px var(--shadow);
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .toggles label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    #graph {
+      position: relative;
+      overflow: hidden;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    aside {
+      border-left: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      overflow: auto;
+    }
+
+    .panel {
+      padding: 14px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 30px var(--shadow);
+    }
+
+    .card h2 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+    }
+
+    .muted { color: var(--muted); }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--chip);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      border: 1px solid rgba(255,255,255,0.35);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    }
+
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      background: rgba(255,255,255,0.06);
+      padding: 2px 6px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+    }
+
+    .small { font-size: 12px; }
+
+    /* D3 styles */
+    .link {
+      stroke: rgba(231,236,255,0.35);
+      stroke-width: 1.5px;
+    }
+    .link.imports { stroke: rgba(231,236,255,0.55); }
+    .link.contains { stroke-dasharray: 4 4; stroke: rgba(231,236,255,0.25); }
+    .link.aligned { stroke-dasharray: 7 5; stroke: rgba(106,169,255,0.55); }
+
+    .node circle {
+      stroke: rgba(255,255,255,0.55);
+      stroke-width: 1px;
+      cursor: grab;
+    }
+    .node circle:active { cursor: grabbing; }
+
+    .label {
+      font-size: 11px;
+      paint-order: stroke;
+      stroke: rgba(11,16,32,0.85);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+      pointer-events: none;
+      fill: rgba(231,236,255,0.92);
+    }
+
+    .faded { opacity: 0.10; }
+    .highlight { opacity: 1 !important; }
+
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(15,23,51,0.92);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 10px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.45);
+      color: var(--text);
+      max-width: 320px;
+      transform: translate(-50%, -110%);
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+    .tooltip .t-title { font-weight: 700; margin-bottom: 4px; }
+    .tooltip .t-body { color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Digital Construction Ontologies — Module Map</h1>
+        <div class="subtitle">Drag nodes • Scroll to zoom • Click a node for details • Double‑click to open its documentation</div>
+      </div>
+
+      <div class="controls">
+        <div class="search" title="Search modules (e.g., 'Entities', 'BFO', 'SOSA')">
+          <span class="muted">🔎</span>
+          <input id="searchBox" type="text" placeholder="Search modules…" />
+          <span id="searchHint" class="muted small"></span>
+        </div>
+
+        <div class="toggles" title="Toggle visibility">
+          <label><input type="checkbox" id="toggleExternal" checked /> External ontologies</label>
+          <label><input type="checkbox" id="toggleRoot" checked /> Suite node</label>
+        </div>
+
+        <button class="btn" id="fitBtn" title="Fit graph to view (shortcut: F)">Fit</button>
+        <button class="btn" id="resetBtn" title="Reset layout">Reset</button>
+      </div>
+    </header>
+
+    <div id="graph">
+      <div class="tooltip" id="tooltip">
+        <div class="t-title" id="ttTitle"></div>
+        <div class="t-body" id="ttBody"></div>
+      </div>
+      <svg id="svg"></svg>
+    </div>
+
+    <aside>
+      <div class="panel">
+        <div class="card">
+          <h2>What you’re looking at</h2>
+          <div class="muted small">
+            This interactive map shows the Digital Construction Ontologies suite modules and the relationships between modules (imports),
+            plus the major external ontologies the suite is aligned with/uses.
+          </div>
+          <div class="chips">
+            <span class="chip">Imports: solid →</span>
+            <span class="chip">Contains: dashed</span>
+            <span class="chip">Aligned/used: long‑dash</span>
+          </div>
+          <div class="chips" style="margin-top:10px;">
+            <span class="chip"><span class="kbd">F</span> fit view</span>
+            <span class="chip"><span class="kbd">Esc</span> clear highlight</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Legend (click to filter)</h2>
+          <div class="legend" id="legend"></div>
+        </div>
+
+        <div class="card">
+          <h2>Selected</h2>
+          <div id="details" class="muted small">Click a node to see details here.</div>
+        </div>
+
+        <div class="card">
+          <h2>Tips for Loomio</h2>
+          <div class="muted small">
+            Loomio posts typically sanitize scripts, so the usual pattern is:
+            <ol class="muted small" style="margin:8px 0 0 18px; padding:0;">
+              <li>Host this single HTML file (e.g., GitHub Pages).</li>
+              <li>Share the public link inside Loomio.</li>
+              <li>Optionally embed it in an <code>&lt;iframe&gt;</code> where allowed.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- D3.js (CDN). If you need fully offline, download d3.v7.min.js and replace this src with a local path. -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <script>
+    // ---------- Data (modules + relationships) ----------
+    const DATA = {
+      nodes: [
+        // Suite/root
+        { id: "DICO Suite", type: "root",
+          label: "Digital Construction\nOntology Suite",
+          url: "https://w3id.org/digitalconstruction/",
+          description: "Module-based ontology suite for construction/renovation data." },
+
+        // Core DICO modules
+        { id: "Contexts", type: "core", label: "Contexts", prefix: "dicc:",
+          url: "https://w3id.org/digitalconstruction/Contexts",
+          description: "Multi-context data: planned/actual, as-designed/as-built, LOD levels." },
+
+        { id: "Variables", type: "core", label: "Variables", prefix: "dicv:",
+          url: "https://w3id.org/digitalconstruction/Variables",
+          description: "Variables and constraints for incomplete plans & change management." },
+
+        { id: "Entities", type: "core", label: "Entities", prefix: "dice:",
+          url: "https://w3id.org/digitalconstruction/Entities",
+          description: "Identifiable entities with classifications, breakdowns and groupings." },
+
+        { id: "Agents", type: "core", label: "Agents", prefix: "dica:",
+          url: "https://w3id.org/digitalconstruction/Agents",
+          description: "Actors & stakeholders, and their relations and contracts." },
+
+        { id: "Information", type: "core", label: "Information", prefix: "dici:",
+          url: "https://w3id.org/digitalconstruction/Information",
+          description: "Information content entities including designs, plans, events, and issues." },
+
+        { id: "Processes", type: "core", label: "Processes", prefix: "dicp:",
+          url: "https://w3id.org/digitalconstruction/Processes",
+          description: "Activities, capabilities, constraints and variables." },
+
+        // Extension modules (from the suite list)
+        { id: "BuildingMaterials", type: "extension", label: "Building\nMaterials", prefix: "dicbm:",
+          url: "https://w3id.org/digitalconstruction/BuildingMaterials",
+          description: "Building materials." },
+
+        { id: "EnergySystems", type: "extension", label: "Energy\nSystems", prefix: "dices:",
+          url: "https://w3id.org/digitalconstruction/EnergySystems",
+          description: "Energy systems of buildings." },
+
+        { id: "OccupantBehavior", type: "extension", label: "Occupant\nBehavior", prefix: "dicob:",
+          url: "https://w3id.org/digitalconstruction/OccupantBehavior",
+          description: "Occupant behavior and comfort." },
+
+        { id: "Lifecycle", type: "extension", label: "Lifecycle", prefix: "dicl:",
+          url: "https://w3id.org/digitalconstruction/Lifecycle",
+          description: "Evolution of information over construction lifecycle and refinement through LOD levels." },
+
+        // Listed in the suite but not included in this local bundle (kept as nodes for completeness)
+        { id: "IndoorAirQuality", type: "extension", label: "Indoor\nAir Quality", prefix: "diciaq:",
+          url: "https://w3id.org/digitalconstruction/IndoorAirQuality",
+          description: "Indoor air quality (suite module)." },
+
+        { id: "BuildingAcoustics", type: "extension", label: "Building\nAcoustics", prefix: "dicba:",
+          url: "https://w3id.org/digitalconstruction/BuildingAcoustics",
+          description: "Building acoustics (suite module)." },
+
+        // External ontologies (suite-level alignment/usage)
+        { id: "BFO", type: "external", label: "BFO",
+          url: "https://basic-formal-ontology.org/",
+          description: "Basic Formal Ontology (top-level categories)." },
+
+        { id: "ifcOWL", type: "external", label: "ifcOWL",
+          url: "https://standards.buildingsmart.org/IFC/DEV/IFC4/ADD2_TC1/OWL",
+          description: "IFC ontology for BIM models." },
+
+        { id: "OWL-Time", type: "external", label: "OWL‑Time",
+          url: "https://www.w3.org/2006/time",
+          description: "W3C Time Ontology (time instants & intervals)." },
+
+        { id: "PROV-O", type: "external", label: "PROV‑O",
+          url: "https://www.w3.org/TR/prov-o/",
+          description: "W3C Provenance Ontology." },
+
+        { id: "FOAF", type: "external", label: "FOAF",
+          url: "http://xmlns.com/foaf/0.1/",
+          description: "Friend of a Friend vocabulary." },
+
+        { id: "QUDT", type: "external", label: "QUDT",
+          url: "http://qudt.org/2.1/schema/qudt",
+          description: "Quantities, Units, Dimensions and Types." },
+
+        { id: "SSN", type: "external", label: "SSN",
+          url: "http://www.w3.org/ns/ssn/",
+          description: "Semantic Sensor Network Ontology." },
+
+        { id: "SOSA", type: "external", label: "SOSA",
+          url: "http://www.w3.org/ns/sosa/",
+          description: "Sensor, Observation, Sample and Actuator." },
+
+        { id: "SAREF", type: "external", label: "Saref",
+          url: "https://saref.etsi.org/core/",
+          description: "Smart Appliances REFerence ontology (ETSI)." },
+
+        { id: "ORG", type: "external", label: "ORG",
+          url: "https://www.w3.org/TR/vocab-org/",
+          description: "W3C Organization Ontology (org:)." }
+      ],
+
+      links: [
+        // Suite contains modules
+        ...[
+          "Contexts","Variables","Entities","Agents","Information","Processes",
+          "BuildingMaterials","EnergySystems","OccupantBehavior","Lifecycle",
+          "IndoorAirQuality","BuildingAcoustics"
+        ].map(t => ({ source: "DICO Suite", target: t, kind: "contains" })),
+
+        // Suite aligned/uses external ontologies (high-level)
+        ...[
+          "BFO","ifcOWL","OWL-Time","PROV-O","FOAF","QUDT","SSN","SOSA","SAREF","ORG"
+        ].map(t => ({ source: "DICO Suite", target: t, kind: "aligned" })),
+
+        // Intra-suite imports (based on module documentation)
+        { source: "Variables", target: "Contexts", kind: "imports" },
+
+        { source: "Entities", target: "Contexts", kind: "imports" },
+        { source: "Entities", target: "Variables", kind: "imports" },
+
+        { source: "Agents", target: "Contexts", kind: "imports" },
+        { source: "Agents", target: "Entities", kind: "imports" },
+        { source: "Agents", target: "Variables", kind: "imports" },
+
+        { source: "Information", target: "Contexts", kind: "imports" },
+        { source: "Information", target: "Entities", kind: "imports" },
+        { source: "Information", target: "Variables", kind: "imports" },
+
+        { source: "Processes", target: "Agents", kind: "imports" },
+        { source: "Processes", target: "Contexts", kind: "imports" },
+        { source: "Processes", target: "Entities", kind: "imports" },
+        { source: "Processes", target: "Information", kind: "imports" },
+        { source: "Processes", target: "Variables", kind: "imports" },
+
+        { source: "BuildingMaterials", target: "Contexts", kind: "imports" },
+        { source: "BuildingMaterials", target: "Entities", kind: "imports" },
+        { source: "BuildingMaterials", target: "Variables", kind: "imports" },
+
+        { source: "OccupantBehavior", target: "Agents", kind: "imports" },
+        { source: "OccupantBehavior", target: "Contexts", kind: "imports" },
+        { source: "OccupantBehavior", target: "Entities", kind: "imports" },
+        { source: "OccupantBehavior", target: "Variables", kind: "imports" },
+
+        { source: "Lifecycle", target: "Agents", kind: "imports" },
+        { source: "Lifecycle", target: "Contexts", kind: "imports" },
+        { source: "Lifecycle", target: "Entities", kind: "imports" },
+        { source: "Lifecycle", target: "Information", kind: "imports" },
+        { source: "Lifecycle", target: "Processes", kind: "imports" },
+        { source: "Lifecycle", target: "Variables", kind: "imports" },
+
+        { source: "EnergySystems", target: "SAREF", kind: "imports" }, // explicit import in module doc
+        { source: "EnergySystems", target: "Agents", kind: "imports" },
+        { source: "EnergySystems", target: "Contexts", kind: "imports" },
+        { source: "EnergySystems", target: "Entities", kind: "imports" },
+        { source: "EnergySystems", target: "Information", kind: "imports" },
+        { source: "EnergySystems", target: "Processes", kind: "imports" },
+        { source: "EnergySystems", target: "Variables", kind: "imports" }
+      ]
+    };
+
+    // ---------- Rendering ----------
+    const svg = d3.select("#svg");
+    const graphEl = document.getElementById("graph");
+    const tooltip = document.getElementById("tooltip");
+    const ttTitle = document.getElementById("ttTitle");
+    const ttBody = document.getElementById("ttBody");
+    const details = document.getElementById("details");
+
+    // Color mapping
+    const typeOrder = ["root","core","extension","external"];
+    const typeLabels = {
+      root: "Suite/root",
+      core: "Core module",
+      extension: "Extension module",
+      external: "External ontology"
+    };
+    const colors = new Map([
+      ["root", "#6aa9ff"],
+      ["core", "#5ef2c2"],
+      ["extension", "#ffd36a"],
+      ["external", "#ff6a8a"]
+    ]);
+
+    // Build legend with click-to-filter
+    const legendEl = d3.select("#legend");
+    const filters = new Set(typeOrder);
+    const legendItems = legendEl.selectAll(".legend-item")
+      .data(typeOrder)
+      .enter()
+      .append("div")
+      .attr("class", "legend-item")
+      .on("click", (event, t) => {
+        if (filters.has(t)) filters.delete(t); else filters.add(t);
+        legendItems.style("opacity", d => filters.has(d) ? 1 : 0.35);
+        updateGraph();
+      });
+
+    legendItems.append("span")
+      .attr("class", "swatch")
+      .style("background", d => colors.get(d));
+
+    legendItems.append("div")
+      .style("display","flex")
+      .style("flex-direction","column")
+      .html(d => `<div style="color: var(--text); font-weight: 600;">${typeLabels[d]}</div><div class="muted small">toggle visibility</div>`);
+
+    // Zoom layer
+    const zoomLayer = svg.append("g").attr("class", "zoom-layer");
+
+    // Arrow marker for imports edges
+    svg.append("defs").append("marker")
+      .attr("id", "arrow")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 16)
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "rgba(231,236,255,0.65)");
+
+    // Zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.25, 2.5])
+      .on("zoom", (event) => {
+        zoomLayer.attr("transform", event.transform);
+      });
+
+    svg.call(zoom);
+
+    // Simulation
+    const simulation = d3.forceSimulation()
+      .force("link", d3.forceLink().id(d => d.id).distance(d => {
+        if (d.kind === "contains") return 70;
+        if (d.kind === "aligned") return 110;
+        return 140;
+      }).strength(d => d.kind === "contains" ? 0.55 : 0.85))
+      .force("charge", d3.forceManyBody().strength(-650))
+      .force("center", d3.forceCenter())
+      .force("collision", d3.forceCollide().radius(d => nodeRadius(d) + 6));
+
+    function nodeRadius(d) {
+      if (d.type === "root") return 18;
+      if (d.type === "core") return 14;
+      if (d.type === "extension") return 12;
+      return 11;
+    }
+
+    let currentNodes = [];
+    let currentLinks = [];
+    let linkSel, nodeSel, labelSel;
+
+    function sizeToContainer() {
+      const { width, height } = graphEl.getBoundingClientRect();
+      svg.attr("viewBox", [0, 0, width, height]);
+      simulation.force("center", d3.forceCenter(width / 2, height / 2));
+      simulation.alpha(0.35).restart();
+    }
+
+    window.addEventListener("resize", sizeToContainer);
+
+    // Build adjacency map for highlighting
+    function buildAdjacency(links) {
+      const adj = new Map();
+      const add = (a,b) => {
+        if (!adj.has(a)) adj.set(a, new Set());
+        adj.get(a).add(b);
+      };
+      links.forEach(l => {
+        add(l.source.id ?? l.source, l.target.id ?? l.target);
+        add(l.target.id ?? l.target, l.source.id ?? l.source);
+      });
+      return adj;
+    }
+
+    function updateGraph() {
+      const showExternal = document.getElementById("toggleExternal").checked;
+      const showRoot = document.getElementById("toggleRoot").checked;
+
+      // Filter nodes by legend + toggles
+      const allowedTypes = new Set([...filters]);
+      const nodeAllowed = (n) => {
+        if (!allowedTypes.has(n.type)) return false;
+        if (!showExternal && n.type === "external") return false;
+        if (!showRoot && n.type === "root") return false;
+        return true;
+      };
+
+      const nodes = DATA.nodes.filter(nodeAllowed);
+
+      // Keep links only if both ends exist in filtered nodes
+      const nodeIds = new Set(nodes.map(n => n.id));
+      const links = DATA.links.filter(l => nodeIds.has(l.source) && nodeIds.has(l.target));
+
+      currentNodes = nodes.map(d => ({...d}));
+      currentLinks = links.map(d => ({...d}));
+
+      // JOIN links
+      linkSel = zoomLayer.selectAll(".link")
+        .data(currentLinks, d => `${d.source}->${d.target}:${d.kind}`);
+
+      linkSel.exit().remove();
+
+      const linkEnter = linkSel.enter()
+        .append("line")
+        .attr("class", d => `link ${d.kind}`)
+        .attr("marker-end", d => d.kind === "imports" ? "url(#arrow)" : null);
+
+      linkSel = linkEnter.merge(linkSel);
+
+      // JOIN nodes
+      nodeSel = zoomLayer.selectAll(".node")
+        .data(currentNodes, d => d.id);
+
+      nodeSel.exit().remove();
+
+      const nodeEnter = nodeSel.enter()
+        .append("g")
+        .attr("class", "node")
+        .call(d3.drag()
+          .on("start", dragStarted)
+          .on("drag", dragged)
+          .on("end", dragEnded)
+        )
+        .on("mouseenter", onNodeEnter)
+        .on("mousemove", onNodeMove)
+        .on("mouseleave", onNodeLeave)
+        .on("click", onNodeClick)
+        .on("dblclick", (event, d) => {
+          if (d.url) window.open(d.url, "_blank", "noopener,noreferrer");
+        });
+
+      nodeEnter.append("circle")
+        .attr("r", d => nodeRadius(d))
+        .attr("fill", d => colors.get(d.type) || "#ccc");
+
+      nodeEnter.append("title").text(d => d.id);
+
+      nodeEnter.append("text")
+        .attr("class", "label")
+        .attr("text-anchor", "middle")
+        .attr("dy", d => d.type === "root" ? 30 : 26)
+        .text(d => d.label || d.id);
+
+      nodeSel = nodeEnter.merge(nodeSel);
+
+      // Restart simulation with new data
+      simulation.nodes(currentNodes);
+      simulation.force("link").links(currentLinks);
+
+      simulation.on("tick", () => {
+        linkSel
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+        nodeSel.attr("transform", d => `translate(${d.x},${d.y})`);
+      });
+
+      simulation.alpha(0.9).restart();
+      sizeToContainer();
+      applySearchHighlight();
+    }
+
+    // Tooltip helpers
+    function showTooltip(d, x, y) {
+      ttTitle.textContent = d.id;
+      ttBody.textContent = d.description || "";
+      tooltip.style.left = `${x}px`;
+      tooltip.style.top = `${y}px`;
+      tooltip.style.opacity = 1;
+    }
+    function hideTooltip() {
+      tooltip.style.opacity = 0;
+    }
+
+    let hovered = null;
+
+    function onNodeEnter(event, d) {
+      hovered = d;
+      showTooltip(d, event.clientX, event.clientY);
+      softHighlight(d);
+    }
+    function onNodeMove(event, d) {
+      if (!hovered) return;
+      showTooltip(d, event.clientX, event.clientY);
+    }
+    function onNodeLeave(event, d) {
+      hovered = null;
+      hideTooltip();
+      clearSoftHighlight();
+    }
+
+    function softHighlight(d) {
+      const adj = buildAdjacency(currentLinks);
+      const neighbors = adj.get(d.id) || new Set();
+      neighbors.add(d.id);
+
+      nodeSel.classed("faded", n => !neighbors.has(n.id));
+      linkSel.classed("faded", l => !(neighbors.has(l.source.id) && neighbors.has(l.target.id)));
+    }
+
+    function clearSoftHighlight() {
+      // Do not clear if something is pinned by search/selection
+      if (pinnedHighlight) return;
+      nodeSel.classed("faded", false);
+      linkSel.classed("faded", false);
+    }
+
+    // Selection / details
+    let selectedId = null;
+
+    function onNodeClick(event, d) {
+      event.stopPropagation();
+      selectedId = d.id;
+      pinnedHighlight = true;
+      renderDetails(d);
+      hardHighlight(d.id);
+    }
+
+    function renderDetails(d) {
+      const imports = DATA.links.filter(l => l.kind === "imports" && l.source === d.id).map(l => l.target);
+      const importedBy = DATA.links.filter(l => l.kind === "imports" && l.target === d.id).map(l => l.source);
+
+      const chip = (txt) => `<span class="chip">${txt}</span>`;
+
+      details.innerHTML = `
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+          <div>
+            <div style="font-size:14px; font-weight:700; color: var(--text);">${d.id}</div>
+            <div class="muted small">${typeLabels[d.type] || d.type}${d.prefix ? ` • <span class="kbd">${d.prefix}</span>` : ""}</div>
+          </div>
+          <div style="min-width: 26px; height: 26px; border-radius: 10px; border:1px solid var(--border); background:${colors.get(d.type)}33;"></div>
+        </div>
+
+        <div style="margin-top:10px;" class="muted small">${d.description || ""}</div>
+
+        <div class="chips">
+          ${d.url ? chip(`Docs: <a href="${d.url}" target="_blank" rel="noopener noreferrer">${d.url}</a>`) : ""}
+        </div>
+
+        <div style="margin-top:10px;">
+          <div style="font-weight:600; margin-bottom:6px;">Imports</div>
+          <div class="chips">${imports.length ? imports.map(x => chip(x)).join("") : `<span class="muted small">—</span>`}</div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div style="font-weight:600; margin-bottom:6px;">Imported by</div>
+          <div class="chips">${importedBy.length ? importedBy.map(x => chip(x)).join("") : `<span class="muted small">—</span>`}</div>
+        </div>
+      `;
+    }
+
+    // Highlighting logic
+    let pinnedHighlight = false;
+
+    function hardHighlight(nodeId) {
+      const adj = buildAdjacency(currentLinks);
+      const neighbors = adj.get(nodeId) || new Set();
+      neighbors.add(nodeId);
+
+      nodeSel.classed("faded", n => !neighbors.has(n.id));
+      linkSel.classed("faded", l => {
+        const s = l.source.id;
+        const t = l.target.id;
+        return !(neighbors.has(s) && neighbors.has(t));
+      });
+
+      nodeSel.classed("highlight", n => neighbors.has(n.id));
+      linkSel.classed("highlight", l => neighbors.has(l.source.id) && neighbors.has(l.target.id));
+    }
+
+    function clearHighlightAll() {
+      pinnedHighlight = false;
+      selectedId = null;
+      nodeSel.classed("faded", false).classed("highlight", false);
+      linkSel.classed("faded", false).classed("highlight", false);
+      details.innerHTML = '<div class="muted small">Click a node to see details here.</div>';
+    }
+
+    // Drag handlers
+    function dragStarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.15).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+    function dragEnded(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+
+    // Background click clears selection
+    svg.on("click", () => clearHighlightAll());
+
+    // Fit view
+    function fitToView(padding = 40) {
+      const { width, height } = graphEl.getBoundingClientRect();
+      const nodes = currentNodes;
+      if (!nodes.length) return;
+
+      const xs = nodes.map(n => n.x);
+      const ys = nodes.map(n => n.y);
+
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+
+      const dx = (maxX - minX) || 1;
+      const dy = (maxY - minY) || 1;
+
+      const scale = Math.max(0.25, Math.min(2.5, 0.92 / Math.max(dx / (width - padding), dy / (height - padding))));
+      const tx = (width / 2) - scale * (minX + maxX) / 2;
+      const ty = (height / 2) - scale * (minY + maxY) / 2;
+
+      svg.transition().duration(400).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(tx, ty).scale(scale)
+      );
+    }
+
+    document.getElementById("fitBtn").addEventListener("click", () => fitToView());
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      clearHighlightAll();
+      // Reset node positions softly
+      simulation.alpha(1).restart();
+      fitToView();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") clearHighlightAll();
+      if (e.key.toLowerCase() === "f") fitToView();
+    });
+
+    // Search
+    const searchBox = document.getElementById("searchBox");
+    const searchHint = document.getElementById("searchHint");
+
+    searchBox.addEventListener("input", () => applySearchHighlight());
+
+    function applySearchHighlight() {
+      const q = (searchBox.value || "").trim().toLowerCase();
+      if (!q) {
+        searchHint.textContent = "";
+        if (!pinnedHighlight) {
+          nodeSel?.classed("faded", false).classed("highlight", false);
+          linkSel?.classed("faded", false).classed("highlight", false);
+        }
+        return;
+      }
+
+      const matches = currentNodes.filter(n =>
+        (n.id || "").toLowerCase().includes(q) ||
+        (n.label || "").toLowerCase().includes(q) ||
+        (n.prefix || "").toLowerCase().includes(q)
+      );
+
+      searchHint.textContent = matches.length ? `${matches.length} match${matches.length===1?"":"es"}` : "no matches";
+
+      const matchIds = new Set(matches.map(m => m.id));
+
+      pinnedHighlight = true;
+      nodeSel.classed("faded", n => !matchIds.has(n.id));
+      linkSel.classed("faded", l => !(matchIds.has(l.source.id) || matchIds.has(l.target.id)));
+
+      nodeSel.classed("highlight", n => matchIds.has(n.id));
+      linkSel.classed("highlight", l => matchIds.has(l.source.id) || matchIds.has(l.target.id));
+
+      if (matches.length === 1) {
+        // focus the match
+        const m = matches[0];
+        renderDetails(m);
+        fitToNode(m);
+      }
+    }
+
+    function fitToNode(n) {
+      const { width, height } = graphEl.getBoundingClientRect();
+      const scale = 1.4;
+      const tx = (width / 2) - scale * n.x;
+      const ty = (height / 2) - scale * n.y;
+
+      svg.transition().duration(350).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(tx, ty).scale(scale)
+      );
+    }
+
+    document.getElementById("toggleExternal").addEventListener("change", updateGraph);
+    document.getElementById("toggleRoot").addEventListener("change", updateGraph);
+
+    // Initial render
+    updateGraph();
+
+    // Start with a nice fit after stabilization
+    setTimeout(() => fitToView(), 600);
+  </script>
+</body>
+</html>

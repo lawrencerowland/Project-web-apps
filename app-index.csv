@@ -76,3 +76,4 @@
 68,interface_topology_sketch_v0,"Interface topology sketch for a regional signalling control centre site with canal, road, rail, OHL, and mining constraints.",ChatGPT,GPT-5.2-Codex,"rail, interfaces, topology, planning, visualization, infrastructure",,
 
 69,monotone_codesign_rail,"Monotone co-design rail upgrade staging simulator with Pareto plans and resource trade-offs.",User,GPT-5.2-Codex,"rail, codesign, staging, simulation, decision_support",,
+70,climate_megaproject_sdam,"Sequential decision analytics for a climate engineering megaproject with SDAM framing and simulations.",User,GPT-5.2-Codex,"climate, decision_support, sdam, simulation, policy",,

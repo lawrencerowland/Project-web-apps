@@ -1,12 +1,10 @@
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 
 
 const ProjectControlsKnowledgeGraph = () => {
   const svgRef = useRef(null);
   const simulationRef = useRef(null);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [showPathTraversal, setShowPathTraversal] = useState(false);
-  const [highlightedPath, setHighlightedPath] = useState([]);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showPathExplanationModal, setShowPathExplanationModal] = useState(false);
 
@@ -166,17 +164,176 @@ const ProjectControlsKnowledgeGraph = () => {
     { source: "controlAccounts", target: "earnedValueMgmt", type: "structures" }
   ];
 
-  // Define the main path from project management to project controls
-  const mainPath = [
-    "projectManager", "projectPlanning", "costBaseline", "costControl", 
-    "performanceMeasurement", "earnedValueMgmt", "forecastingReports", "projectController"
-  ];
+  const predicateWeights = {
+    workflow: 2.5,
+    includes: 1.5,
+    produces: 2,
+    enables: 2.5,
+    informs: 2,
+    triggers: 2.5,
+    affects: 1.5,
+    methodFor: 1.5,
+    techniqueFor: 1.5,
+    toolFor: 1.2,
+    foundationFor: 2,
+    creates: 1.2,
+    delegates: 1,
+    responsible: 2,
+    performs: 2,
+    manages: 1.5,
+    authorizes: 1.5,
+    generates: 1.2,
+    documents: 1,
+    governs: 1.5,
+    emphasizes: 1.2,
+    adapts: 1,
+    transitions: 1.3,
+    utilizes: 1.4,
+    structures: 1.3
+  };
+  const predicateTypes = Array.from(new Set(links.map(link => link.type))).sort();
+  const [activeCategories, setActiveCategories] = useState(Object.keys(categories));
+  const [activePredicates, setActivePredicates] = useState(predicateTypes);
+  const [centralityThreshold, setCentralityThreshold] = useState(0);
+  const [pathTraversalEnabled, setPathTraversalEnabled] = useState(false);
+  const [pathDirection, setPathDirection] = useState("upstream");
 
   // We add nodeRef to store node elements for updating
   const nodeRef = useRef(null);
+  const linkRef = useRef(null);
+
+  const weightedCentrality = useMemo(() => {
+    const totals = {};
+    nodes.forEach(node => {
+      totals[node.id] = 0;
+    });
+    links.forEach(link => {
+      const weight = predicateWeights[link.type] ?? 1;
+      totals[link.source] += weight;
+      totals[link.target] += weight;
+    });
+    return totals;
+  }, [links, nodes]);
+
+  const centralityStats = useMemo(() => {
+    const values = Object.values(weightedCentrality);
+    const max = values.length ? Math.max(...values) : 1;
+    const min = values.length ? Math.min(...values) : 0;
+    return { min, max };
+  }, [weightedCentrality]);
+
+  const visibleNodes = useMemo(() => {
+    return new Set(
+      nodes
+        .filter(node => activeCategories.includes(node.category))
+        .filter(node => (weightedCentrality[node.id] ?? 0) >= centralityThreshold)
+        .map(node => node.id)
+    );
+  }, [activeCategories, centralityThreshold, nodes, weightedCentrality]);
+
+  const visibleLinks = useMemo(() => {
+    return new Set(
+      links
+        .filter(link => activePredicates.includes(link.type))
+        .filter(link => visibleNodes.has(link.source) && visibleNodes.has(link.target))
+        .map(link => `${link.source}|${link.target}|${link.type}`)
+    );
+  }, [activePredicates, links, visibleNodes]);
+
+  const traversalResult = useMemo(() => {
+    if (!pathTraversalEnabled || !selectedNode) {
+      return { nodeIds: new Set(), linkKeys: new Set() };
+    }
+    const allowed = new Set(activePredicates);
+    const nodeIds = new Set([selectedNode.id]);
+    const linkKeys = new Set();
+    const stack = [selectedNode.id];
+
+    while (stack.length) {
+      const current = stack.pop();
+      links.forEach(link => {
+        if (!allowed.has(link.type)) return;
+        const isUpstream = pathDirection === "upstream";
+        const matchesDirection = isUpstream
+          ? link.target === current
+          : link.source === current;
+        if (!matchesDirection) return;
+        const nextNode = isUpstream ? link.source : link.target;
+        linkKeys.add(`${link.source}|${link.target}|${link.type}`);
+        if (!nodeIds.has(nextNode)) {
+          nodeIds.add(nextNode);
+          stack.push(nextNode);
+        }
+      });
+    }
+
+    return { nodeIds, linkKeys };
+  }, [activePredicates, links, pathDirection, pathTraversalEnabled, selectedNode]);
   
   useEffect(() => {
     if (!svgRef.current) return;
+
+    const sizeScale = d3.scaleLinear()
+      .domain([centralityStats.min, centralityStats.max || 1])
+      .range([10, 22])
+      .clamp(true);
+
+    const getLinkKey = (link) => {
+      const sourceId = typeof link.source === "object" ? link.source.id : link.source;
+      const targetId = typeof link.target === "object" ? link.target.id : link.target;
+      return `${sourceId}|${targetId}|${link.type}`;
+    };
+
+    const applyStyles = () => {
+      const traversalActive = pathTraversalEnabled && selectedNode;
+
+      if (nodeRef.current) {
+        nodeRef.current.attr("opacity", d => {
+          const isVisible = visibleNodes.has(d.id);
+          const inTraversal = !traversalActive || traversalResult.nodeIds.has(d.id);
+          return isVisible && inTraversal ? 1 : 0.15;
+        });
+
+        nodeRef.current.select("circle")
+          .attr("r", d => sizeScale(weightedCentrality[d.id] ?? 0))
+          .attr("stroke", d => {
+            if (traversalActive && traversalResult.nodeIds.has(d.id)) {
+              return "#FF9500";
+            }
+            return "#fff";
+          })
+          .attr("stroke-width", d => {
+            if (traversalActive && traversalResult.nodeIds.has(d.id)) {
+              return 3;
+            }
+            return 1.5;
+          });
+      }
+
+      if (linkRef.current) {
+        linkRef.current
+          .attr("stroke", d => {
+            const key = getLinkKey(d);
+            if (traversalActive && traversalResult.linkKeys.has(key)) {
+              return "#FF9500";
+            }
+            return "#999";
+          })
+          .attr("stroke-opacity", d => {
+            const key = getLinkKey(d);
+            const isVisible = visibleLinks.has(key);
+            const inTraversal = !traversalActive || traversalResult.linkKeys.has(key);
+            return isVisible && inTraversal ? 0.7 : 0.1;
+          })
+          .attr("stroke-width", d => {
+            const key = getLinkKey(d);
+            if (traversalActive && traversalResult.linkKeys.has(key)) {
+              return 3;
+            }
+            return 1;
+          });
+      }
+    };
 
     // Only recreate the graph if it doesn't exist yet
     if (!simulationRef.current) {
@@ -216,49 +373,11 @@ const ProjectControlsKnowledgeGraph = () => {
         .selectAll("line")
         .data(links)
         .join("line")
-        .attr("stroke", d => {
-          // Check if both source and target are in the highlighted path
-          if (highlightedPath.length === 0) return "#999";
-          
-          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
-          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
-          
-          if (highlightedPath.includes(sourceId) && highlightedPath.includes(targetId)) {
-            // Check if they are adjacent in the path
-            const sourceIndex = highlightedPath.indexOf(sourceId);
-            const targetIndex = highlightedPath.indexOf(targetId);
-            if (Math.abs(sourceIndex - targetIndex) === 1) {
-              return "#FF9500";
-            }
-          }
-          return "#999";
-        })
-        .attr("stroke-opacity", d => {
-          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
-          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
-          
-          if (highlightedPath.includes(sourceId) && highlightedPath.includes(targetId)) {
-            const sourceIndex = highlightedPath.indexOf(sourceId);
-            const targetIndex = highlightedPath.indexOf(targetId);
-            if (Math.abs(sourceIndex - targetIndex) === 1) {
-              return 1;
-            }
-          }
-          return 0.6;
-        })
-        .attr("stroke-width", d => {
-          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
-          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
-          
-          if (highlightedPath.includes(sourceId) && highlightedPath.includes(targetId)) {
-            const sourceIndex = highlightedPath.indexOf(sourceId);
-            const targetIndex = highlightedPath.indexOf(targetId);
-            if (Math.abs(sourceIndex - targetIndex) === 1) {
-              return 3;
-            }
-          }
-          return 1;
-        });
+        .attr("stroke", "#999")
+        .attr("stroke-opacity", 0.6)
+        .attr("stroke-width", 1);
+      
+      linkRef.current = link;
       
       // Create node groups and store reference
       const node = g.append("g")
@@ -278,8 +397,8 @@ const ProjectControlsKnowledgeGraph = () => {
       node.append("circle")
         .attr("r", 12)
         .attr("fill", d => categories[d.category].color)
-        .attr("stroke", d => highlightedPath.includes(d.id) ? "#FF9500" : "#fff")
-        .attr("stroke-width", d => highlightedPath.includes(d.id) ? 3 : 1.5);
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 1.5);
       
       // Add labels to nodes
       node.append("text")
@@ -329,6 +448,8 @@ const ProjectControlsKnowledgeGraph = () => {
           .on("drag", dragged)
           .on("end", dragended);
       }
+
+      applyStyles();
     } else {
       // Just update visual elements for path highlighting without recreating the graph
       
@@ -340,55 +461,8 @@ const ProjectControlsKnowledgeGraph = () => {
             setSelectedNode(d);
           });
       }
-      
-      d3.select(svgRef.current)
-        .selectAll("circle")
-        .attr("stroke", d => highlightedPath.includes(d.id) ? "#FF9500" : "#fff")
-        .attr("stroke-width", d => highlightedPath.includes(d.id) ? 3 : 1.5);
-      
-      d3.select(svgRef.current)
-        .selectAll("line")
-        .attr("stroke", d => {
-          if (highlightedPath.length === 0) return "#999";
-          
-          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
-          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
-          
-          if (highlightedPath.includes(sourceId) && highlightedPath.includes(targetId)) {
-            const sourceIndex = highlightedPath.indexOf(sourceId);
-            const targetIndex = highlightedPath.indexOf(targetId);
-            if (Math.abs(sourceIndex - targetIndex) === 1) {
-              return "#FF9500";
-            }
-          }
-          return "#999";
-        })
-        .attr("stroke-opacity", d => {
-          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
-          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
-          
-          if (highlightedPath.includes(sourceId) && highlightedPath.includes(targetId)) {
-            const sourceIndex = highlightedPath.indexOf(sourceId);
-            const targetIndex = highlightedPath.indexOf(targetId);
-            if (Math.abs(sourceIndex - targetIndex) === 1) {
-              return 1;
-            }
-          }
-          return 0.6;
-        })
-        .attr("stroke-width", d => {
-          const sourceId = typeof d.source === 'object' ? d.source.id : d.source;
-          const targetId = typeof d.target === 'object' ? d.target.id : d.target;
-          
-          if (highlightedPath.includes(sourceId) && highlightedPath.includes(targetId)) {
-            const sourceIndex = highlightedPath.indexOf(sourceId);
-            const targetIndex = highlightedPath.indexOf(targetId);
-            if (Math.abs(sourceIndex - targetIndex) === 1) {
-              return 3;
-            }
-          }
-          return 1;
-        });
+
+      applyStyles();
     }
     
     return () => {
@@ -396,15 +470,30 @@ const ProjectControlsKnowledgeGraph = () => {
         simulationRef.current.stop();
       }
     };
-  }, [highlightedPath, selectedNode]); // Re-run when highlightedPath or selectedNode changes
+  }, [
+    centralityStats,
+    pathTraversalEnabled,
+    selectedNode,
+    traversalResult,
+    visibleLinks,
+    visibleNodes,
+    weightedCentrality
+  ]);
 
-  const togglePathTraversal = () => {
-    if (showPathTraversal) {
-      setHighlightedPath([]);
-    } else {
-      setHighlightedPath(mainPath);
-    }
-    setShowPathTraversal(!showPathTraversal);
+  const toggleCategory = (category) => {
+    setActiveCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(item => item !== category)
+        : [...prev, category]
+    );
+  };
+
+  const togglePredicate = (predicate) => {
+    setActivePredicates(prev =>
+      prev.includes(predicate)
+        ? prev.filter(item => item !== predicate)
+        : [...prev, predicate]
+    );
   };
 
   // Modal components
@@ -432,7 +521,8 @@ const ProjectControlsKnowledgeGraph = () => {
         <ul className="list-disc ml-5 mt-2 mb-4">
           <li>Click on nodes to view explanations of key concepts</li>
           <li>Explore connections between different areas</li>
-          <li>Follow the PM to PC path to understand a logical learning progression</li>
+          <li>Use class and predicate filters to create a focused slice</li>
+          <li>Adjust the centrality threshold to spotlight key concepts</li>
           <li>Identify which tools and methodologies support specific control processes</li>
         </ul>
         <button 
@@ -448,25 +538,21 @@ const ProjectControlsKnowledgeGraph = () => {
   const PathExplanationModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
       <div className="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-y-auto">
-        <h3 className="text-xl font-bold mb-3">Understanding the PM to PC Path</h3>
+        <h3 className="text-xl font-bold mb-3">Understanding Path-Sensitive Traversal</h3>
         <p className="mb-4">
-          The highlighted path shows a logical progression for professionals transitioning from project management to project controls. It illustrates how knowledge and skills build upon each other.
+          Path-sensitive traversal lets you walk the graph using only the relationship types that match the story you want to tell. This keeps roll-ups and dependencies aligned with governance logic.
         </p>
         <p className="mb-4">
-          <span className="font-semibold">The path follows these key steps:</span>
+          <span className="font-semibold">How to use it in this demo:</span>
         </p>
         <ol className="list-decimal ml-5 mt-2 mb-4">
-          <li><span className="font-semibold">Project Manager Role</span>: Starting point with broad oversight of all project aspects</li>
-          <li><span className="font-semibold">Project Planning</span>: The foundation where all baselines are established</li>
-          <li><span className="font-semibold">Cost Baseline</span>: The approved budget that enables cost control</li>
-          <li><span className="font-semibold">Cost Control</span>: Monitoring expenditures against the baseline</li>
-          <li><span className="font-semibold">Performance Measurement</span>: Analyzing variance between planned and actual results</li>
-          <li><span className="font-semibold">Earned Value Management</span>: The key methodology that integrates scope, schedule, and cost</li>
-          <li><span className="font-semibold">Forecasting Reports</span>: Forward-looking projections based on current performance</li>
-          <li><span className="font-semibold">Project Controller</span>: The specialized role that masters these techniques</li>
+          <li><span className="font-semibold">Pick a start node</span>: Click a node to set the traversal origin.</li>
+          <li><span className="font-semibold">Choose predicates</span>: Use the Allowed Predicates filter to define the relationships you trust.</li>
+          <li><span className="font-semibold">Set direction</span>: Upstream follows incoming edges; downstream follows outgoing edges.</li>
+          <li><span className="font-semibold">Enable traversal</span>: Toggle Path-Sensitive Traversal to spotlight the reachable subgraph.</li>
         </ol>
         <p className="mb-4">
-          This path highlights the shift from planning-focused activities to measurement, analysis, and prediction. Project managers typically focus on delivering against the plan, while project controllers excel at measuring performance, spotting variances, and forecasting outcomes.
+          Use this to narrate roll-ups (e.g., “what rolls up to this baseline?”) or dependency chains (“what does this control enable?”) without mixing unrelated edges.
         </p>
         <button 
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -482,44 +568,122 @@ const ProjectControlsKnowledgeGraph = () => {
     <div className="flex flex-col items-center w-full max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">Project Controls Knowledge Graph</h2>
       
-      <div className="flex justify-between w-full mb-4">
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(categories).map(([key, category]) => (
-            <div key={key} className="flex items-center">
-              <span 
-                className="inline-block w-3 h-3 mr-1 rounded-full" 
-                style={{ backgroundColor: category.color }}
-              ></span>
-              <span className="text-xs">{category.name}</span>
-            </div>
-          ))}
+      <div className="flex flex-col w-full gap-4 mb-4">
+        <div className="flex justify-between w-full">
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(categories).map(([key, category]) => (
+              <div key={key} className="flex items-center">
+                <span 
+                  className="inline-block w-3 h-3 mr-1 rounded-full" 
+                  style={{ backgroundColor: category.color }}
+                ></span>
+                <span className="text-xs">{category.name}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              className="px-3 py-1 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => setShowAboutModal(true)}
+            >
+              About This Graph
+            </button>
+            
+            <button
+              className="px-3 py-1 text-sm rounded-md bg-purple-600 text-white hover:bg-purple-700"
+              onClick={() => setShowPathExplanationModal(true)}
+            >
+              Explain Traversal
+            </button>
+          </div>
         </div>
-        
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-1 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700"
-            onClick={() => setShowAboutModal(true)}
-          >
-            About This Graph
-          </button>
-          
-          <button
-            className="px-3 py-1 text-sm rounded-md bg-purple-600 text-white hover:bg-purple-700"
-            onClick={() => setShowPathExplanationModal(true)}
-          >
-            Explain PM to PC Path
-          </button>
-          
-          <button
-            className={`px-3 py-1 text-sm rounded-md ${
-              showPathTraversal 
-                ? "bg-orange-500 text-white hover:bg-orange-600" 
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
-            onClick={togglePathTraversal}
-          >
-            {showPathTraversal ? "Hide Path" : "Show PM to PC Path"}
-          </button>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full text-sm">
+          <div className="bg-white rounded-lg border p-3 shadow-sm">
+            <h3 className="font-semibold mb-2">Class Filter</h3>
+            <div className="space-y-2">
+              {Object.entries(categories).map(([key, category]) => (
+                <label key={key} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={activeCategories.includes(key)}
+                    onChange={() => toggleCategory(key)}
+                  />
+                  <span
+                    className="inline-block w-3 h-3 rounded-full"
+                    style={{ backgroundColor: category.color }}
+                  ></span>
+                  <span>{category.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border p-3 shadow-sm">
+            <h3 className="font-semibold mb-2">Allowed Predicates</h3>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {predicateTypes.map(predicate => (
+                <label key={predicate} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={activePredicates.includes(predicate)}
+                    onChange={() => togglePredicate(predicate)}
+                  />
+                  <span>{predicate}</span>
+                  <span className="text-gray-400">({(predicateWeights[predicate] ?? 1).toFixed(1)})</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border p-3 shadow-sm space-y-3">
+            <div>
+              <h3 className="font-semibold mb-2">Predicate-Aware Centrality</h3>
+              <input
+                className="w-full"
+                type="range"
+                min="0"
+                max={centralityStats.max}
+                step="0.5"
+                value={centralityThreshold}
+                onChange={(event) => setCentralityThreshold(Number(event.target.value))}
+              />
+              <div className="text-xs text-gray-500">
+                Threshold: {centralityThreshold.toFixed(1)} / {centralityStats.max.toFixed(1)}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">Path-Sensitive Traversal</h3>
+              <div className="flex flex-col gap-2">
+                <button
+                  className={`px-3 py-1 text-sm rounded-md ${
+                    pathTraversalEnabled
+                      ? "bg-orange-500 text-white hover:bg-orange-600"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+                  onClick={() => setPathTraversalEnabled(!pathTraversalEnabled)}
+                >
+                  {pathTraversalEnabled ? "Disable" : "Enable"} Traversal
+                </button>
+                <label className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Direction</span>
+                  <select
+                    className="border rounded px-2 py-1 text-xs"
+                    value={pathDirection}
+                    onChange={(event) => setPathDirection(event.target.value)}
+                  >
+                    <option value="upstream">Upstream (incoming)</option>
+                    <option value="downstream">Downstream (outgoing)</option>
+                  </select>
+                </label>
+                <p className="text-xs text-gray-500">
+                  Click a node to set the start point for traversal.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -530,6 +694,9 @@ const ProjectControlsKnowledgeGraph = () => {
           <div className="absolute bottom-4 left-4 right-4 bg-white p-4 rounded-md shadow-lg border">
             <h3 className="text-lg font-semibold">{selectedNode.name}</h3>
             <p className="text-sm text-gray-600">{selectedNode.description}</p>
+            <p className="text-xs text-gray-500 mt-2">
+              Class: {categories[selectedNode.category].name} · Weighted centrality: {(weightedCentrality[selectedNode.id] ?? 0).toFixed(1)}
+            </p>
           </div>
         )}
       </div>

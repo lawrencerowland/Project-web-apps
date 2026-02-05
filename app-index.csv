@@ -74,3 +74,5 @@
 66,tokyo_stadium_dicon_graph,"DiCon knowledge graph explorer for the Tokyo Olympic Stadium project.",ChatGPT,GPT-5.2-Codex,"knowledge_graph, visualization, architecture, infrastructure, interactive",,
 67,hs2_stakeholders_network,"HS2 stakeholders and delivery partners network graph with an embedded agent/role ontology.",User,GPT-5.2-Codex,"hs2, stakeholders, network, knowledge_graph, ontology, visualization",,
 68,interface_topology_sketch_v0,"Interface topology sketch for a regional signalling control centre site with canal, road, rail, OHL, and mining constraints.",ChatGPT,GPT-5.2-Codex,"rail, interfaces, topology, planning, visualization, infrastructure",,
+
+69,monotone_codesign_rail,"Monotone co-design rail upgrade staging simulator with Pareto plans and resource trade-offs.",User,GPT-5.2-Codex,"rail, codesign, staging, simulation, decision_support",,

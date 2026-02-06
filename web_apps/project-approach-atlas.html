@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Project-Approach Atlas</title>
+  <style>
+    :root{
+      --bg:#0b0d12; --panel:#121725; --panel2:#0f1320; --text:#e9eefc; --muted:#a8b3d6;
+      --line:#283151; --accent:#86a8ff; --good:#5eead4; --warn:#fbbf24; --bad:#fb7185;
+      --chip:#1a2140;
+      --radius:16px;
+      --shadow: 0 10px 24px rgba(0,0,0,.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:radial-gradient(1200px 800px at 15% 10%, rgba(134,168,255,.18), transparent 55%),
+      radial-gradient(900px 700px at 80% 25%, rgba(94,234,212,.10), transparent 55%),
+      radial-gradient(900px 700px at 50% 95%, rgba(251,113,133,.08), transparent 55%),
+      var(--bg);
+      color:var(--text); font-family:var(--sans);
+    }
+    header{padding:28px 18px 10px; max-width:1200px; margin:0 auto;}
+    h1{margin:0 0 8px; font-size:22px; font-weight:650; letter-spacing:.2px}
+    p.lede{margin:0; color:var(--muted); line-height:1.4; max-width:72ch}
+
+    .wrap{max-width:1200px; margin:0 auto; padding:14px 18px 34px; display:grid; gap:14px; grid-template-columns: 360px 1fr;}
+    @media (max-width: 980px){ .wrap{grid-template-columns: 1fr} }
+
+    .panel{background:linear-gradient(180deg, rgba(18,23,37,.95), rgba(12,16,28,.92)); border:1px solid rgba(40,49,81,.7); border-radius:var(--radius); box-shadow:var(--shadow);}
+    .panel .hd{padding:14px 14px 10px; border-bottom:1px solid rgba(40,49,81,.55)}
+    .panel .bd{padding:14px}
+
+    .grid2{display:grid; gap:12px}
+
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    label{font-size:12px; color:var(--muted)}
+
+    input[type="search"], select{
+      width:100%; padding:10px 11px; border-radius:12px; border:1px solid rgba(40,49,81,.8);
+      background:rgba(11,13,18,.55); color:var(--text);
+      outline:none;
+    }
+    input[type="range"]{width:100%}
+
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+    .chip{
+      display:inline-flex; gap:8px; align-items:center;
+      padding:7px 10px; border-radius:999px; border:1px solid rgba(40,49,81,.7);
+      background:rgba(26,33,64,.55); color:var(--text); font-size:12px; cursor:pointer;
+      user-select:none;
+    }
+    .chip[aria-pressed="true"]{border-color:rgba(134,168,255,.9); box-shadow:0 0 0 2px rgba(134,168,255,.18) inset}
+    .dot{width:9px; height:9px; border-radius:999px; background:var(--accent)}
+
+    .stats{display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:12px}
+    .stat{padding:10px 12px; border-radius:14px; border:1px solid rgba(40,49,81,.65); background:rgba(15,19,32,.55)}
+    .stat .k{font-size:12px; color:var(--muted)}
+    .stat .v{font-size:16px; margin-top:6px; font-weight:650}
+
+    .main{display:grid; gap:14px}
+    .tabs{display:flex; gap:8px; padding:10px 10px 0}
+    .tab{
+      padding:8px 10px; border-radius:12px; border:1px solid rgba(40,49,81,.7);
+      background:rgba(15,19,32,.55); color:var(--muted);
+      cursor:pointer; font-size:12px;
+    }
+    .tab[aria-selected="true"]{color:var(--text); border-color:rgba(134,168,255,.85); box-shadow:0 0 0 2px rgba(134,168,255,.15) inset}
+
+    .cards{display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px; padding:12px}
+    @media (max-width: 980px){ .cards{grid-template-columns: 1fr} }
+
+    .card{border:1px solid rgba(40,49,81,.65); background:rgba(15,19,32,.55); border-radius:18px; padding:12px; position:relative; overflow:hidden}
+    .card:hover{border-color:rgba(134,168,255,.65)}
+
+    .meta{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+    .badge{font-size:11px; padding:5px 9px; border-radius:999px; background:rgba(26,33,64,.6); border:1px solid rgba(40,49,81,.7); color:var(--muted)}
+    .badge strong{color:var(--text); font-weight:650}
+
+    .status{border-color:rgba(40,49,81,.7)}
+    .status.good{color:rgba(94,234,212,.95); border-color:rgba(94,234,212,.3)}
+    .status.warn{color:rgba(251,191,36,.95); border-color:rgba(251,191,36,.3)}
+    .status.bad{color:rgba(251,113,133,.95); border-color:rgba(251,113,133,.3)}
+
+    .title{font-size:15px; font-weight:700; margin:0 0 6px}
+    .desc{margin:0; color:var(--muted); font-size:13px; line-height:1.35}
+
+    .tri{margin-top:10px; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px}
+    .pill{padding:8px 10px; border-radius:14px; border:1px solid rgba(40,49,81,.65); background:rgba(11,13,18,.35)}
+    .pill .k{font-size:11px; color:var(--muted)}
+    .pill .v{font-size:12px; margin-top:4px; font-family:var(--mono); color:rgba(233,238,252,.92)}
+
+    .detail{margin-top:10px}
+    details{border-radius:14px; border:1px solid rgba(40,49,81,.65); background:rgba(11,13,18,.28); padding:8px 10px}
+    summary{cursor:pointer; color:var(--text); font-size:12px; list-style:none}
+    summary::-webkit-details-marker{display:none}
+    .notes{margin-top:8px; color:var(--muted); font-size:12px; line-height:1.45}
+
+    /* map */
+    .mapWrap{padding:12px}
+    .map{
+      width:100%; aspect-ratio: 16/9; min-height:320px;
+      border-radius:18px; border:1px solid rgba(40,49,81,.65);
+      background:linear-gradient(180deg, rgba(11,13,18,.35), rgba(11,13,18,.15));
+      position:relative; overflow:hidden;
+    }
+    .axisLabel{position:absolute; font-size:11px; color:var(--muted)}
+    .axisLabel.x{bottom:10px; left:50%; transform:translateX(-50%)}
+    .axisLabel.y{top:50%; left:12px; transform:translateY(-50%) rotate(-90deg); transform-origin:left top}
+    .tick{position:absolute; opacity:.35}
+    .tick.v{top:0; bottom:0; width:1px; background:rgba(40,49,81,.7)}
+    .tick.h{left:0; right:0; height:1px; background:rgba(40,49,81,.7)}
+
+    .pt{
+      position:absolute; width:12px; height:12px; border-radius:999px;
+      border:1px solid rgba(233,238,252,.55);
+      background:rgba(134,168,255,.65);
+      transform:translate(-50%,-50%);
+      cursor:pointer;
+      box-shadow: 0 0 0 2px rgba(0,0,0,.25);
+    }
+    .pt.good{background:rgba(94,234,212,.75)}
+    .pt.warn{background:rgba(251,191,36,.75)}
+    .pt.bad{background:rgba(251,113,133,.75)}
+
+    .tooltip{
+      position:absolute; pointer-events:none; min-width:220px;
+      background:rgba(18,23,37,.96); border:1px solid rgba(40,49,81,.8);
+      border-radius:14px; padding:10px 11px; box-shadow:var(--shadow);
+      opacity:0; transform:translateY(6px);
+      transition: opacity .12s ease, transform .12s ease;
+    }
+    .tooltip.on{opacity:1; transform:translateY(0)}
+    .tooltip .t{font-weight:700; font-size:12px; margin:0 0 4px}
+    .tooltip .s{margin:0; color:var(--muted); font-size:12px; line-height:1.35}
+
+    footer{max-width:1200px; margin:0 auto; padding:0 18px 28px; color:var(--muted); font-size:12px}
+    .kbd{font-family:var(--mono); border:1px solid rgba(40,49,81,.7); background:rgba(15,19,32,.55); padding:2px 6px; border-radius:8px; color:rgba(233,238,252,.9)}
+    .back-link{max-width:1200px; margin:18px auto 0; padding:0 18px;}
+    .back-link a{color:var(--accent); text-decoration:none; font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="back-link">
+    <a href="../index.html">Back to Card Index</a>
+  </div>
+  <header>
+    <h1>Project-Approach Atlas</h1>
+    <p class="lede">
+      A compact “working notebook” view of your attempts to test what *actually* improves project control: formal semantics vs. executive legibility vs. implementability.
+    </p>
+  </header>
+
+  <div class="wrap">
+    <section class="panel" aria-label="controls">
+      <div class="hd">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+          <div>
+            <div style="font-size:12px; color:var(--muted); margin-bottom:6px">Filters</div>
+            <div style="font-size:14px; font-weight:700">Slice the method-space</div>
+          </div>
+          <div class="badge" title="Keyboard shortcuts"><strong>Tips</strong> <span style="margin-left:6px">/</span></div>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="grid2">
+          <div>
+            <label for="q">Search (title, premise, notes)</label>
+            <input id="q" type="search" placeholder="e.g., sheaf, Petri, monotone, RL…" />
+          </div>
+
+          <div>
+            <label for="view">View</label>
+            <select id="view">
+              <option value="cards">Cards</option>
+              <option value="map">Map (rigor × legibility)</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Approach family</label>
+            <div class="chips" id="familyChips" aria-label="family chips"></div>
+          </div>
+
+          <div>
+            <label for="minExec">Minimum executive legibility</label>
+            <input id="minExec" type="range" min="0" max="10" step="1" value="0" />
+            <div class="row" style="justify-content:space-between; margin-top:6px">
+              <span style="font-size:12px; color:var(--muted)">0</span>
+              <span class="badge" id="minExecVal"><strong>0</strong> / 10</span>
+              <span style="font-size:12px; color:var(--muted)">10</span>
+            </div>
+          </div>
+
+          <div>
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="all">All</option>
+              <option value="good">Promising</option>
+              <option value="warn">Uncertain</option>
+              <option value="bad">Probably not</option>
+            </select>
+          </div>
+
+          <div class="stats" aria-label="stats">
+            <div class="stat"><div class="k">Showing</div><div class="v" id="showing">—</div></div>
+            <div class="stat"><div class="k">Families active</div><div class="v" id="familiesActive">—</div></div>
+          </div>
+
+          <div class="row" style="justify-content:space-between; margin-top:6px">
+            <button id="reset" class="tab" style="border-radius:14px;">Reset</button>
+            <div style="font-size:12px; color:var(--muted)">Shortcuts: <span class="kbd">/</span> search, <span class="kbd">r</span> reset</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel main" aria-label="main">
+      <div class="tabs" role="tablist" aria-label="tabs">
+        <button class="tab" id="tab-now" aria-selected="true" data-tab="now" role="tab">Current bets</button>
+        <button class="tab" id="tab-try" aria-selected="false" data-tab="try" role="tab">Explorations</button>
+        <button class="tab" id="tab-shelve" aria-selected="false" data-tab="shelve" role="tab">Shelved</button>
+        <div style="flex:1"></div>
+        <div class="badge"><strong>Legend</strong> <span style="margin-left:6px">rigor ⟂ legibility</span></div>
+      </div>
+
+      <div id="cardsView" class="cards" aria-label="cards"></div>
+
+      <div id="mapView" class="mapWrap" style="display:none">
+        <div class="map" id="map" aria-label="map">
+          <!-- grid ticks injected -->
+          <div class="axisLabel x">Executive legibility →</div>
+          <div class="axisLabel y">Formal rigor →</div>
+          <div class="tooltip" id="tip" aria-hidden="true"></div>
+        </div>
+        <div style="margin-top:10px; color:var(--muted); font-size:12px; line-height:1.45">
+          Interpretation: high rigor + high legibility is rare; when you hit it, it’s usually by *compiling* the rigor into a surface narrative (e.g., executable checklists, interactive explainers).
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div>
+      This is deliberately “not a dashboard”: it’s a method-space atlas. Edit the <span class="kbd">DATA</span> block to add new attempts.
+    </div>
+  </footer>
+
+  <script>
+    // =========================
+    // DATA (edit me)
+    // =========================
+    const DATA = [
+      {
+        id: 'kg-gt',
+        family: 'Knowledge Graphs',
+        tab: 'now',
+        title: 'Grounded-theory → axial concepts → similarity-rounded graph',
+        premise: 'Use humanities-style coding to surface concepts, then “round” the hierarchy into a richer graph and explore it interactively.',
+        why: 'High leverage for sensemaking + portfolio narratives; becomes a shared object across stakeholders.',
+        rigor: 6, legibility: 8, buildability: 8,
+        status: 'good',
+        signals: ['Stakeholder alignment improves', 'Reusable across domains', 'Interactive HTML makes it legible'],
+        failureModes: ['Ontology creep', 'Overfitting to rhetoric', 'Similarity edges become noise'],
+        nextProbe: 'Add falsifiable “edge audit”: each similarity edge must cite shared evidence snippets or co-occurrence traces.'
+      },
+      {
+        id: 'petri-sched',
+        family: 'Petri Nets',
+        tab: 'now',
+        title: 'Petri net physical logic → candidate schedules as markings',
+        premise: 'Separate invariant process constraints (net) from schedule alternatives (reachable markings / firing sequences).',
+        why: 'Stops dependency graphs lying; concurrency is explicit; supports generative WBS/schedule candidates.',
+        rigor: 8, legibility: 6, buildability: 7,
+        status: 'good',
+        signals: ['Constraints are local and checkable', 'Makes “impossible” plans obvious', 'Maps to simulation'],
+        failureModes: ['Net too detailed too early', 'Stakeholders confuse tokens with tasks', 'Data capture burden'],
+        nextProbe: 'Define a minimal token semantics for “workfront availability” that PMs already understand.'
+      },
+      {
+        id: 'smc-wiring',
+        family: 'Category Theory',
+        tab: 'try',
+        title: 'SMC wiring diagrams for processes-as-morphisms',
+        premise: 'Treat project tasks as composable processes; schedules become constraints on composition rather than the primary object.',
+        why: 'Promising for a true “process-first” PM formalism; matches Coecke-style process theories.',
+        rigor: 9, legibility: 4, buildability: 5,
+        status: 'warn',
+        signals: ['Clear separation of system vs process', 'Diagrammatic reasoning feels natural'],
+        failureModes: ['Too abstract for sponsors', 'Hard to parameterize cost/uncertainty', 'Tends to become “math theatre”'],
+        nextProbe: 'Compile the diagram into an executable interface contract + auto-generated WBS stubs.'
+      },
+      {
+        id: 'sheaf-wbs',
+        family: 'Sheaves',
+        tab: 'try',
+        title: 'Sheaf patching: global project view from local data',
+        premise: 'Represent local consistency constraints over a cover of the WBS/graph; global sections correspond to coherent plan states.',
+        why: 'A principled way to talk about “integration” and “interfaces” without hand-waving.',
+        rigor: 9, legibility: 5, buildability: 4,
+        status: 'warn',
+        signals: ['Makes contradiction-detection precise', 'Local-to-global narrative suits federated delivery'],
+        failureModes: ['Tooling gap', 'Hard to explain Čech/cohomology without intimidation', 'Need a careful base space choice'],
+        nextProbe: 'Use only the sheaf *metaphor* first: implement as constraint propagation over overlaps, then backfill theory.'
+      },
+      {
+        id: 'rl-powell',
+        family: 'Sequential Decision / RL',
+        tab: 'try',
+        title: 'Powell-style sequential decision model for project control',
+        premise: 'State + exogenous info + decision + transition; treat management actions distinctly from scheduled work.',
+        why: 'The right ontology for “decision under uncertainty”, not merely “task precedence”.',
+        rigor: 7, legibility: 5, buildability: 5,
+        status: 'warn',
+        signals: ['Captures learning over time', 'Forces you to define state properly', 'Naturally connects to policy'],
+        failureModes: ['Too many unobservables', 'Reward hacking', 'Stakeholders reject “policy” framing'],
+        nextProbe: 'Start with a single decision knob (scope cadence) and one uncertainty channel (temperature/market) to avoid state blow-up.'
+      },
+      {
+        id: 'mcd',
+        family: 'Monotone Co-Design',
+        tab: 'try',
+        title: 'Monotone co-design for coupled capacity trade-offs',
+        premise: 'Model capacity expansions as monotone relations across subsystems (platforms, signals, power); seek feasible co-expansions.',
+        why: 'A crisp language for “no subsystem shrinks while another grows” in staged upgrades.',
+        rigor: 8, legibility: 6, buildability: 3,
+        status: 'warn',
+        signals: ['Encodes non-decreasing safety/throughput intuitions', 'Highlights coupling constraints'],
+        failureModes: ['Library/tooling missing', 'Abstraction mismatch to contracts', 'Stakeholders treat monotonicity as optional'],
+        nextProbe: 'Mock the MCDP engine with a simple Pareto-front enumerator; keep the story monotone even if the solver is crude.'
+      },
+      {
+        id: 'handover-compile',
+        family: 'Controls & Assurance',
+        tab: 'now',
+        title: 'Handover pack that fails to compile when evidence/sign-offs missing',
+        premise: 'Make deliverables self-validating: missing controls prevent “build”.',
+        why: 'Operationalizes governance; reduces performative paperwork; aligns with CI/CD instincts.',
+        rigor: 6, legibility: 9, buildability: 7,
+        status: 'good',
+        signals: ['Immediate executive comprehension', 'Forces evidence hygiene', 'Automatable'],
+        failureModes: ['People bypass the gate', 'Over-formalizes early discovery', 'Versioning friction'],
+        nextProbe: 'Add lightweight “dev mode” where warnings are allowed but logged; flip to “strict” at phase gates.'
+      },
+      {
+        id: 'ontology-refuge',
+        family: 'Ontologies',
+        tab: 'shelve',
+        title: 'Application ontology for cliff-refuge micro-project',
+        premise: 'Template ontology capturing materials, hazards, interfaces, and occupancy constraints.',
+        why: 'Good as a didactic artifact and for requirements hygiene; less clear ROI for mainstream PM.',
+        rigor: 6, legibility: 6, buildability: 6,
+        status: 'warn',
+        signals: ['Clarifies domain vocabulary', 'Supports traceability'],
+        failureModes: ['Becomes “semantic debt”', 'Too static for dynamic control'],
+        nextProbe: 'Only keep ontology if it feeds validation checks (interfaces, hazards) rather than becoming a taxonomy museum.'
+      },
+      {
+        id: 'monism-critique',
+        family: 'Philosophy of Modelling',
+        tab: 'shelve',
+        title: 'KG monism / internal relations critique as guardrail',
+        premise: 'Watch for the slide from relation-rich models into monist metaphysics that smuggles normativity into structure.',
+        why: 'Prevents “map becomes territory”; keeps epistemic humility in modelling culture.',
+        rigor: 7, legibility: 5, buildability: 9,
+        status: 'good',
+        signals: ['Better modelling discipline', 'Healthier stakeholder debates'],
+        failureModes: ['Can become paralysing scepticism', 'Too literary for delivery teams'],
+        nextProbe: 'Turn critique into a checklist of modelling anti-patterns + mitigations.'
+      },
+      {
+        id: 'interface-geometry',
+        family: 'Systems / Interfaces',
+        tab: 'now',
+        title: 'Infrastructure interface topology as first-class project object',
+        premise: 'Treat boundary conditions (canal/viaduct/mining/HV line) as a geometric constraint field shaping all later plans.',
+        why: 'Interfaces dominate risk; making them explicit early is a structural advantage.',
+        rigor: 6, legibility: 8, buildability: 7,
+        status: 'good',
+        signals: ['Better early options', 'Reduces late surprises', 'Makes “site as system” legible'],
+        failureModes: ['Becomes an endless survey spiral', 'Hard to quantify benefit'],
+        nextProbe: 'Create an “interface register” that auto-generates required surveys + permits + design freezes.'
+      },
+      {
+        id: 'wbs-task-state',
+        family: 'Category Theory',
+        tab: 'try',
+        title: 'Task-view ↔ state-view via functorial mapping (lax back)',
+        premise: 'Processes transform state; schedule relationships are derived. Forward map is faithful-ish; inverse is necessarily lax.',
+        why: 'A precise diagnosis of why schedule-first systems distort reality.',
+        rigor: 8, legibility: 5, buildability: 6,
+        status: 'warn',
+        signals: ['Explains common PM failure patterns', 'Suggests better tooling primitives'],
+        failureModes: ['Needs careful categorical choices', 'Risks becoming non-operational'],
+        nextProbe: 'Implement a toy “state ledger” with derived critical paths as *views* rather than sources of truth.'
+      }
+    ];
+
+    // =========================
+    // State
+    // =========================
+    const state = {
+      tab: 'now',
+      q: '',
+      families: new Set(),
+      minExec: 0,
+      status: 'all',
+      view: 'cards'
+    };
+
+    // =========================
+    // Helpers
+    // =========================
+    const uniq = (arr) => [...new Set(arr)];
+    const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+    function statusClass(s){
+      if(s==='good') return 'good';
+      if(s==='warn') return 'warn';
+      return 'bad';
+    }
+
+    function statusLabel(s){
+      if(s==='good') return 'Promising';
+      if(s==='warn') return 'Uncertain';
+      return 'Probably not';
+    }
+
+    function familyColorDot(f){
+      // lightweight deterministic pseudo-color by family hash (but we keep it as dot using opacity)
+      // we avoid hardcoding colors; the dot exists mainly as a hint.
+      return '';
+    }
+
+    function matches(item){
+      if(item.tab !== state.tab) return false;
+      if(state.status !== 'all' && item.status !== state.status) return false;
+      if(item.legibility < state.minExec) return false;
+      if(state.families.size && !state.families.has(item.family)) return false;
+
+      if(state.q.trim()){
+        const q = state.q.trim().toLowerCase();
+        const hay = [item.title, item.premise, item.why, (item.signals||[]).join(' '), (item.failureModes||[]).join(' '), (item.nextProbe||'')].join(' ').toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    }
+
+    function filtered(){
+      return DATA.filter(matches);
+    }
+
+    function setTab(tab){
+      state.tab = tab;
+      document.querySelectorAll('.tab[role="tab"]').forEach(b=>{
+        b.setAttribute('aria-selected', b.dataset.tab === tab ? 'true' : 'false');
+      });
+      render();
+    }
+
+    function reset(){
+      state.tab = 'now';
+      state.q = '';
+      state.families = new Set();
+      state.minExec = 0;
+      state.status = 'all';
+      state.view = 'cards';
+
+      document.getElementById('q').value = '';
+      document.getElementById('minExec').value = '0';
+      document.getElementById('status').value = 'all';
+      document.getElementById('view').value = 'cards';
+      document.getElementById('minExecVal').innerHTML = '<strong>0</strong> / 10';
+
+      // tab UI
+      setTab('now');
+      // chips UI re-rendered
+      render();
+    }
+
+    // =========================
+    // Render chips
+    // =========================
+    function renderChips(){
+      const families = uniq(DATA.map(d=>d.family)).sort((a,b)=>a.localeCompare(b));
+      const holder = document.getElementById('familyChips');
+      holder.innerHTML = '';
+
+      for(const fam of families){
+        const btn = document.createElement('button');
+        btn.className = 'chip';
+        btn.type = 'button';
+        btn.setAttribute('aria-pressed', state.families.has(fam) ? 'true' : 'false');
+        btn.innerHTML = `<span class="dot" aria-hidden="true"></span><span>${fam}</span>`;
+        btn.addEventListener('click', ()=>{
+          if(state.families.has(fam)) state.families.delete(fam); else state.families.add(fam);
+          render();
+        });
+        holder.appendChild(btn);
+      }
+
+      // update chip pressed states
+      holder.querySelectorAll('.chip').forEach(btn=>{
+        const fam = btn.textContent.trim();
+        btn.setAttribute('aria-pressed', state.families.has(fam) ? 'true' : 'false');
+      });
+    }
+
+    // =========================
+    // Render cards
+    // =========================
+    function cardHTML(d){
+      const st = statusClass(d.status);
+      return `
+        <article class="card" data-id="${d.id}">
+          <div class="meta">
+            <span class="badge"><strong>${d.family}</strong></span>
+            <span class="badge">Rigor <strong>${d.rigor}</strong>/10</span>
+            <span class="badge">Legibility <strong>${d.legibility}</strong>/10</span>
+            <span class="badge">Buildability <strong>${d.buildability}</strong>/10</span>
+            <span class="badge status ${st}">${statusLabel(d.status)}</span>
+          </div>
+
+          <h3 class="title">${d.title}</h3>
+          <p class="desc">${d.premise}</p>
+
+          <div class="tri" aria-label="tri">
+            <div class="pill"><div class="k">Why it matters</div><div class="v">${escapeHtml(d.why)}</div></div>
+            <div class="pill"><div class="k">Signals</div><div class="v">${escapeHtml((d.signals||[]).slice(0,2).join(' · ') || '—')}</div></div>
+            <div class="pill"><div class="k">Next probe</div><div class="v">${escapeHtml(d.nextProbe || '—')}</div></div>
+          </div>
+
+          <div class="detail">
+            <details>
+              <summary>Show failure modes / more signals</summary>
+              <div class="notes">
+                <div><strong>Signals (full):</strong> ${(d.signals||[]).map(s=>`<span class="badge">${escapeHtml(s)}</span>`).join(' ') || '—'}</div>
+                <div style="margin-top:10px"><strong>Failure modes:</strong> ${(d.failureModes||[]).map(s=>`<span class="badge">${escapeHtml(s)}</span>`).join(' ') || '—'}</div>
+              </div>
+            </details>
+          </div>
+        </article>
+      `;
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'",'&#39;');
+    }
+
+    function renderCards(list){
+      const holder = document.getElementById('cardsView');
+      if(!list.length){
+        holder.innerHTML = `
+          <div class="card" style="grid-column:1/-1">
+            <h3 class="title" style="margin-bottom:8px">No matches</h3>
+            <p class="desc">Try clearing filters, or search for a broader term (e.g., “process”, “interfaces”, “graph”).</p>
+          </div>
+        `;
+        return;
+      }
+      holder.innerHTML = list.map(cardHTML).join('');
+    }
+
+    // =========================
+    // Render map
+    // =========================
+    function renderMap(list){
+      const map = document.getElementById('map');
+      const tip = document.getElementById('tip');
+
+      // clear old points/ticks
+      map.querySelectorAll('.pt, .tick').forEach(n=>n.remove());
+
+      // grid ticks
+      for(let i=1;i<=9;i++){
+        const v = document.createElement('div');
+        v.className = 'tick v';
+        v.style.left = `${(i/10)*100}%`;
+        map.appendChild(v);
+
+        const h = document.createElement('div');
+        h.className = 'tick h';
+        h.style.top = `${(1 - i/10)*100}%`;
+        map.appendChild(h);
+      }
+
+      // points
+      for(const d of list){
+        const pt = document.createElement('div');
+        pt.className = `pt ${statusClass(d.status)}`;
+
+        // x: legibility, y: rigor
+        const x = clamp01(d.legibility/10);
+        const y = clamp01(d.rigor/10);
+        pt.style.left = `${x*100}%`;
+        pt.style.top = `${(1-y)*100}%`;
+        pt.setAttribute('data-id', d.id);
+
+        pt.addEventListener('mouseenter', (e)=>{
+          tip.innerHTML = `<p class="t">${escapeHtml(d.title)}</p><p class="s">${escapeHtml(d.family)} · rigor ${d.rigor}/10 · legibility ${d.legibility}/10</p>`;
+          tip.classList.add('on');
+          tip.setAttribute('aria-hidden','false');
+        });
+        pt.addEventListener('mousemove', (e)=>{
+          const rect = map.getBoundingClientRect();
+          const mx = e.clientX - rect.left;
+          const my = e.clientY - rect.top;
+          const pad = 12;
+          tip.style.left = `${Math.min(mx + 14, rect.width - 240 - pad)}px`;
+          tip.style.top  = `${Math.max(my - 10, pad)}px`;
+        });
+        pt.addEventListener('mouseleave', ()=>{
+          tip.classList.remove('on');
+          tip.setAttribute('aria-hidden','true');
+        });
+
+        pt.addEventListener('click', ()=>{
+          // On click, switch to cards and scroll to the card
+          state.view = 'cards';
+          document.getElementById('view').value = 'cards';
+          syncView();
+          render();
+          requestAnimationFrame(()=>{
+            const card = document.querySelector(`[data-id="${CSS.escape(d.id)}"]`);
+            if(card){
+              card.scrollIntoView({behavior:'smooth', block:'center'});
+              card.style.boxShadow = '0 0 0 2px rgba(134,168,255,.25) inset, 0 12px 28px rgba(0,0,0,.35)';
+              setTimeout(()=>{ card.style.boxShadow = ''; }, 900);
+            }
+          });
+        });
+
+        map.appendChild(pt);
+      }
+
+      // if none
+      if(!list.length){
+        const msg = document.createElement('div');
+        msg.className = 'axisLabel x';
+        msg.style.bottom = '50%';
+        msg.style.left = '50%';
+        msg.style.transform = 'translate(-50%, -50%)';
+        msg.style.color = 'rgba(168,179,214,.9)';
+        msg.textContent = 'No matches — widen filters.';
+        map.appendChild(msg);
+      }
+    }
+
+    function syncView(){
+      const cards = document.getElementById('cardsView');
+      const map = document.getElementById('mapView');
+      if(state.view === 'map'){
+        cards.style.display = 'none';
+        map.style.display = '';
+      } else {
+        cards.style.display = '';
+        map.style.display = 'none';
+      }
+    }
+
+    // =========================
+    // Main render
+    // =========================
+    function render(){
+      renderChips();
+      const list = filtered();
+
+      // stats
+      document.getElementById('showing').textContent = `${list.length} / ${DATA.filter(d=>d.tab===state.tab).length}`;
+      const famActive = state.families.size ? state.families.size : uniq(DATA.filter(d=>d.tab===state.tab).map(d=>d.family)).length;
+      document.getElementById('familiesActive').textContent = String(famActive);
+
+      // view
+      syncView();
+      if(state.view === 'map'){
+        renderMap(list);
+      } else {
+        renderCards(list);
+      }
+
+      // update chip states
+      document.querySelectorAll('#familyChips .chip').forEach(btn=>{
+        const fam = btn.textContent.trim();
+        btn.setAttribute('aria-pressed', state.families.has(fam) ? 'true' : 'false');
+      });
+    }
+
+    // =========================
+    // Wiring
+    // =========================
+    document.getElementById('q').addEventListener('input', (e)=>{
+      state.q = e.target.value;
+      render();
+    });
+
+    document.getElementById('minExec').addEventListener('input', (e)=>{
+      state.minExec = Number(e.target.value);
+      document.getElementById('minExecVal').innerHTML = `<strong>${state.minExec}</strong> / 10`;
+      render();
+    });
+
+    document.getElementById('status').addEventListener('change', (e)=>{
+      state.status = e.target.value;
+      render();
+    });
+
+    document.getElementById('view').addEventListener('change', (e)=>{
+      state.view = e.target.value;
+      render();
+    });
+
+    document.querySelectorAll('.tab[role="tab"]').forEach(btn=>{
+      btn.addEventListener('click', ()=> setTab(btn.dataset.tab));
+    });
+
+    document.getElementById('reset').addEventListener('click', reset);
+
+    // keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      if(e.key === '/' && document.activeElement?.tagName !== 'INPUT'){
+        e.preventDefault();
+        document.getElementById('q').focus();
+      }
+      if(e.key.toLowerCase() === 'r'){
+        reset();
+      }
+    });
+
+    // init
+    render();
+  </script>
+</body>
+</html>

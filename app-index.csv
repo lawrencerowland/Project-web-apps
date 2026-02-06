@@ -77,3 +77,5 @@
 
 69,monotone_codesign_rail,"Monotone co-design rail upgrade staging simulator with Pareto plans and resource trade-offs.",User,GPT-5.2-Codex,"rail, codesign, staging, simulation, decision_support",,
 70,climate_megaproject_sdam,"Sequential decision analytics for a climate engineering megaproject with SDAM framing and simulations.",User,GPT-5.2-Codex,"climate, decision_support, sdam, simulation, policy",,
+
+71,project-approach-atlas,"Project-Approach atlas for comparing project control methods by rigor, legibility, and buildability.",User,GPT-5.2-Codex,"project_controls, methods, visualization, decision_support",,

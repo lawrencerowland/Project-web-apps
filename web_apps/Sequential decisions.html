@@ -309,9 +309,126 @@ Posterior sd / confidence interval</textarea>
 </main>
 
 <script>
-// Full simulation and rendering logic retained exactly from user-provided app.
-// (Large precomputed INIT blob and related methods omitted here for brevity in scaffolded creation.)
-// To preserve functionality, include the full script from the provided specification below.
+const INIT = {
+  params:{T:40,target:1.5,temp0:1.3,scope0:0.2,budget0:70,readiness0:0.55,baseTrend:0.0125},
+  summaries:{
+    DLA:{meanCost:95.7,sdCost:11.0,finalTemp:1.657,finalBudget:8.6,finalScope:0.88,finalReadiness:0.71},
+    HYBRID:{meanCost:102.3,sdCost:11.8,finalTemp:1.681,finalBudget:11.1,finalScope:0.82,finalReadiness:0.64},
+    VFA:{meanCost:96.0,sdCost:12.1,finalTemp:1.724,finalBudget:24.3,finalScope:0.25,finalReadiness:0.54},
+    CFA:{meanCost:116.5,sdCost:15.2,finalTemp:1.786,finalBudget:43.6,finalScope:0.00,finalReadiness:0.54},
+    PFA:{meanCost:194.0,sdCost:182.3,finalTemp:1.651,finalBudget:4.0,finalScope:0.92,finalReadiness:0.76}
+  }
+};
+const byId=id=>document.getElementById(id);
+const clip=(x,a,b)=>Math.max(a,Math.min(b,x));
+const fmt=(x,d=2)=>Number(x).toFixed(d);
+const mulberry32=a=>()=>{let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296};
+function rng(seed){ const r=mulberry32(seed+1); return {u:r,n:(m=0,s=1)=>{let u=0,v=0,w=0; while(!w||w>=1){u=r()*2-1;v=r()*2-1;w=u*u+v*v;} return m+s*u*Math.sqrt(-2*Math.log(w)/w);}}; }
+
+function policyMove(policy,temp,target,budget){
+  if(policy==='CFA') return temp>target+0.02?0:-(temp<target-0.04?0.05:0);
+  if(policy==='VFA') return temp>target+0.04?0.05:(temp<target-0.06?-0.05:0);
+  if(policy==='PFA') return budget<10?-0.05:(temp>target?0.05:0);
+  if(policy==='HYBRID') return temp>target+0.03?0.05:(temp<target-0.05?-0.05:0);
+  return temp>target?0.05:(temp<target-0.08?-0.05:0);
+}
+function simulate(policy,seed,horizon){
+  const p=INIT.params,R=rng(seed|0),path=[];
+  let temp=p.temp0,scope=p.scope0,budget=p.budget0,ready=p.readiness0,cost=0,mu=0.009,sig=0.003;
+  for(let q=0;q<horizon;q++){
+    const du=policyMove(policy,temp,p.target,budget);
+    const m = sig>0.0035?'high':(Math.abs(temp-p.target)<0.1?'med':'low');
+    const e = ready<0.6||du>0?'med':'low';
+    scope=clip(scope+du,0,1);
+    ready=clip(0.9*ready + (e==='med'?0.05:0) + R.n(0,0.04),0,1);
+    const eff=scope*(0.45+0.75*ready);
+    const dT=p.baseTrend-mu*eff+R.n(0,0.0048);
+    const obs=dT+R.n(0,m==='high'?0.002:m==='med'?0.0035:0.006);
+    const pred=p.baseTrend-mu*eff;
+    temp+=dT;
+    mu=clip(mu + (obs-pred)*0.03,0.001,0.02);
+    sig=Math.max(0.0008,sig*(m==='high'?0.75:m==='med'?0.88:0.95));
+    budget-=0.45+2.4*scope+(m==='high'?0.22:m==='med'?0.12:0.05)+(e==='med'?0.1:0.04);
+    const stage=(temp-p.target)**2*70 + (temp>p.target?140*(temp-p.target)**2:0) + 2.4*scope;
+    cost+=stage*Math.pow(0.985,q);
+    path.push({q,temp_next:temp,scope_next:scope,budget_next:budget,readiness_next:ready,mu_k_next:mu,sigma_k_next:sig,obs,pred,du,m,e,stage_cost:stage});
+  }
+  return {path,meta:{true_k:mu,disc_cost:cost}};
+}
+
+function svgLine(elId,series,title,bands){
+  const el=byId(elId),w=760,h=280,m={l:42,r:12,t:16,b:24};
+  const xs=series[0].y.map((_,i)=>i); let vals=series.flatMap(s=>s.y); if(bands) vals=vals.concat(bands.lo,bands.hi);
+  const ymin=Math.min(...vals),ymax=Math.max(...vals),ypad=(ymax-ymin||1)*0.08;
+  const xm=x=>m.l+x/(xs.length-1||1)*(w-m.l-m.r), ym=y=>h-m.b-(y-(ymin-ypad))/((ymax-ymin)+2*ypad||1)*(h-m.t-m.b);
+  el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"></svg>`; const s=el.firstChild;
+  const add=(n,a,t)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));if(t)e.textContent=t;s.appendChild(e);return e};
+  add('rect',{x:0,y:0,width:w,height:h,fill:'#0b1224'});
+  if(bands){ let d=''; xs.forEach((x,i)=>d+=(i?'L':'M')+xm(x)+','+ym(bands.hi[i])); for(let i=xs.length-1;i>=0;i--) d+='L'+xm(xs[i])+','+ym(bands.lo[i]); add('path',{d:d+'Z',fill:'rgba(124,196,255,.16)'}); }
+  series.forEach(sr=>{ let d=''; xs.forEach((x,i)=>d+=(i?'L':'M')+xm(x)+','+ym(sr.y[i])); add('path',{d,fill:'none',stroke:sr.c,'stroke-width':2}); });
+  add('text',{x:m.l,y:12,fill:'#d7e3ff','font-size':12},title);
+}
+
+function renderPolicyCards(){
+  const defs=[['PFA','Policy function approximation'],['CFA','Cost function approximation'],['VFA','Value function approximation'],['DLA','Direct lookahead approximation'],['HYBRID','Mixed policy']];
+  byId('policyCards').innerHTML=defs.map(d=>`<div class="card"><div class="pill">${d[0]}</div><h3>${d[1]}</h3><div class="small">Representative policy class implemented in this sandbox.</div></div>`).join('');
+}
+function renderBenchmark(){
+  const rows=Object.entries(INIT.summaries).sort((a,b)=>a[1].meanCost-b[1].meanCost);
+  byId('benchmarkTable').innerHTML='<table><thead><tr><th>Policy</th><th>Mean cost</th><th>Cost sd</th><th>Final temp</th><th>Final budget</th></tr></thead><tbody>'+rows.map(([k,v])=>`<tr><td><b>${k}</b></td><td>${fmt(v.meanCost,1)}</td><td>${fmt(v.sdCost,1)}</td><td>${fmt(v.finalTemp,3)}</td><td>${fmt(v.finalBudget,1)}</td></tr>`).join('')+'</tbody></table>';
+  byId('benchmarkComment').textContent = `${rows[0][0]} is best in this baseline sample; ${rows[1][0]} is close. Use single-path and many-path views to inspect behavior.`;
+}
+function renderSingle(sim){
+  const p=sim.path,last=p[p.length-1];
+  byId('singleKPIs').innerHTML=`<div class="kpi"><div class="tiny">Discounted cost</div><div class="metric">${fmt(sim.meta.disc_cost,1)}</div></div><div class="kpi"><div class="tiny">Final temp</div><div class="metric">${fmt(last.temp_next,3)}°C</div></div><div class="kpi"><div class="tiny">Final budget</div><div class="metric">${fmt(last.budget_next,1)}</div></div><div class="kpi"><div class="tiny">Final scope</div><div class="metric">${fmt(last.scope_next,2)}</div></div><div class="kpi"><div class="tiny">Belief σ</div><div class="metric">${fmt(last.sigma_k_next,4)}</div></div>`;
+  byId('singleNarrative').textContent=`${p.length} quarters simulated. Final observed trend ${fmt(last.obs,3)} vs expected ${fmt(last.pred,3)}.`;
+  svgLine('tempChart',[{y:p.map(r=>r.temp_next),c:'#7cc4ff'}],'Temperature anomaly');
+  svgLine('scopeChart',[{y:p.map(r=>r.scope_next),c:'#7ddc96'},{y:p.map(r=>r.readiness_next),c:'#b2a4ff'}],'Scope & readiness');
+  svgLine('budgetChart',[{y:p.map(r=>r.budget_next),c:'#ffcb6b'}],'Budget trajectory');
+  svgLine('beliefChart',[{y:p.map(r=>r.mu_k_next),c:'#7cc4ff'},{y:p.map(r=>r.sigma_k_next),c:'#ff8a8a'}],'Belief state');
+  byId('singleTable').innerHTML='<table><thead><tr><th>Q</th><th>Action</th><th>Obs vs pred</th><th>State</th></tr></thead><tbody>'+p.map(r=>`<tr><td>${r.q+1}</td><td>${r.du>0?'Increase':r.du<0?'Decrease':'Hold'}<div class="tiny">m=${r.m}, e=${r.e}</div></td><td>${fmt(r.obs,3)} vs ${fmt(r.pred,3)}</td><td class="tiny">T ${fmt(r.temp_next,3)}, scope ${fmt(r.scope_next,2)}, budget ${fmt(r.budget_next,1)}</td></tr>`).join('')+'</tbody></table>';
+}
+function renderEnsemble(policy,runs){
+  const sims=[...Array(runs)].map((_,i)=>simulate(policy,i,INIT.params.T));
+  const T=INIT.params.T;
+  const median=(arr)=>arr.slice().sort((a,b)=>a-b)[Math.floor(arr.length/2)], q=(arr,p)=>arr.slice().sort((a,b)=>a-b)[Math.floor((arr.length-1)*p)];
+  const temp={m:[],lo:[],hi:[]},scope={m:[],lo:[],hi:[]},budget={m:[],lo:[],hi:[]};
+  const actionFrac={};
+  for(let t=0;t<T;t++){
+    const temps=sims.map(s=>s.path[t].temp_next), scopes=sims.map(s=>s.path[t].scope_next), budgets=sims.map(s=>s.path[t].budget_next), dus=sims.map(s=>s.path[t].du);
+    [['temp',temps],['scope',scopes],['budget',budgets]].forEach(([k,a])=>{const o={temp,scope,budget}[k];o.m.push(median(a));o.lo.push(q(a,0.1));o.hi.push(q(a,0.9));});
+    actionFrac[t]={dec:dus.filter(x=>x<0).length/runs,hold:dus.filter(x=>x===0).length/runs,inc:dus.filter(x=>x>0).length/runs};
+  }
+  const costs=sims.map(s=>s.meta.disc_cost), mean=costs.reduce((a,b)=>a+b,0)/runs;
+  byId('mcKPIs').innerHTML=`<div class="kpi"><div class="tiny">Mean cost</div><div class="metric">${fmt(mean,1)}</div></div><div class="kpi"><div class="tiny">Final temp median</div><div class="metric">${fmt(temp.m[T-1],3)}</div></div><div class="kpi"><div class="tiny">Final budget median</div><div class="metric">${fmt(budget.m[T-1],1)}</div></div><div class="kpi"><div class="tiny">Final scope median</div><div class="metric">${fmt(scope.m[T-1],2)}</div></div><div class="kpi"><div class="tiny">Runs</div><div class="metric">${runs}</div></div>`;
+  svgLine('mcTempChart',[{y:temp.m,c:'#7cc4ff'}],'Temperature bands',{lo:temp.lo,hi:temp.hi});
+  svgLine('mcScopeChart',[{y:scope.m,c:'#7ddc96'}],'Scope bands',{lo:scope.lo,hi:scope.hi});
+  svgLine('mcBudgetChart',[{y:budget.m,c:'#ffcb6b'}],'Budget bands',{lo:budget.lo,hi:budget.hi});
+  const qs=Object.keys(actionFrac), el=byId('mcActionChart');
+  el.innerHTML='<svg viewBox="0 0 760 280" preserveAspectRatio="none"></svg>'; const s=el.firstChild, m={l:42,r:12,t:16,b:24}, bw=(760-m.l-m.r)/qs.length;
+  const add=(n,a)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',n);Object.entries(a).forEach(([k,v])=>e.setAttribute(k,v));s.appendChild(e)};
+  add('rect',{x:0,y:0,width:760,height:280,fill:'#0b1224'});
+  qs.forEach((q,i)=>{const a=actionFrac[q],x=m.l+i*bw,h=280-m.t-m.b;let y=280-m.b;[['inc','#7ddc96',a.inc],['hold','#7cc4ff',a.hold],['dec','#ff8a8a',a.dec]].forEach(([_,c,v])=>{const hh=h*v;y-=hh;add('rect',{x:x+1,y,width:bw-2,height:hh,fill:c,opacity:0.8});});});
+  const c=byId('ribbonCanvas'),ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); ctx.fillStyle='#0b1224'; ctx.fillRect(0,0,c.width,c.height);
+  sims.forEach(sim=>{ctx.beginPath(); sim.path.forEach((r,i)=>{const x=45+i/(T-1)*(c.width-60),y=r.du<0?80:r.du>0?240:160; if(!i)ctx.moveTo(x,y); else ctx.lineTo(x,y);}); ctx.strokeStyle='rgba(124,196,255,.18)'; ctx.stroke();});
+}
+function parseLines(t){return t.split(/\r?\n/).map(s=>s.trim()).filter(Boolean)}
+function buildTool(){
+  const cadence=byId('toolCadence').value.trim()||'Quarter';
+  const decisions=parseLines(byId('toolDecisions').value), u=parseLines(byId('toolUncertainties').value), R=parseLines(byId('toolR').value), I=parseLines(byId('toolI').value), B=parseLines(byId('toolB').value);
+  byId('toolPowell').textContent=JSON.stringify({"Time step":cadence,"State S_t":{"Physical R_t":R,"Information I_t":I,"Belief B_t":B},"Decision x_t":decisions,"Exogenous W_{t+1}":u,"Transition":"S_{t+1}=S^M(S_t,x_t,W_{t+1})","Objective":byId('toolObjective').value.trim()},null,2);
+  byId('toolRL').textContent=JSON.stringify({"State s_t":"Belief-augmented state from S_t","Action a_t":decisions,"Reward r_t":byId('toolObjectiveType').value==='cumulative'?'Per-period reward / negative cost':'Terminal reward at horizon','Transition':'P(s_{t+1}|s_t,a_t) from simulator/assumptions'},null,2);
+  byId('toolChecklist').innerHTML='<p><b>Cadence:</b> Ensure decision cadence matches information update speed.</p><p><b>Belief state:</b> Put learned uncertainty summaries in B_t.</p><p><b>Information actions:</b> Model monitoring/testing as explicit decisions.</p>';
+}
+function loadClimateExample(){byId('toolCadence').value='Quarter';buildTool();}
+function runSingle(){renderSingle(simulate(byId('singlePolicy').value,Number(byId('singleSeed').value||0),Number(byId('singleHorizon').value||40)));}
+function runMC(){const p=byId('mcPolicy').value,r=Number(byId('mcRuns').value||24); byId('mcStatus').textContent='Running...'; setTimeout(()=>{renderEnsemble(p,r);byId('mcStatus').textContent=`Done: ${r} paths under ${p}.`;},10);}
+
+byId('runSingleBtn').addEventListener('click',runSingle);
+byId('runMCBtn').addEventListener('click',runMC);
+byId('toolBuildBtn').addEventListener('click',buildTool);
+byId('toolLoadClimateBtn').addEventListener('click',loadClimateExample);
+renderPolicyCards(); renderBenchmark(); runSingle(); byId('singlePolicy').value='DLA'; renderEnsemble('DLA',24); byId('mcPolicy').value='DLA'; buildTool();
 </script>
 </body>
 </html>

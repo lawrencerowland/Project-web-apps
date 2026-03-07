@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Waste Route & Capacity Digital Twin</title>
+<style>
+  :root{
+    --bg:#0f172a;
+    --panel:#111827;
+    --panel2:#1f2937;
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+    --accent:#60a5fa;
+    --accent2:#34d399;
+    --danger:#f87171;
+    --warn:#fbbf24;
+    --grid:#334155;
+    --line1:#60a5fa;
+    --line2:#34d399;
+    --line3:#f59e0b;
+    --line4:#f87171;
+    --line5:#a78bfa;
+    --line6:#22d3ee;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #0b1220, #0f172a 30%);
+    color: var(--text);
+  }
+  .page {
+    max-width: 1550px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  h1,h2,h3 { margin: 0 0 10px 0; }
+  h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+  h2 { font-size: 17px; font-weight: 650; color: #f3f4f6; }
+  h3 { font-size: 14px; font-weight: 650; color: #f3f4f6; margin-top: 14px; }
+  p { margin: 0 0 10px 0; color: var(--muted); line-height: 1.45; }
+  .layout {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  .panel {
+    background: rgba(17,24,39,.92);
+    border: 1px solid rgba(148,163,184,.16);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  }
+  .panel.sticky { position: sticky; top: 18px; }
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 90px;
+    gap: 8px 10px;
+    align-items: center;
+  }
+  label, .label {
+    font-size: 13px;
+    color: #d1d5db;
+  }
+  input[type="number"], select {
+    width: 100%;
+    background: #0b1220;
+    color: var(--text);
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  input[type="checkbox"] { transform: scale(1.08); }
+  .inline-check {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding: 7px 0;
+    border-bottom: 1px dashed rgba(148,163,184,.12);
+  }
+  .inline-check:last-child { border-bottom: none; }
+  .btn-row {
+    display:flex;
+    flex-wrap: wrap;
+    gap:8px;
+    margin-top: 14px;
+  }
+  button {
+    border: 1px solid transparent;
+    background: #2563eb;
+    color: white;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  button.secondary {
+    background: #0b1220;
+    color: #dbeafe;
+    border-color: #334155;
+  }
+  button:hover { filter: brightness(1.06); }
+  .main-grid {
+    display: grid;
+    gap: 18px;
+  }
+  .card-grid {
+    display:grid;
+    grid-template-columns: repeat(6, minmax(140px, 1fr));
+    gap:12px;
+  }
+  .kpi {
+    background: rgba(11,18,32,.78);
+    border: 1px solid rgba(148,163,184,.13);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .kpi .title { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .kpi .value { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .kpi .sub { font-size: 12px; color: #cbd5e1; margin-top: 4px; }
+  .chart-grid {
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 18px;
+  }
+  .chart-grid .panel { min-height: 360px; }
+  .wide { grid-column: 1 / -1; }
+  .svg-wrap { width: 100%; min-height: 290px; }
+  .legend {
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:10px;
+    color:#cbd5e1;
+    font-size:12px;
+  }
+  .legend-item { display:flex; align-items:center; gap:6px; }
+  .swatch { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .insights {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .insight-box {
+    background: rgba(11,18,32,.78);
+    border: 1px solid rgba(148,163,184,.13);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .insight-box ul { margin: 8px 0 0 18px; color:#dbe2ea; line-height:1.4; }
+  .stress-grid {
+    display:grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    gap:12px;
+    margin-top:12px;
+  }
+  details {
+    border-top:1px solid rgba(148,163,184,.12);
+    margin-top:12px;
+    padding-top:12px;
+  }
+  summary { cursor:pointer; color:#dbeafe; font-size:13px; }
+  .small { font-size: 12px; color: var(--muted); }
+  .status {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 10px;
+    border-radius:999px;
+    background: rgba(96,165,250,.12);
+    color:#dbeafe;
+    font-size:12px;
+    margin-bottom:12px;
+  }
+  .note {
+    margin-top:12px;
+    padding:10px 12px;
+    border:1px solid rgba(251,191,36,.25);
+    background: rgba(251,191,36,.08);
+    border-radius:12px;
+    color:#fde68a;
+    font-size:12px;
+    line-height:1.45;
+  }
+  .source-box {
+    margin-top:12px;
+    padding:12px;
+    border:1px solid rgba(96,165,250,.24);
+    background: rgba(96,165,250,.08);
+    border-radius:12px;
+    color:#dbeafe;
+    font-size:12px;
+    line-height:1.5;
+  }
+  .source-box strong { color:#f8fafc; }
+  .footer {
+    margin-top:18px;
+    color:#94a3b8;
+    font-size:12px;
+  }
+  @media (max-width: 1120px) {
+    .layout { grid-template-columns: 1fr; }
+    .panel.sticky { position: relative; top: 0; }
+    .card-grid { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+    .chart-grid { grid-template-columns: 1fr; }
+    .insights { grid-template-columns: 1fr; }
+    .stress-grid { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+  }
+  @media (max-width: 720px) {
+    .page { padding: 14px; }
+    .card-grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+    .stress-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="status">Finite-buffer line model · FIFO queues · rework loop from assay to packaging · deterministic + stress test</div>
+  <h1>Waste Route & Capacity Digital Twin</h1>
+  <p>This prototype treats the decommissioning waste route as the real production system: characterization → segregation → size reduction → packaging → assay → interim storage → transport/disposal. The unit is intentionally generic (“package-equivalent”) so you can map it to drum-equivalents, container-equivalents, or volume-normalized units without smuggling fake precision into the model.</p>
+
+  <div class="layout">
+    <div class="panel sticky">
+      <h2>Scenario controls</h2>
+      <p class="small">The defaults are tuned so the model sits near the interesting frontier: assay and transport are both close to binding, which is where managerial intuition usually improves fastest.</p>
+
+      <div class="controls-grid">
+        <label for="preset">Preset</label>
+        <select id="preset">
+          <option value="baseline">Baseline balanced</option>
+          <option value="transportOutage">10-day transport outage</option>
+          <option value="assayConstrained">Assay constrained</option>
+          <option value="conservative">Conservative classification</option>
+          <option value="lateSeg">Late segregation</option>
+          <option value="recovered">Add capacity & buffer</option>
+          <option value="ukRwiSIXEP">UK RWI example: Sellafield 2X26 LLW</option>
+        </select>
+
+        <label for="horizon">Horizon (days)</label>
+        <input id="horizon" type="number" min="30" max="730" step="10" />
+
+        <label for="inbound">Inbound units / day</label>
+        <input id="inbound" type="number" min="0" max="200" step="0.01" />
+
+        <label for="charCap">Characterization cap</label>
+        <input id="charCap" type="number" min="0" max="200" step="0.01" />
+
+        <label for="segCap">Segregation cap</label>
+        <input id="segCap" type="number" min="0" max="200" step="0.01" />
+
+        <label for="sizeCap">Size reduction cap</label>
+        <input id="sizeCap" type="number" min="0" max="200" step="0.01" />
+
+        <label for="packCap">Packaging cap</label>
+        <input id="packCap" type="number" min="0" max="200" step="0.01" />
+
+        <label for="assayCap">Assay cap</label>
+        <input id="assayCap" type="number" min="0" max="200" step="0.01" />
+
+        <label for="transportCap">Transport / disposal cap</label>
+        <input id="transportCap" type="number" min="0" max="200" step="0.01" />
+
+        <label for="storageCap">Interim storage cap</label>
+        <input id="storageCap" type="number" min="0" max="10000" step="1" />
+
+        <label for="cleanRelease">Clean release fraction (%)</label>
+        <input id="cleanRelease" type="number" min="0" max="90" step="1" />
+
+        <label for="reworkBase">Assay rework base (%)</label>
+        <input id="reworkBase" type="number" min="0" max="80" step="1" />
+
+        <label for="classInflation">Conservative volume inflation (%)</label>
+        <input id="classInflation" type="number" min="0" max="100" step="1" />
+
+        <label for="reworkReduction">Conservative rework reduction (pts)</label>
+        <input id="reworkReduction" type="number" min="0" max="50" step="1" />
+      </div>
+
+      <h3>Policies</h3>
+      <div class="inline-check"><span class="label">Early segregation / clean release</span><input id="earlySeg" type="checkbox" /></div>
+      <div class="inline-check"><span class="label">Conservative classification policy</span><input id="conservative" type="checkbox" /></div>
+
+      <h3>Planned disruptions</h3>
+      <div class="controls-grid">
+        <label for="assayOutageStart">Assay outage start</label>
+        <input id="assayOutageStart" type="number" min="0" max="730" step="1" />
+        <label for="assayOutageDuration">Assay outage duration</label>
+        <input id="assayOutageDuration" type="number" min="0" max="100" step="1" />
+        <label for="transportOutageStart">Transport outage start</label>
+        <input id="transportOutageStart" type="number" min="0" max="730" step="1" />
+        <label for="transportOutageDuration">Transport outage duration</label>
+        <input id="transportOutageDuration" type="number" min="0" max="100" step="1" />
+      </div>
+
+      <details>
+        <summary>Stress test settings</summary>
+        <div class="controls-grid" style="margin-top:10px;">
+          <label for="stressRuns">Monte Carlo runs</label>
+          <input id="stressRuns" type="number" min="20" max="2000" step="10" />
+          <label for="inboundCV">Inbound variability (%)</label>
+          <input id="inboundCV" type="number" min="0" max="100" step="1" />
+          <label for="assayOutageProb">Random assay outage p/day (%)</label>
+          <input id="assayOutageProb" type="number" min="0" max="100" step="0.1" />
+          <label for="transportOutageProb">Random transport outage p/day (%)</label>
+          <input id="transportOutageProb" type="number" min="0" max="100" step="0.1" />
+          <label for="randomOutageDuration">Random outage duration (days)</label>
+          <input id="randomOutageDuration" type="number" min="1" max="30" step="1" />
+        </div>
+      </details>
+
+      <div class="btn-row">
+        <button id="runBtn">Run model</button>
+        <button id="stressBtn" class="secondary">Run stress test</button>
+        <button id="resetBtn" class="secondary">Reset defaults</button>
+        <button id="ukExampleBtn" class="secondary">Load UK RWI example</button>
+      </div>
+
+      <div class="note">
+        The model is deliberately austere: a finite-buffer queueing line with one rework loop. That is a feature, not a defect. It makes it obvious when “more field work” is merely creating more WIP that the waste route cannot absorb.
+      </div>
+
+      <div id="scenarioBasis" class="source-box"></div>
+    </div>
+
+    <div class="main-grid">
+      <div class="panel">
+        <h2>Deterministic run</h2>
+        <div class="card-grid" id="kpiGrid"></div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="panel">
+          <h2>Queue trajectories</h2>
+          <p class="small">End-of-day queues by stage. When storage saturates, the assay queue typically becomes the visible symptom, but transport is often the hidden cause.</p>
+          <div id="queueChart" class="svg-wrap"></div>
+          <div id="queueLegend" class="legend"></div>
+        </div>
+        <div class="panel">
+          <h2>Utilization by stage</h2>
+          <p class="small">Average use of available capacity across the horizon. Near-100% utilization is not automatically good if it is achieved by growing queues.</p>
+          <div id="utilChart" class="svg-wrap"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Bottleneck attribution</h2>
+          <p class="small">Counts the days each stage had the highest queue pressure. This is a pressure index, not a metaphysical statement about “the” bottleneck.</p>
+          <div id="bottleneckChart" class="svg-wrap"></div>
+        </div>
+        <div class="panel">
+          <h2>Throughput and lead time</h2>
+          <p class="small">Averages conceal the pathology. Watch what happens to lead time when you tighten one stage but leave downstream routing unchanged.</p>
+          <div id="throughputText" style="padding-top:8px;"></div>
+          <div id="insightSummary" class="small" style="margin-top:14px; line-height:1.5;"></div>
+        </div>
+      </div>
+
+      <div class="panel wide">
+        <h2>Interpretation</h2>
+        <div class="insights">
+          <div class="insight-box">
+            <h3>Managerial reading</h3>
+            <div id="managerialRead"></div>
+          </div>
+          <div class="insight-box">
+            <h3>Highest-leverage moves</h3>
+            <div id="actionRead"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel wide">
+        <h2>Stress test</h2>
+        <p class="small">Runs many stochastic realizations using inbound variability and random outages. The point is not pseudo-certainty; it is to make the tails visible.</p>
+        <div class="stress-grid" id="stressCards"></div>
+        <div class="chart-grid" style="margin-top:14px;">
+          <div class="panel">
+            <h2 style="font-size:15px;">No-place-to-go days distribution</h2>
+            <div id="stressHist" class="svg-wrap"></div>
+          </div>
+          <div class="panel">
+            <h2 style="font-size:15px;">Stress test reading</h2>
+            <div id="stressText" style="line-height:1.5; color:#dbe2ea;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        This prototype is meant for intuition, option comparison, and conversation with engineering, waste, and project controls teams. A project-grade model would ingest site zoning, package rules, WAC logic, transport windows, crew/resource calendars, and real hold points.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STAGE_META = [
+  {key:'char', label:'Characterization', color:getCss('--line1')},
+  {key:'seg', label:'Segregation', color:getCss('--line2')},
+  {key:'size', label:'Size reduction', color:getCss('--line3')},
+  {key:'pack', label:'Packaging', color:getCss('--line4')},
+  {key:'assay', label:'Assay', color:getCss('--line5')},
+  {key:'storage', label:'Storage', color:getCss('--line6')}
+];
+
+function getCss(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+const DEFAULTS = {
+  horizon: 260,
+  inbound: 18,
+  charCap: 24,
+  segCap: 22,
+  sizeCap: 18,
+  packCap: 16,
+  assayCap: 14,
+  transportCap: 12,
+  storageCap: 120,
+  cleanRelease: 25,
+  reworkBase: 10,
+  classInflation: 15,
+  reworkReduction: 4,
+  earlySeg: true,
+  conservative: false,
+  assayOutageStart: 0,
+  assayOutageDuration: 0,
+  transportOutageStart: 0,
+  transportOutageDuration: 0,
+  stressRuns: 250,
+  inboundCV: 12,
+  assayOutageProb: 2.0,
+  transportOutageProb: 1.0,
+  randomOutageDuration: 3
+};
+
+const UK_RWI_EXAMPLE = {
+  horizon: 260,
+  inbound: 1.46,
+  charCap: 2.00,
+  segCap: 1.80,
+  sizeCap: 1.90,
+  packCap: 1.70,
+  assayCap: 1.50,
+  transportCap: 1.40,
+  storageCap: 12,
+  cleanRelease: 0,
+  reworkBase: 4,
+  classInflation: 15,
+  reworkReduction: 2,
+  earlySeg: false,
+  conservative: false,
+  assayOutageStart: 0,
+  assayOutageDuration: 0,
+  transportOutageStart: 0,
+  transportOutageDuration: 0,
+  stressRuns: 250,
+  inboundCV: 20,
+  assayOutageProb: 1.5,
+  transportOutageProb: 1.0,
+  randomOutageDuration: 3
+};
+
+const PRESET_NOTES = {
+  default: `
+    <strong>Scenario basis.</strong> The built-in presets are synthetic comparison cases designed to make queue physics legible, not to reproduce any licensed facility. The model unit remains intentionally generic.
+  `,
+  ukRwiSIXEP: `
+    <strong>UK RWI example basis.</strong> This button loads a one-year illustrative slice of UK Radioactive Waste & Materials Inventory waste stream <strong>2X26 — “Disposal of LLW from SIXEP”</strong> at <strong>Sellafield</strong>. Evidence-based inputs: stock at 1 April 2022 = <strong>0 m³</strong>; future arisings = <strong>38.0 m³ per year</strong> from <strong>2022/23 to 2057/58</strong>; total future arisings = <strong>1,366.3 m³</strong>; and the waste stream is stated to meet <strong>LLWR Waste Acceptance Criteria</strong> and to be <strong>consigned to LLWR in the year of generation</strong>. Model mapping: <strong>1 unit = 0.1 m³</strong> and <strong>260 workdays = 1 year</strong>, so inbound = <strong>38.0 / 0.1 / 260 = 1.46 units/day</strong>. Capacities, storage buffer, and disruption settings are still illustrative, because the public inventory gives waste volumes and routing metadata, not process throughput capacities.
+  `
+};
+
+const PRESETS = {
+  baseline: {...DEFAULTS},
+  transportOutage: {...DEFAULTS, transportOutageStart: 80, transportOutageDuration: 10},
+  assayConstrained: {...DEFAULTS, assayCap: 11, transportCap: 13, storageCap: 140},
+  conservative: {...DEFAULTS, conservative: true},
+  lateSeg: {...DEFAULTS, earlySeg: false},
+  recovered: {...DEFAULTS, assayCap: 16, transportCap: 14, storageCap: 180},
+  ukRwiSIXEP: {...UK_RWI_EXAMPLE}
+};
+
+function fmt(n, digits=1){
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  return new Intl.NumberFormat('en-GB', {maximumFractionDigits: digits, minimumFractionDigits: digits}).format(n);
+}
+function fmtInt(n){
+  if (n === null || n === undefined || Number.isNaN(n)) return '—';
+  return new Intl.NumberFormat('en-GB', {maximumFractionDigits: 0}).format(Math.round(n));
+}
+function pct(n, digits=1){ return fmt(n*100, digits) + '%'; }
+function clamp(x, lo, hi){ return Math.min(hi, Math.max(lo, x)); }
+function percentile(arr, p){
+  if (!arr.length) return null;
+  const sorted = [...arr].sort((a,b)=>a-b);
+  const idx = (sorted.length - 1) * p;
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  if (lo === hi) return sorted[lo];
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+}
+function sum(arr){ return arr.reduce((a,b)=>a+b, 0); }
+function mean(arr){ return arr.length ? sum(arr)/arr.length : 0; }
+
+function setInputs(obj){
+  for (const [k,v] of Object.entries(obj)){
+    const el = document.getElementById(k);
+    if (!el) continue;
+    if (el.type === 'checkbox') el.checked = !!v;
+    else el.value = v;
+  }
+}
+function getInputs(){
+  const fields = ['horizon','inbound','charCap','segCap','sizeCap','packCap','assayCap','transportCap','storageCap','cleanRelease','reworkBase','classInflation','reworkReduction','assayOutageStart','assayOutageDuration','transportOutageStart','transportOutageDuration','stressRuns','inboundCV','assayOutageProb','transportOutageProb','randomOutageDuration'];
+  const obj = {};
+  for (const f of fields) obj[f] = parseFloat(document.getElementById(f).value || '0');
+  obj.earlySeg = document.getElementById('earlySeg').checked;
+  obj.conservative = document.getElementById('conservative').checked;
+  return obj;
+}
+function renderScenarioBasis(key='default'){
+  const el = document.getElementById('scenarioBasis');
+  if (!el) return;
+  el.innerHTML = PRESET_NOTES[key] || PRESET_NOTES.default;
+}
+function applyScenario(key){
+  const preset = PRESETS[key] || DEFAULTS;
+  setInputs(preset);
+  const presetEl = document.getElementById('preset');
+  if (presetEl && PRESETS[key]) presetEl.value = key;
+  renderScenarioBasis(key);
+  runModel();
+  runStress();
+}
+function batchPush(queue, qty, born){
+  if (qty <= 1e-9) return;
+  const last = queue[queue.length - 1];
+  if (last && last.born === born) last.qty += qty;
+  else queue.push({qty, born});
+}
+function batchSum(queue){
+  let s = 0;
+  for (const b of queue) s += b.qty;
+  return s;
+}
+function takeFIFO(queue, amount){
+  let rem = amount;
+  const moved = [];
+  while (rem > 1e-9 && queue.length){
+    const b = queue[0];
+    const take = Math.min(rem, b.qty);
+    moved.push({qty: take, born: b.born});
+    b.qty -= take;
+    rem -= take;
+    if (b.qty <= 1e-9) queue.shift();
+  }
+  return {moved, actual: amount - rem};
+}
+function addScaled(target, batches, factor){
+  for (const b of batches){
+    const q = b.qty * factor;
+    if (q > 1e-9) batchPush(target, q, b.born);
+  }
+}
+function randn(){
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+function inPlannedOutage(day, start, duration){
+  return start > 0 && duration > 0 && day >= start && day < start + duration;
+}
+
+function simulate(p, stochastic=false){
+  const q = {char:[], seg:[], size:[], pack:[], assay:[], storage:[]};
+  const history = {day:[], qChar:[], qSeg:[], qSize:[], qPack:[], qAssay:[], qStorage:[], throughput:[]};
+  const utilFlow = {char:0, seg:0, size:0, pack:0, assay:0, transport:0};
+  const utilCap = {char:0, seg:0, size:0, pack:0, assay:0, transport:0};
+  const bottleneck = {char:0, seg:0, size:0, pack:0, assay:0, transport:0, storage:0};
+  let shipped = 0, leadQty = 0, leadSum = 0, cleanReleased = 0, reworkQty = 0;
+  let noPlaceDays = 0, blockedAssayDays = 0, peakStorage = 0, peakAssayQueue = 0;
+  let assayRandDown = 0, transportRandDown = 0;
+
+  for (let day = 1; day <= Math.round(p.horizon); day++){
+    let inbound = p.inbound;
+    if (stochastic && p.inboundCV > 0){
+      inbound = Math.max(0, p.inbound * (1 + randn() * (p.inboundCV / 100)));
+    }
+    batchPush(q.char, inbound, day);
+
+    if (stochastic){
+      if (assayRandDown <= 0 && Math.random() < (p.assayOutageProb / 100)) assayRandDown = Math.max(1, Math.round(p.randomOutageDuration));
+      if (transportRandDown <= 0 && Math.random() < (p.transportOutageProb / 100)) transportRandDown = Math.max(1, Math.round(p.randomOutageDuration));
+    }
+
+    const charCap = p.charCap;
+    const segCap = p.segCap * (p.earlySeg ? 0.95 : 1.05);
+    const sizeCap = p.sizeCap;
+    const packCap = p.packCap * (p.earlySeg ? 0.98 : 1.05);
+    let assayCap = p.assayCap;
+    let transportCap = p.transportCap;
+
+    if (inPlannedOutage(day, p.assayOutageStart, p.assayOutageDuration)) assayCap = 0;
+    if (inPlannedOutage(day, p.transportOutageStart, p.transportOutageDuration)) transportCap = 0;
+    if (stochastic && assayRandDown > 0){ assayCap = 0; assayRandDown -= 1; }
+    if (stochastic && transportRandDown > 0){ transportCap = 0; transportRandDown -= 1; }
+
+    const packageMultiplier = p.conservative ? (1 + p.classInflation / 100) : 1;
+    const reworkProb = p.conservative
+      ? clamp((p.reworkBase - p.reworkReduction) / 100, 0, 0.95)
+      : clamp(p.reworkBase / 100, 0, 0.95);
+    const cleanRelease = p.earlySeg ? clamp(p.cleanRelease / 100, 0, 0.9) : 0;
+
+    const pre = {
+      char: batchSum(q.char),
+      seg: batchSum(q.seg),
+      size: batchSum(q.size),
+      pack: batchSum(q.pack),
+      assay: batchSum(q.assay),
+      storage: batchSum(q.storage)
+    };
+
+    const c1 = takeFIFO(q.char, charCap); addScaled(q.seg, c1.moved, 1); utilFlow.char += c1.actual; utilCap.char += charCap;
+    const c2 = takeFIFO(q.seg, segCap);
+    if (p.earlySeg){
+      const kept = 1 - cleanRelease;
+      addScaled(q.size, c2.moved, kept);
+      cleanReleased += c2.actual * cleanRelease;
+    } else {
+      addScaled(q.size, c2.moved, 1);
+    }
+    utilFlow.seg += c2.actual; utilCap.seg += segCap;
+
+    const c3 = takeFIFO(q.size, sizeCap); addScaled(q.pack, c3.moved, 1); utilFlow.size += c3.actual; utilCap.size += sizeCap;
+    const c4 = takeFIFO(q.pack, packCap); addScaled(q.assay, c4.moved, packageMultiplier); utilFlow.pack += c4.actual; utilCap.pack += packCap;
+
+    const storageQty = batchSum(q.storage);
+    const freeStorage = Math.max(0, p.storageCap - storageQty);
+    const passRate = 1 - reworkProb;
+    const storageLimitedCap = passRate > 0 ? freeStorage / passRate : 0;
+    const assayRequest = Math.min(assayCap, storageLimitedCap);
+    const c5 = takeFIFO(q.assay, assayRequest);
+    const wantedAssay = Math.min(assayCap, batchSum(q.assay) + c5.actual);
+    if (assayCap > 0 && wantedAssay - c5.actual > 1e-6 && freeStorage < wantedAssay * passRate) blockedAssayDays += 1;
+    addScaled(q.storage, c5.moved, passRate);
+    addScaled(q.pack, c5.moved, reworkProb);
+    reworkQty += c5.actual * reworkProb;
+    utilFlow.assay += c5.actual; utilCap.assay += assayCap;
+
+    const c6 = takeFIFO(q.storage, transportCap);
+    utilFlow.transport += c6.actual; utilCap.transport += transportCap;
+    shipped += c6.actual;
+    for (const b of c6.moved){
+      leadQty += b.qty;
+      leadSum += b.qty * (day - b.born);
+    }
+
+    const qEnd = {
+      char: batchSum(q.char),
+      seg: batchSum(q.seg),
+      size: batchSum(q.size),
+      pack: batchSum(q.pack),
+      assay: batchSum(q.assay),
+      storage: batchSum(q.storage)
+    };
+    peakStorage = Math.max(peakStorage, qEnd.storage);
+    peakAssayQueue = Math.max(peakAssayQueue, qEnd.assay);
+    if (qEnd.storage >= 0.95 * p.storageCap || (blockedAssayDays && qEnd.storage >= 0.9 * p.storageCap)) noPlaceDays += 1;
+
+    const pressure = {
+      char: pre.char / Math.max(charCap, 0.1),
+      seg: pre.seg / Math.max(segCap, 0.1),
+      size: pre.size / Math.max(sizeCap, 0.1),
+      pack: pre.pack / Math.max(packCap, 0.1),
+      assay: pre.assay / Math.max(Math.max(assayCap, 0.1), 0.1),
+      transport: qEnd.storage / Math.max(Math.max(transportCap, 0.1), 0.1),
+      storage: qEnd.storage / Math.max(p.storageCap, 0.1) * 8
+    };
+    const dominant = Object.keys(pressure).reduce((a,b)=> pressure[a] > pressure[b] ? a : b);
+    bottleneck[dominant] += 1;
+
+    history.day.push(day);
+    history.qChar.push(qEnd.char);
+    history.qSeg.push(qEnd.seg);
+    history.qSize.push(qEnd.size);
+    history.qPack.push(qEnd.pack);
+    history.qAssay.push(qEnd.assay);
+    history.qStorage.push(qEnd.storage);
+    history.throughput.push(c6.actual);
+  }
+
+  const util = {};
+  for (const k of Object.keys(utilFlow)) util[k] = utilCap[k] > 0 ? utilFlow[k] / utilCap[k] : 0;
+  const avgLead = leadQty > 0 ? leadSum / leadQty : null;
+  return {
+    params: {...p},
+    shipped,
+    avgLead,
+    cleanReleased,
+    reworkQty,
+    noPlaceDays,
+    blockedAssayDays,
+    peakStorage,
+    peakAssayQueue,
+    util,
+    bottleneck,
+    history,
+    endQueues: {
+      char: history.qChar.at(-1) || 0,
+      seg: history.qSeg.at(-1) || 0,
+      size: history.qSize.at(-1) || 0,
+      pack: history.qPack.at(-1) || 0,
+      assay: history.qAssay.at(-1) || 0,
+      storage: history.qStorage.at(-1) || 0
+    }
+  };
+}
+
+function makeLegend(containerId, items){
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(it => `<span class="legend-item"><span class="swatch" style="background:${it.color}"></span>${it.label}</span>`).join('');
+}
+
+function svgLineChart(containerId, labels, series, opts={}){
+  const width = opts.width || 760, height = opts.height || 300;
+  const pad = {l: 48, r: 16, t: 12, b: 32};
+  const maxY = Math.max(1, ...series.flatMap(s => s.values));
+  const minY = opts.minY ?? 0;
+  const x = i => pad.l + (labels.length <= 1 ? 0 : (i/(labels.length-1))*(width-pad.l-pad.r));
+  const y = v => height-pad.b - ((v-minY)/(maxY-minY || 1))*(height-pad.t-pad.b);
+  const grid = [];
+  const ticks = 5;
+  for (let t=0; t<=ticks; t++){
+    const v = minY + (maxY-minY)*t/ticks;
+    const yy = y(v);
+    grid.push(`<line x1="${pad.l}" y1="${yy}" x2="${width-pad.r}" y2="${yy}" stroke="${getCss('--grid')}" stroke-width="1" opacity="0.7" />`);
+    grid.push(`<text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${getCss('--muted')}">${fmt(v, 0)}</text>`);
+  }
+  const lines = series.map(s => {
+    const d = s.values.map((v,i)=>`${i===0?'M':'L'} ${x(i)} ${y(v)}`).join(' ');
+    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round" />`;
+  }).join('');
+  const xLabels = [
+    `<text x="${pad.l}" y="${height-8}" text-anchor="middle" font-size="11" fill="${getCss('--muted')}">1</text>`,
+    `<text x="${width/2}" y="${height-8}" text-anchor="middle" font-size="11" fill="${getCss('--muted')}">${fmtInt(labels[Math.floor((labels.length-1)/2)])}</text>`,
+    `<text x="${width-pad.r}" y="${height-8}" text-anchor="end" font-size="11" fill="${getCss('--muted')}">${fmtInt(labels.at(-1))}</text>`
+  ].join('');
+  const svg = `
+  <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}">
+    <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
+    ${grid.join('')}
+    <line x1="${pad.l}" y1="${height-pad.b}" x2="${width-pad.r}" y2="${height-pad.b}" stroke="${getCss('--grid')}" />
+    <line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${height-pad.b}" stroke="${getCss('--grid')}" />
+    ${lines}
+    ${xLabels}
+  </svg>`;
+  document.getElementById(containerId).innerHTML = svg;
+}
+
+function svgBarChart(containerId, items, opts={}){
+  const width = opts.width || 560, height = opts.height || 300;
+  const pad = {l: 44, r: 16, t: 14, b: 52};
+  const maxY = Math.max(1, ...items.map(d => d.value));
+  const barW = (width - pad.l - pad.r) / Math.max(items.length,1) * 0.72;
+  const gap = (width - pad.l - pad.r) / Math.max(items.length,1) * 0.28;
+  const y = v => height - pad.b - (v/maxY)*(height-pad.t-pad.b);
+  const grid = [];
+  for (let t=0; t<=4; t++){
+    const v = maxY*t/4;
+    const yy = y(v);
+    grid.push(`<line x1="${pad.l}" y1="${yy}" x2="${width-pad.r}" y2="${yy}" stroke="${getCss('--grid')}" stroke-width="1" opacity="0.7" />`);
+    grid.push(`<text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${getCss('--muted')}">${fmt(v, 0)}</text>`);
+  }
+  const bars = items.map((d,i)=>{
+    const left = pad.l + i*(barW+gap) + gap/2;
+    const top = y(d.value);
+    const h = height - pad.b - top;
+    return `
+      <rect x="${left}" y="${top}" width="${barW}" height="${h}" rx="5" fill="${d.color}" opacity="0.92"></rect>
+      <text x="${left + barW/2}" y="${top - 6}" text-anchor="middle" font-size="11" fill="${getCss('--text')}">${fmt(d.value, opts.pct ? 1 : 0)}${opts.pct ? '%' : ''}</text>
+      <text x="${left + barW/2}" y="${height - 30}" text-anchor="middle" font-size="11" fill="${getCss('--muted')}">${d.label}</text>`;
+  }).join('');
+  const svg = `
+  <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}">
+    ${grid.join('')}
+    <line x1="${pad.l}" y1="${height-pad.b}" x2="${width-pad.r}" y2="${height-pad.b}" stroke="${getCss('--grid')}" />
+    ${bars}
+  </svg>`;
+  document.getElementById(containerId).innerHTML = svg;
+}
+
+function svgHistogram(containerId, values, opts={}){
+  const width = opts.width || 560, height = opts.height || 300;
+  const pad = {l: 44, r: 16, t: 14, b: 42};
+  if (!values.length){
+    document.getElementById(containerId).innerHTML = '<div class="small">Run the stress test to populate this chart.</div>';
+    return;
+  }
+  const minV = Math.min(...values), maxV = Math.max(...values);
+  const bins = Math.min(18, Math.max(8, Math.round(Math.sqrt(values.length))));
+  const span = Math.max(1e-9, maxV - minV);
+  const counts = Array.from({length: bins}, ()=>0);
+  values.forEach(v=>{
+    const idx = Math.min(bins-1, Math.floor(((v - minV) / span) * bins));
+    counts[idx] += 1;
+  });
+  const maxY = Math.max(...counts, 1);
+  const barW = (width - pad.l - pad.r) / bins;
+  const y = v => height - pad.b - (v/maxY)*(height-pad.t-pad.b);
+  const bars = counts.map((c,i)=>{
+    const left = pad.l + i*barW + 1;
+    const top = y(c);
+    const h = height - pad.b - top;
+    return `<rect x="${left}" y="${top}" width="${Math.max(2, barW-2)}" height="${h}" rx="2" fill="${getCss('--line5')}" opacity="0.88"></rect>`;
+  }).join('');
+  const labels = `
+    <text x="${pad.l}" y="${height-12}" text-anchor="start" font-size="11" fill="${getCss('--muted')}">${fmt(minV,0)}</text>
+    <text x="${width-pad.r}" y="${height-12}" text-anchor="end" font-size="11" fill="${getCss('--muted')}">${fmt(maxV,0)}</text>`;
+  const grid = [];
+  for (let t=0; t<=4; t++){
+    const v = maxY*t/4;
+    const yy = y(v);
+    grid.push(`<line x1="${pad.l}" y1="${yy}" x2="${width-pad.r}" y2="${yy}" stroke="${getCss('--grid')}" opacity="0.7" />`);
+    grid.push(`<text x="${pad.l-8}" y="${yy+4}" text-anchor="end" font-size="11" fill="${getCss('--muted')}">${fmt(v,0)}</text>`);
+  }
+  const svg = `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}">
+    ${grid.join('')}
+    <line x1="${pad.l}" y1="${height-pad.b}" x2="${width-pad.r}" y2="${height-pad.b}" stroke="${getCss('--grid')}" />
+    ${bars}
+    ${labels}
+  </svg>`;
+  document.getElementById(containerId).innerHTML = svg;
+}
+
+function buildKpiCards(result){
+  const bottleneck = Object.entries(result.bottleneck).sort((a,b)=>b[1]-a[1])[0][0];
+  const map = {
+    char:'Characterization', seg:'Segregation', size:'Size reduction', pack:'Packaging',
+    assay:'Assay', storage:'Storage', transport:'Transport'
+  };
+  const cards = [
+    {title:'Shipped units', value:fmt(result.shipped,0), sub:'Output through transport/disposal'},
+    {title:'Average lead time', value:fmt(result.avgLead,1) + ' d', sub:'Arrival to shipped'},
+    {title:'Peak storage', value:fmt(result.peakStorage,0), sub:`Cap ${fmt(result.params.storageCap,0)}`},
+    {title:'Peak assay queue', value:fmt(result.peakAssayQueue,0), sub:'Visible downstream pressure'},
+    {title:'No-place-to-go days', value:fmt(result.noPlaceDays,0), sub:'Storage near full / blocked'},
+    {title:'Dominant pressure', value:map[bottleneck], sub:`${result.bottleneck[bottleneck]} days`}
+  ];
+  document.getElementById('kpiGrid').innerHTML = cards.map(c => `
+    <div class="kpi">
+      <div class="title">${c.title}</div>
+      <div class="value">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderDeterministic(result){
+  buildKpiCards(result);
+
+  svgLineChart('queueChart', result.history.day, [
+    {label:'Characterization', color:getCss('--line1'), values:result.history.qChar},
+    {label:'Segregation', color:getCss('--line2'), values:result.history.qSeg},
+    {label:'Size reduction', color:getCss('--line3'), values:result.history.qSize},
+    {label:'Packaging', color:getCss('--line4'), values:result.history.qPack},
+    {label:'Assay', color:getCss('--line5'), values:result.history.qAssay},
+    {label:'Storage', color:getCss('--line6'), values:result.history.qStorage}
+  ], {height: 310});
+  makeLegend('queueLegend', STAGE_META);
+
+  svgBarChart('utilChart', [
+    {label:'Char', value:result.util.char*100, color:getCss('--line1')},
+    {label:'Seg', value:result.util.seg*100, color:getCss('--line2')},
+    {label:'Size', value:result.util.size*100, color:getCss('--line3')},
+    {label:'Pack', value:result.util.pack*100, color:getCss('--line4')},
+    {label:'Assay', value:result.util.assay*100, color:getCss('--line5')},
+    {label:'Trans', value:result.util.transport*100, color:getCss('--line6')}
+  ], {height: 310, pct: true});
+
+  svgBarChart('bottleneckChart', [
+    {label:'Char', value:result.bottleneck.char, color:getCss('--line1')},
+    {label:'Seg', value:result.bottleneck.seg, color:getCss('--line2')},
+    {label:'Size', value:result.bottleneck.size, color:getCss('--line3')},
+    {label:'Pack', value:result.bottleneck.pack, color:getCss('--line4')},
+    {label:'Assay', value:result.bottleneck.assay, color:getCss('--line5')},
+    {label:'Storage', value:result.bottleneck.storage, color:getCss('--warn')},
+    {label:'Trans', value:result.bottleneck.transport, color:getCss('--line6')}
+  ], {height: 310});
+
+  const end = result.endQueues;
+  document.getElementById('throughputText').innerHTML = `
+    <div class="small" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+      <div><strong style="color:#f3f4f6;">End-of-horizon queues</strong><br>
+        Char ${fmt(end.char,0)} · Seg ${fmt(end.seg,0)} · Size ${fmt(end.size,0)}<br>
+        Pack ${fmt(end.pack,0)} · Assay ${fmt(end.assay,0)} · Storage ${fmt(end.storage,0)}
+      </div>
+      <div><strong style="color:#f3f4f6;">Route effects</strong><br>
+        Clean release ${fmt(result.cleanReleased,0)} · Rework ${fmt(result.reworkQty,0)}<br>
+        Assay blocked ${fmt(result.blockedAssayDays,0)} days
+      </div>
+    </div>
+  `;
+  document.getElementById('insightSummary').innerHTML = summarizeDeterministic(result);
+  document.getElementById('managerialRead').innerHTML = managerialRead(result);
+  document.getElementById('actionRead').innerHTML = actionRead(result);
+}
+
+function stageOrder(result){
+  return Object.entries(result.bottleneck).sort((a,b)=>b[1]-a[1]).map(([k])=>k);
+}
+
+function summarizeDeterministic(r){
+  const top = stageOrder(r)[0];
+  const labels = {char:'characterization', seg:'segregation', size:'size reduction', pack:'packaging', assay:'assay', transport:'transport/disposal', storage:'interim storage'};
+  const parts = [];
+  parts.push(`The route is governed primarily by <strong style="color:#f3f4f6;">${labels[top]}</strong> pressure.`);
+  if (r.util.transport > 0.95 && r.history.qStorage.at(-1) > 0.5 * r.params.storageCap){
+    parts.push('Transport is running at the ceiling while storage remains loaded; the assay queue is therefore partly a downstream symptom.');
+  }
+  if (r.util.assay > 0.95 && r.peakAssayQueue > 0.25 * r.shipped){
+    parts.push('Assay is near saturation, so modest upstream gains will mostly lengthen lead time unless assay or route capacity changes too.');
+  }
+  if (r.params.conservative && r.avgLead > 20){
+    parts.push('The conservative classification setting has bought lower rework at the price of route inflation and much longer residence time.');
+  }
+  if (!r.params.earlySeg && r.util.pack > 0.95){
+    parts.push('Delaying segregation shifts mass into packaging and assay, which is usually where the line starts to feel “mysteriously slow.”');
+  }
+  return parts.join(' ');
+}
+
+function managerialRead(r){
+  const items = [];
+  const top = stageOrder(r)[0];
+  const top2 = stageOrder(r)[1];
+  const label = {char:'Characterization', seg:'Segregation', size:'Size reduction', pack:'Packaging', assay:'Assay', transport:'Transport/disposal', storage:'Storage'};
+  items.push(`<ul>
+    <li><strong>${label[top]}</strong> has the highest queue pressure across the horizon, with <strong>${label[top2]}</strong> usually second. Treat those as the true governing variables before you argue about upstream productivity.</li>`);
+  if (r.noPlaceDays > 0){
+    items.push(`<li>The project experiences <strong>${fmtInt(r.noPlaceDays)}</strong> no-place-to-go days. That is the smell of a finite-buffer system: work appears to continue, but the route is silently storing tomorrow’s stoppage.</li>`);
+  }
+  if (r.reworkQty > 0.06 * r.shipped){
+    items.push('<li>Rework is materially non-trivial. In practice that means some “throughput” is counterfeit throughput: the same material is being touched twice.</li>');
+  }
+  if (r.cleanReleased > 0 && r.params.earlySeg){
+    items.push(`<li>Early segregation removes <strong>${fmtInt(r.cleanReleased)}</strong> units from the expensive downstream route. This is why characterization quality and segregation discipline can be economically equivalent to buying capacity.</li>`);
+  }
+  items.push(`<li>Average lead time is <strong>${fmt(r.avgLead,1)} days</strong>, but the queue charts matter more than the mean: once queues accumulate at assay or storage, schedule confidence degrades faster than earned-value curves admit.</li></ul>`);
+  return items.join('');
+}
+
+function actionRead(r){
+  const items = [];
+  const dominant = stageOrder(r)[0];
+  const dLabel = {char:'characterization', seg:'segregation', size:'size reduction', pack:'packaging', assay:'assay', transport:'transport/disposal', storage:'storage'};
+  if (dominant === 'transport' || (r.util.transport > 0.95 && r.peakStorage > 0.75 * r.params.storageCap)){
+    items.push('<ul><li>First move: add transport/disposal slots or buffer storage. In this regime, speeding packaging or field work mostly manufactures inventory.</li>');
+  } else {
+    items.push(`<ul><li>First move: relieve <strong>${dLabel[dominant]}</strong> pressure. The right question is not “where is labour cheapest?” but “which added unit of capacity collapses the most waiting?”</li>`);
+  }
+  if (r.util.assay > 0.92){
+    items.push('<li>Second move: protect assay uptime ruthlessly. A small outage here propagates backward through packaging and forward into storage almost immediately.</li>');
+  }
+  if (!r.params.earlySeg){
+    items.push('<li>Switching to early segregation is likely to be high-leverage unless segregation itself becomes the new choke point. Use the toggle rather than debate it abstractly.</li>');
+  }
+  if (r.params.conservative && r.util.transport > 0.9){
+    items.push('<li>Interrogate conservative classification. It may still be the correct policy, but the tool makes visible what you are paying in queue length and residence time.</li>');
+  }
+  if (r.blockedAssayDays > 0){
+    items.push('<li>Any stage-relief plan should be judged against blocked assay days, not only average utilization. Blocking is the onset of systemic coupling.</li>');
+  }
+  items.push('<li>Compare at least two candidate packages: “assay +2” versus “transport +2” versus “storage +50”. The line rarely rewards intuition untethered from queue physics.</li></ul>');
+  return items.join('');
+}
+
+function renderStress(runs, params){
+  const stressCards = [
+    {title:'Lead time P50 / P80 / P95', value:`${fmt(percentile(runs.map(r=>r.avgLead),0.5),1)} / ${fmt(percentile(runs.map(r=>r.avgLead),0.8),1)} / ${fmt(percentile(runs.map(r=>r.avgLead),0.95),1)} d`},
+    {title:'Shipped units P50 / P80 / P95', value:`${fmtInt(percentile(runs.map(r=>r.shipped),0.5))} / ${fmtInt(percentile(runs.map(r=>r.shipped),0.2))} / ${fmtInt(percentile(runs.map(r=>r.shipped),0.05))}`},
+    {title:'Peak storage P50 / P80 / P95', value:`${fmtInt(percentile(runs.map(r=>r.peakStorage),0.5))} / ${fmtInt(percentile(runs.map(r=>r.peakStorage),0.8))} / ${fmtInt(percentile(runs.map(r=>r.peakStorage),0.95))}`},
+    {title:'No-place-to-go P50 / P80 / P95', value:`${fmtInt(percentile(runs.map(r=>r.noPlaceDays),0.5))} / ${fmtInt(percentile(runs.map(r=>r.noPlaceDays),0.8))} / ${fmtInt(percentile(runs.map(r=>r.noPlaceDays),0.95))}`}
+  ];
+  document.getElementById('stressCards').innerHTML = stressCards.map(c => `
+    <div class="kpi">
+      <div class="title">${c.title}</div>
+      <div class="value" style="font-size:20px;">${c.value}</div>
+    </div>`).join('');
+
+  svgHistogram('stressHist', runs.map(r=>r.noPlaceDays));
+  const transportBind = mean(runs.map(r => r.bottleneck.transport));
+  const assayBind = mean(runs.map(r => r.bottleneck.assay));
+  const pNoPlace = runs.filter(r => r.noPlaceDays > 0).length / runs.length;
+  const pVeryLong = runs.filter(r => r.avgLead > 20).length / runs.length;
+  document.getElementById('stressText').innerHTML = `
+    <p><strong style="color:#f3f4f6;">Tail reading.</strong> Under the current assumptions, the probability of at least one no-place-to-go episode is <strong>${pct(pNoPlace,1)}</strong>, and the probability that average lead time exceeds 20 days is <strong>${pct(pVeryLong,1)}</strong>.</p>
+    <p>On average, transport/disposal is flagged as the dominant pressure stage on <strong>${fmt(transportBind,0)}</strong> days per run, versus <strong>${fmt(assayBind,0)}</strong> for assay. This is often the decisive intuition: the visibly busy lab or assay station may not be the true governing variable once finite storage is accounted for.</p>
+    <p class="small">Stress settings used: ${fmtInt(params.stressRuns)} runs, inbound CV ${fmt(params.inboundCV,0)}%, random assay outage ${fmt(params.assayOutageProb,1)}%/day, random transport outage ${fmt(params.transportOutageProb,1)}%/day, duration ${fmtInt(params.randomOutageDuration)} days.</p>
+  `;
+}
+
+let lastResult = null;
+
+function runModel(){
+  const p = getInputs();
+  lastResult = simulate(p, false);
+  renderDeterministic(lastResult);
+}
+
+function runStress(){
+  const p = getInputs();
+  const runs = [];
+  const n = Math.max(20, Math.round(p.stressRuns));
+  for (let i=0; i<n; i++) runs.push(simulate(p, true));
+  renderStress(runs, p);
+}
+
+document.getElementById('runBtn').addEventListener('click', runModel);
+document.getElementById('stressBtn').addEventListener('click', runStress);
+document.getElementById('resetBtn').addEventListener('click', () => applyScenario('baseline'));
+document.getElementById('preset').addEventListener('change', (e) => applyScenario(e.target.value));
+document.getElementById('ukExampleBtn').addEventListener('click', () => applyScenario('ukRwiSIXEP'));
+
+applyScenario('baseline');
+</script>
+</body>
+</html>

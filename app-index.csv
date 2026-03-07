@@ -81,3 +81,5 @@
 71,project-approach-atlas,"Project-Approach atlas for comparing project control methods by rigor, legibility, and buildability.",User,GPT-5.2-Codex,"project_controls, methods, visualization, decision_support",,
 
 72,waste-route-capacity-digital-twin,"Waste route and capacity digital twin with deterministic queue simulation, bottleneck attribution, and Monte Carlo stress testing.",User,GPT-5.2-Codex,"waste_management, simulation, queueing, decision_support, visualization",,
+
+73,Sequential decisions,"Climate engineering megaproject as a sequential decision problem with policy classes, single-path and many-path simulation, and Powell+RL framing tool.",User,GPT-5.2-Codex,"climate, decision_support, simulation, policy, visualization",,

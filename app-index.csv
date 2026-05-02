@@ -83,3 +83,4 @@
 72,waste-route-capacity-digital-twin,"Waste route and capacity digital twin with deterministic queue simulation, bottleneck attribution, and Monte Carlo stress testing.",User,GPT-5.2-Codex,"waste_management, simulation, queueing, decision_support, visualization",,
 
 73,Sequential decisions,"Climate engineering megaproject as a sequential decision problem with policy classes, single-path and many-path simulation, and Powell+RL framing tool.",User,GPT-5.2-Codex,"climate, decision_support, simulation, policy, visualization",,
+74,regulatory-negotiation-rehearsal-board,"Guided regulatory negotiation rehearsal board with deal posture, levers, Shapley pivotality, constraint heatmap, synergies, clause library, and audit receipts.",User,GPT-5.2-Codex,"regulatory, negotiation, contracts, simulation, decision_support, visualization",,

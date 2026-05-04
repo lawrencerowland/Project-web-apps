@@ -84,3 +84,5 @@
 
 73,Sequential decisions,"Climate engineering megaproject as a sequential decision problem with policy classes, single-path and many-path simulation, and Powell+RL framing tool.",User,GPT-5.2-Codex,"climate, decision_support, simulation, policy, visualization",,
 74,regulatory-negotiation-rehearsal-board,"Guided regulatory negotiation rehearsal board with deal posture, levers, Shapley pivotality, constraint heatmap, synergies, clause library, and audit receipts.",User,GPT-5.2-Codex,"regulatory, negotiation, contracts, simulation, decision_support, visualization",,
+
+75,contract-portfolio-board,"Interactive contract portfolio board for allocating items into contracts, workstreams, context, and internal scope.",User,GPT-5.3-Codex,"contracts, portfolio_management, planning, visualization, interactive",,

@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Regulatory Benefits PMO Studio</title>
+  <style>
+    :root{
+      --bg:#f3f6f4;
+      --paper:#ffffff;
+      --panel:#ffffff;
+      --panel2:#eef3f0;
+      --ink:#1f2623;
+      --muted:#65736d;
+      --line:#d4ddd8;
+      --teal:#0f766e;
+      --green:#247a4b;
+      --amber:#a45f15;
+      --red:#a94337;
+      --plum:#6a4c93;
+      --blue:#2e6f95;
+      --shadow:0 10px 26px rgba(48,42,30,.09);
+    }
+    *{box-sizing:border-box}
+    html{background:var(--bg);color:var(--ink)}
+    body{
+      margin:0;
+      color:var(--ink);
+      background:
+        linear-gradient(180deg,#f7f9f6 0,#edf3ef 280px,#f3f6f4 100%);
+      font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      letter-spacing:0;
+    }
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    a{color:var(--teal);font-weight:800;text-decoration:none}
+    a:hover{text-decoration:underline}
+    .app{max-width:1480px;margin:0 auto;padding:18px 18px 40px}
+    .topbar{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) auto;
+      gap:16px;
+      align-items:start;
+      margin-bottom:14px;
+    }
+    h1{font-size:26px;line-height:1.08;margin:0 0 5px;letter-spacing:0}
+    .subtitle{max-width:880px;color:var(--muted)}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .btn{
+      min-height:36px;
+      border:1px solid var(--line);
+      background:var(--panel);
+      color:var(--ink);
+      border-radius:8px;
+      padding:8px 11px;
+      font-weight:800;
+      box-shadow:0 1px 0 rgba(255,255,255,.75) inset;
+    }
+    .btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+    .btn.ghost{background:transparent}
+    .btn.small{min-height:30px;padding:5px 9px;font-size:12px}
+    .btn.active{border-color:var(--teal);box-shadow:0 0 0 2px rgba(15,118,110,.12)}
+    .btn:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible{
+      outline:3px solid rgba(15,118,110,.24);
+      outline-offset:2px;
+    }
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+    .tab{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.76);
+      color:var(--muted);
+      border-radius:8px;
+      padding:9px 13px;
+      font-weight:900;
+    }
+    .tab.active{background:var(--ink);border-color:var(--ink);color:white}
+    .kpi-grid{
+      display:grid;
+      grid-template-columns:repeat(5,minmax(150px,1fr));
+      gap:10px;
+      margin-bottom:14px;
+    }
+    .kpi{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:12px;
+      min-height:104px;
+      box-shadow:var(--shadow);
+    }
+    .eyebrow{
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-size:11px;
+      font-weight:900;
+      margin-bottom:8px;
+    }
+    .big{font-size:28px;font-weight:950;line-height:1;margin-bottom:7px}
+    .kpi p{margin:0;color:var(--muted);font-size:12px}
+    .status-good{color:var(--green)}
+    .status-warn{color:var(--amber)}
+    .status-bad{color:var(--red)}
+    .workspace{
+      display:grid;
+      grid-template-columns:360px minmax(0,1fr);
+      gap:14px;
+      align-items:start;
+    }
+    .rail{
+      position:sticky;
+      top:12px;
+      display:grid;
+      gap:12px;
+    }
+    .section{
+      background:rgba(255,255,255,.78);
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+    .section.unframed{background:transparent;border:0;box-shadow:none;padding:0}
+    .section-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:start;
+      margin-bottom:11px;
+    }
+    h2{font-size:16px;margin:0;letter-spacing:0}
+    h3{font-size:14px;margin:0;letter-spacing:0}
+    .hint{color:var(--muted);font-size:12px;margin-top:3px}
+    .view{display:none}
+    .view.active{display:block}
+    .grid-2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
+    .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .surface{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:13px;
+      box-shadow:var(--shadow);
+    }
+    .surface.tall{min-height:440px}
+    .surface.short{min-height:0}
+    .scenario-buttons{display:grid;grid-template-columns:1fr;gap:7px}
+    .scenario-buttons .btn{text-align:left;justify-content:flex-start}
+    .slider-row{margin:12px 0}
+    .slider-row label{display:flex;justify-content:space-between;gap:8px;font-weight:850;margin-bottom:6px}
+    input[type="range"]{width:100%;accent-color:var(--teal)}
+    .lever-list{display:grid;gap:8px}
+    .lever{
+      display:grid;
+      grid-template-columns:auto 1fr;
+      gap:10px;
+      align-items:start;
+      border:1px solid var(--line);
+      background:var(--paper);
+      border-radius:8px;
+      padding:9px;
+    }
+    .lever.active{border-color:rgba(15,118,110,.58);box-shadow:0 0 0 2px rgba(15,118,110,.10)}
+    .lever input{width:18px;height:18px;margin-top:2px}
+    .lever label{font-weight:900}
+    .lever p{margin:2px 0 0;color:var(--muted);font-size:12px}
+    .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      min-height:23px;
+      padding:3px 7px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--panel2);
+      color:var(--muted);
+      font-size:11px;
+      font-weight:850;
+      white-space:nowrap;
+    }
+    .chip.good{background:#e8f4ea;border-color:#b6ddc0;color:#17663a}
+    .chip.warn{background:#fff3dc;border-color:#edce99;color:#8b4e0d}
+    .chip.bad{background:#ffece7;border-color:#e9b4aa;color:#91342a}
+    .chip.teal{background:#e4f3ef;border-color:#afd9d0;color:#0f766e}
+    .bars{display:grid;gap:11px}
+    .bar-row{display:grid;grid-template-columns:180px 1fr 58px;gap:10px;align-items:center}
+    .bar-label{font-weight:850;min-width:0}
+    .bar-track{height:18px;border-radius:999px;background:#e3e9e4;position:relative;overflow:hidden}
+    .bar-fill{height:100%;border-radius:999px;background:var(--teal);width:0;transition:width .2s ease,background .2s ease}
+    .bar-target{position:absolute;top:-3px;width:2px;height:24px;background:#1f2623;opacity:.55}
+    .bar-value{text-align:right;font-variant-numeric:tabular-nums;font-weight:900}
+    .matrix{display:grid;gap:6px}
+    .matrix-row{display:grid;grid-template-columns:140px repeat(6,1fr);gap:6px;align-items:stretch}
+    .matrix-cell{
+      min-height:38px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#f1f5f0;
+      display:grid;
+      place-items:center;
+      font-size:12px;
+      font-weight:900;
+    }
+    .matrix-label{
+      display:flex;
+      align-items:center;
+      color:var(--muted);
+      font-weight:850;
+      font-size:12px;
+    }
+    .table{width:100%;border-collapse:collapse;font-size:13px}
+    .table th,.table td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+    .table th{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+    .table tr:last-child td{border-bottom:0}
+    .party-map{min-height:378px;display:grid;place-items:center}
+    svg{max-width:100%;height:auto}
+    .obligation-list,.evidence-list,.receipt-list,.lens-list{display:grid;gap:9px}
+    .item{
+      border:1px solid var(--line);
+      background:var(--paper);
+      border-radius:8px;
+      padding:10px;
+    }
+    .item h3{display:flex;justify-content:space-between;gap:8px;align-items:start}
+    .item p{margin:5px 0 0;color:var(--muted)}
+    .item .meta{font-size:12px;color:var(--muted);margin-top:7px}
+    .interface-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .importer{display:grid;gap:8px}
+    textarea{
+      width:100%;
+      min-height:170px;
+      resize:vertical;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--paper);
+      color:var(--ink);
+      padding:10px;
+      font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    }
+    .footer-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .mini-note{font-size:12px;color:var(--muted)}
+    @media (max-width:1180px){
+      .workspace{grid-template-columns:1fr}
+      .rail{position:static}
+      .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .grid-2,.interface-grid{grid-template-columns:1fr}
+    }
+    @media (max-width:720px){
+      .app{padding:12px}
+      .topbar{grid-template-columns:1fr}
+      .toolbar{justify-content:flex-start}
+      .kpi-grid,.grid-3{grid-template-columns:1fr}
+      .bar-row{grid-template-columns:1fr}
+      .bar-value{text-align:left}
+      .matrix-row{grid-template-columns:1fr repeat(3,1fr)}
+      .matrix-row .matrix-cell:nth-child(n+5){display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <h1>Regulatory Benefits PMO Studio</h1>
+        <div class="subtitle">Programme benefits, regulatory consent, proof strength, and interface maturity in one rehearsal surface.</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="exportBtn" type="button">Export scenario</button>
+        <button class="btn" id="commitBtn" type="button">Commit receipt</button>
+        <button class="btn ghost" id="resetBtn" type="button">Reset</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Studio sections">
+      <button class="tab active" data-view="overview" type="button">Benefits</button>
+      <button class="tab" data-view="regulatory" type="button">Regulatory</button>
+      <button class="tab" data-view="proof" type="button">Proof</button>
+      <button class="tab" data-view="interfaces" type="button">Interfaces</button>
+      <button class="tab" data-view="lenses" type="button">Source Lenses</button>
+    </nav>
+
+    <section class="kpi-grid" id="kpiGrid" aria-label="Programme signals"></section>
+
+    <div class="workspace">
+      <aside class="rail">
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>Scenario</h2>
+              <div class="hint">Preset stress shape</div>
+            </div>
+          </div>
+          <div class="scenario-buttons" id="scenarioButtons"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>Variation Drivers</h2>
+              <div class="hint">Current sensitivity assumptions</div>
+            </div>
+          </div>
+          <div id="sliders"></div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <div>
+              <h2>Negotiated Moves</h2>
+              <div class="hint">Active obligations and controls</div>
+            </div>
+          </div>
+          <div class="lever-list" id="leverList"></div>
+        </section>
+      </aside>
+
+      <main>
+        <section id="view-overview" class="view active">
+          <div class="grid-2">
+            <section class="surface tall">
+              <div class="section-head">
+                <div>
+                  <h2>Benefit Sensitivity Atlas</h2>
+                  <div class="hint">Current confidence against target</div>
+                </div>
+                <span class="chip teal" id="benefitSummary"></span>
+              </div>
+              <div class="bars" id="benefitBars"></div>
+            </section>
+            <section class="surface tall">
+              <div class="section-head">
+                <div>
+                  <h2>Driver Heatmap</h2>
+                  <div class="hint">Where variation bites first</div>
+                </div>
+              </div>
+              <div class="matrix" id="heatmap"></div>
+            </section>
+          </div>
+          <section class="surface" style="margin-top:14px">
+            <div class="section-head">
+              <div>
+                <h2>Decision Queue</h2>
+                <div class="hint">Highest leverage changes in this run</div>
+              </div>
+            </div>
+            <div class="grid-3" id="decisionQueue"></div>
+          </section>
+        </section>
+
+        <section id="view-regulatory" class="view">
+          <div class="grid-2">
+            <section class="surface tall">
+              <div class="section-head">
+                <div>
+                  <h2>Consent Network</h2>
+                  <div class="hint">Node size is pivotality</div>
+                </div>
+                <span class="chip" id="consentSummary"></span>
+              </div>
+              <div class="party-map" id="partyMap"></div>
+            </section>
+            <section class="surface tall">
+              <div class="section-head">
+                <div>
+                  <h2>Regulatory Parties</h2>
+                  <div class="hint">Consent, threshold, and live pressure</div>
+                </div>
+              </div>
+              <table class="table" id="partyTable"></table>
+            </section>
+          </div>
+          <section class="surface" style="margin-top:14px">
+            <div class="section-head">
+              <div>
+                <h2>Obligation Pattern</h2>
+                <div class="hint">Clause families pulled forward from the rehearsal board</div>
+              </div>
+            </div>
+            <div class="obligation-list" id="obligations"></div>
+          </section>
+        </section>
+
+        <section id="view-proof" class="view">
+          <div class="grid-2">
+            <section class="surface tall">
+              <div class="section-head">
+                <div>
+                  <h2>Scenario Barrier Proof</h2>
+                  <div class="hint">Coverage, missing barriers, and evidence-only gaps</div>
+                </div>
+                <span class="chip" id="proofSummary"></span>
+              </div>
+              <div class="evidence-list" id="evidenceList"></div>
+            </section>
+            <section class="surface tall">
+              <div class="section-head">
+                <div>
+                  <h2>Rule Receipts</h2>
+                  <div class="hint">Snapshot trail for this browser session</div>
+                </div>
+                <button class="btn small" id="clearReceiptsBtn" type="button">Clear receipts</button>
+              </div>
+              <div class="receipt-list" id="receiptList"></div>
+            </section>
+          </div>
+          <section class="surface" style="margin-top:14px">
+            <div class="section-head">
+              <div>
+                <h2>Scenario JSON</h2>
+                <div class="hint">Import, edit, or preserve a programme model</div>
+              </div>
+              <button class="btn small" id="importBtn" type="button">Import JSON</button>
+            </div>
+            <textarea id="stateBox" spellcheck="false"></textarea>
+          </section>
+        </section>
+
+        <section id="view-interfaces" class="view">
+          <div class="interface-grid">
+            <section class="surface tall">
+              <div class="section-head">
+                <div>
+                  <h2>Interface Network</h2>
+                  <div class="hint">Spillover between delivery, assurance, and benefit owners</div>
+                </div>
+                <span class="chip" id="interfaceSummary"></span>
+              </div>
+              <div class="party-map" id="interfaceMap"></div>
+            </section>
+            <section class="surface tall">
+              <div class="section-head">
+                <div>
+                  <h2>Maturity Spillover</h2>
+                  <div class="hint">Cells show maturity after this scenario</div>
+                </div>
+              </div>
+              <table class="table" id="interfaceTable"></table>
+            </section>
+          </div>
+        </section>
+
+        <section id="view-lenses" class="view">
+          <section class="surface">
+            <div class="section-head">
+              <div>
+                <h2>Pull-forward App Stack</h2>
+                <div class="hint">Current repo apps instantiated as lenses for this environment</div>
+              </div>
+              <a class="btn small" href="../../" target="_blank" rel="noopener">Gallery</a>
+            </div>
+            <div class="lens-list" id="lensList"></div>
+          </section>
+          <section class="surface" style="margin-top:14px">
+            <div class="section-head">
+              <div>
+                <h2>Seed Files</h2>
+                <div class="hint">Static data surfaces carried with this subsite</div>
+              </div>
+            </div>
+            <div class="footer-links">
+              <a class="chip teal" href="data/programme-model.json">programme-model.json</a>
+              <a class="chip teal" href="data/benefits.csv">benefits.csv</a>
+              <a class="chip teal" href="data/evidence-register.csv">evidence-register.csv</a>
+              <a class="chip teal" href="README.md">README.md</a>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+  const STORE_KEY = "regulatory_benefits_pmo_v1";
+  const RECEIPTS_KEY = "regulatory_benefits_pmo_receipts_v1";
+  const pct = v => Math.round(v * 100) + "%";
+  const clamp = (v,min=0,max=1) => Math.max(min, Math.min(max, v));
+  const round = (v,d=2) => Number(v).toFixed(d);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+  const cls = v => v >= .72 ? "good" : v >= .55 ? "warn" : "bad";
+  const statusText = v => v >= .72 ? "Strong" : v >= .55 ? "Watch" : "Fragile";
+
+  const starterModel = {
+    scenarioName: "Baseline rehearsal",
+    activePreset: "baseline",
+    drivers: {
+      benefitVolatility: .42,
+      regulatoryPressure: .58,
+      evidenceConfidence: .62,
+      interfaceDrag: .36,
+      fundingTension: .44,
+      deliveryAcceleration: .34
+    },
+    benefits: [
+      {id:"b1", name:"Hazard reduction", owner:"Safety case", current:.68, target:.78, weights:{benefitVolatility:.23, regulatoryPressure:.30, evidenceConfidence:.36, interfaceDrag:.18, fundingTension:.10, deliveryAcceleration:.06}},
+      {id:"b2", name:"Throughput reliability", owner:"Operations", current:.63, target:.74, weights:{benefitVolatility:.34, regulatoryPressure:.14, evidenceConfidence:.20, interfaceDrag:.35, fundingTension:.18, deliveryAcceleration:.16}},
+      {id:"b3", name:"Regulatory confidence", owner:"Assurance", current:.59, target:.76, weights:{benefitVolatility:.16, regulatoryPressure:.38, evidenceConfidence:.42, interfaceDrag:.20, fundingTension:.11, deliveryAcceleration:.05}},
+      {id:"b4", name:"Public value", owner:"Community", current:.55, target:.70, weights:{benefitVolatility:.35, regulatoryPressure:.20, evidenceConfidence:.18, interfaceDrag:.16, fundingTension:.22, deliveryAcceleration:.07}},
+      {id:"b5", name:"Cost predictability", owner:"Finance", current:.61, target:.75, weights:{benefitVolatility:.22, regulatoryPressure:.14, evidenceConfidence:.18, interfaceDrag:.22, fundingTension:.40, deliveryAcceleration:.12}},
+      {id:"b6", name:"Schedule resilience", owner:"Controls", current:.57, target:.73, weights:{benefitVolatility:.18, regulatoryPressure:.20, evidenceConfidence:.16, interfaceDrag:.34, fundingTension:.18, deliveryAcceleration:.38}}
+    ],
+    parties: [
+      {id:"onr", name:"ONR", role:"Safety regulator", mandatory:true, threshold:.64, base:.61, sensitivity:{regulatoryPressure:.20, evidenceConfidence:.30, benefitVolatility:.10}, x:170, y:105},
+      {id:"ea", name:"EA", role:"Environmental regulator", mandatory:true, threshold:.61, base:.58, sensitivity:{regulatoryPressure:.20, evidenceConfidence:.24, benefitVolatility:.14}, x:385, y:125},
+      {id:"funder", name:"Funding authority", role:"Capital release", mandatory:false, threshold:.58, base:.57, sensitivity:{fundingTension:.28, evidenceConfidence:.16, benefitVolatility:.18}, x:500, y:285},
+      {id:"operator", name:"Operator", role:"Benefit owner", mandatory:false, threshold:.57, base:.56, sensitivity:{interfaceDrag:.24, deliveryAcceleration:.16, benefitVolatility:.18}, x:300, y:300},
+      {id:"contractor", name:"Delivery partners", role:"Execution", mandatory:false, threshold:.55, base:.54, sensitivity:{interfaceDrag:.28, deliveryAcceleration:.22, fundingTension:.12}, x:120, y:285},
+      {id:"community", name:"Local stakeholders", role:"Consent and legitimacy", mandatory:false, threshold:.58, base:.53, sensitivity:{benefitVolatility:.24, regulatoryPressure:.12, evidenceConfidence:.12}, x:300, y:470}
+    ],
+    influence: [
+      ["onr","ea",.55],["onr","operator",.44],["ea","community",.42],["operator","contractor",.56],
+      ["operator","funder",.36],["contractor","funder",.26],["community","funder",.32],["ea","operator",.25]
+    ],
+    levers: [
+      {id:"evidenceSprint", label:"Joint evidence sprint", owner:"ONR", family:"assurance", active:true, delta:{evidenceConfidence:.10, regulatoryPressure:-.06}, party:{onr:.08, ea:.06}, text:"Named evidence packs, sample checks, and decision owners before the next gate."},
+      {id:"benefitsDeed", label:"Benefits deed", owner:"Local stakeholders", family:"benefits", active:true, delta:{benefitVolatility:-.07, evidenceConfidence:.03}, party:{community:.12, funder:.04}, text:"Benefits expressed as governed obligations, not hopeful outcome prose."},
+      {id:"gateProtocol", label:"Gate protocol", owner:"Funding authority", family:"governance", active:true, delta:{regulatoryPressure:-.05, fundingTension:-.05}, party:{funder:.08, onr:.04, ea:.04}, text:"Stage release rules tied to decision evidence and open assumption burn-down."},
+      {id:"assuranceHoldpoints", label:"Assurance hold-points", owner:"ONR", family:"safety", active:false, delta:{evidenceConfidence:.07, deliveryAcceleration:-.05}, party:{onr:.09, operator:.03}, text:"Explicit hold-points protect safety acceptance from schedule compression."},
+      {id:"interfaceRoom", label:"Interface control room", owner:"Operator", family:"interfaces", active:true, delta:{interfaceDrag:-.10, deliveryAcceleration:.03}, party:{operator:.08, contractor:.07}, text:"Daily cross-party interface decisions with visible constraint ownership."},
+      {id:"fundingCollar", label:"Funding collar", owner:"Funding authority", family:"commercial", active:false, delta:{fundingTension:-.10, evidenceConfidence:.02}, party:{funder:.12, contractor:.03}, text:"Release gates, audit rights, and contingency calls tied to verified states."}
+    ],
+    evidence: [
+      {id:"r1", scenario:"Safety case assumption drift", barrier:"Independent hazard close-out board", proof:"Signed close-out register", status:"covered", owner:"ONR"},
+      {id:"r2", scenario:"Benefits erode after permit changes", barrier:"Benefits change-control threshold", proof:"Draft threshold only", status:"evidence-only", owner:"Benefits lead"},
+      {id:"r3", scenario:"Interface lateness shifts benefit date", barrier:"Interface control room", proof:"Decision log and ageing report", status:"covered", owner:"Operator"},
+      {id:"r4", scenario:"Community objection delays gate", barrier:"Benefits deed", proof:"Stakeholder commitments register", status:"covered", owner:"Local stakeholders"},
+      {id:"r5", scenario:"Funding release outruns assurance evidence", barrier:"", proof:"Portfolio finance pack", status:"evidence-only", owner:"Funding authority"},
+      {id:"r6", scenario:"Supplier acceleration creates latent rework", barrier:"Assurance hold-points", proof:"", status:"no-proof", owner:"Delivery partners"},
+      {id:"r7", scenario:"Environmental monitoring threshold disputed", barrier:"", proof:"", status:"unassessed", owner:"EA"}
+    ],
+    interfaces: [
+      {id:"i1", name:"Regulator to operator", maturity:.61, weight:.85, x:180, y:145},
+      {id:"i2", name:"Operator to contractor", maturity:.55, weight:.78, x:425, y:160},
+      {id:"i3", name:"Funder to programme", maturity:.58, weight:.65, x:480, y:360},
+      {id:"i4", name:"Benefits to controls", maturity:.52, weight:.60, x:285, y:450},
+      {id:"i5", name:"Community to consents", maturity:.50, weight:.48, x:105, y:350}
+    ],
+    sourceLenses: [
+      {name:"Project_Health_Atlas", role:"Front-door health atlas", instantiation:"Benefit streams, gate families, and constraints as deforming tiles.", url:"../Project_Health_Atlas.html"},
+      {name:"regulatory-negotiation-rehearsal-board", role:"Consent rehearsal", instantiation:"Levers, pivotal parties, constraint heatmap, clauses, receipts.", url:"../regulatory-negotiation-rehearsal-board.html"},
+      {name:"governance-trio-replay-rules-lineage", role:"Assurance memory", instantiation:"Replay log, rule receipts, and lineage DAG for benefit claims.", url:"../governance-trio-replay-rules-lineage.html"},
+      {name:"scenario_barrier_proof_fca_lattice", role:"Barrier coverage", instantiation:"Scenario x barrier x proof gap logic for benefit erosion.", url:"../scenario_barrier_proof_fca_lattice.html"},
+      {name:"portfolio_loom", role:"Benefits sensitivity", instantiation:"Scenario fibres and time-phased benefit resilience.", url:"../portfolio_loom.html"},
+      {name:"counterfactual_programme_steering", role:"Causal steering", instantiation:"do-interventions for benefit, lead time, quality, and evidence.", url:"../counterfactual_programme_steering.html"},
+      {name:"intent_field_navigator", role:"Intent alignment", instantiation:"CSV-first benefit intent, work item, and outcome coverage.", url:"../intent_field_navigator.html"},
+      {name:"interface_maturity_simulator", role:"Interface spillover", instantiation:"Coupling and maturity propagation across programme interfaces.", url:"../interface_maturity_simulator.html"}
+    ]
+  };
+
+  const presets = {
+    baseline:{label:"Baseline rehearsal", drivers:{benefitVolatility:.42, regulatoryPressure:.58, evidenceConfidence:.62, interfaceDrag:.36, fundingTension:.44, deliveryAcceleration:.34}},
+    evidenceShock:{label:"Evidence shock", drivers:{benefitVolatility:.50, regulatoryPressure:.72, evidenceConfidence:.42, interfaceDrag:.46, fundingTension:.52, deliveryAcceleration:.36}},
+    benefitDrift:{label:"Benefits drift", drivers:{benefitVolatility:.74, regulatoryPressure:.54, evidenceConfidence:.55, interfaceDrag:.44, fundingTension:.58, deliveryAcceleration:.30}},
+    gateCompression:{label:"Gate compression", drivers:{benefitVolatility:.50, regulatoryPressure:.76, evidenceConfidence:.56, interfaceDrag:.60, fundingTension:.50, deliveryAcceleration:.70}},
+    communityChallenge:{label:"Community challenge", drivers:{benefitVolatility:.68, regulatoryPressure:.66, evidenceConfidence:.52, interfaceDrag:.42, fundingTension:.48, deliveryAcceleration:.31}}
+  };
+
+  const driverLabels = {
+    benefitVolatility:"Benefit volatility",
+    regulatoryPressure:"Regulatory pressure",
+    evidenceConfidence:"Evidence confidence",
+    interfaceDrag:"Interface drag",
+    fundingTension:"Funding tension",
+    deliveryAcceleration:"Delivery acceleration"
+  };
+
+  let model = loadModel();
+  let receipts = loadReceipts();
+
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function loadModel(){
+    try{
+      const raw = localStorage.getItem(STORE_KEY);
+      return raw ? JSON.parse(raw) : clone(starterModel);
+    }catch(e){ return clone(starterModel); }
+  }
+  function loadReceipts(){
+    try{
+      return JSON.parse(localStorage.getItem(RECEIPTS_KEY) || "[]");
+    }catch(e){ return []; }
+  }
+  function persist(){
+    localStorage.setItem(STORE_KEY, JSON.stringify(model));
+    localStorage.setItem(RECEIPTS_KEY, JSON.stringify(receipts));
+  }
+
+  function activeLevers(){
+    return model.levers.filter(l => l.active);
+  }
+
+  function effectiveDrivers(){
+    const out = clone(model.drivers);
+    for(const lever of activeLevers()){
+      for(const [k,v] of Object.entries(lever.delta || {})){
+        out[k] = clamp((out[k] ?? 0) + v);
+      }
+    }
+    return out;
+  }
+
+  function benefitValue(b, drivers=effectiveDrivers()){
+    const w = b.weights;
+    let value = b.current;
+    value -= drivers.benefitVolatility * w.benefitVolatility * .30;
+    value -= drivers.regulatoryPressure * w.regulatoryPressure * .24;
+    value += drivers.evidenceConfidence * w.evidenceConfidence * .26;
+    value -= drivers.interfaceDrag * w.interfaceDrag * .26;
+    value -= drivers.fundingTension * w.fundingTension * .18;
+    value -= Math.max(0, drivers.deliveryAcceleration - .48) * w.deliveryAcceleration * .24;
+    value += Math.min(.45, drivers.deliveryAcceleration) * .035;
+    return clamp(value);
+  }
+
+  function benefitRows(){
+    const d = effectiveDrivers();
+    return model.benefits.map(b => {
+      const value = benefitValue(b,d);
+      const exposure = Object.entries(b.weights).reduce((s,[k,w]) => s + w * (k === "evidenceConfidence" ? 1 - d[k] : d[k]), 0) / Object.keys(b.weights).length;
+      return {...b, value, gap:b.target - value, exposure};
+    });
+  }
+
+  function evidenceScore(){
+    const total = model.evidence.length || 1;
+    const covered = model.evidence.filter(e => e.status === "covered").length;
+    const partial = model.evidence.filter(e => e.status === "no-proof").length * .45 + model.evidence.filter(e => e.status === "evidence-only").length * .30;
+    return clamp((covered + partial) / total);
+  }
+
+  function partyConsent(){
+    const drivers = effectiveDrivers();
+    const bAvg = benefitRows().reduce((s,b)=>s+b.value,0) / model.benefits.length;
+    const proof = evidenceScore();
+    const leverParty = {};
+    for(const l of activeLevers()){
+      for(const [id,v] of Object.entries(l.party || {})) leverParty[id] = (leverParty[id] || 0) + v;
+    }
+    const consents = model.parties.map(p => {
+      let c = p.base + (bAvg - .58) * .22 + (proof - .55) * .18 + (leverParty[p.id] || 0);
+      for(const [k,w] of Object.entries(p.sensitivity || {})){
+        const signed = k === "evidenceConfidence" ? drivers[k] - .50 : .50 - drivers[k];
+        c += signed * w;
+      }
+      return {...p, consent:clamp(c), pivotal:0};
+    });
+    const byId = Object.fromEntries(consents.map(p => [p.id,p]));
+    for(const edge of model.influence){
+      const [a,b,w] = edge;
+      if(byId[a] && byId[b]){
+        byId[a].pivotal += w * Math.max(0, byId[b].threshold - byId[b].consent + .08);
+        byId[b].pivotal += w * Math.max(0, byId[a].threshold - byId[a].consent + .08);
+      }
+    }
+    consents.forEach(p => {
+      p.pivotal = clamp(p.pivotal + Math.max(0, p.threshold - p.consent) * 1.8, 0, 1);
+    });
+    const mandatory = consents.filter(p => p.mandatory);
+    const optional = consents.filter(p => !p.mandatory);
+    const mandatoryProduct = mandatory.reduce((s,p)=>s*p.consent,1);
+    const optionalQuorum = 1 - optional.reduce((s,p)=>s*(1-p.consent),1);
+    return {parties:consents, overall:clamp(mandatoryProduct * optionalQuorum)};
+  }
+
+  function constraintRows(){
+    const drivers = effectiveDrivers();
+    const b = benefitRows();
+    const proof = evidenceScore();
+    const consent = partyConsent().overall;
+    const interfaceAvg = interfaceRows().reduce((s,i)=>s+i.value,0) / model.interfaces.length;
+    return [
+      {id:"benefits", name:"Benefit traceability", severity:clamp(1 - (b.reduce((s,x)=>s+x.value,0)/b.length)), why:"Benefit confidence against target."},
+      {id:"regulatory", name:"Regulatory gate", severity:clamp(drivers.regulatoryPressure * .72 + (1-proof) * .28), why:"Pressure on gate evidence."},
+      {id:"interfaces", name:"Interface control", severity:clamp(1 - interfaceAvg), why:"Maturity and spillover drag."},
+      {id:"funding", name:"Funding release", severity:clamp(drivers.fundingTension * .78 + (1-consent) * .22), why:"Capital release confidence."},
+      {id:"community", name:"Public confidence", severity:clamp(1 - (partyConsent().parties.find(p=>p.id==="community")?.consent || .5)), why:"Local consent and visible benefit."}
+    ].sort((a,b)=>b.severity-a.severity);
+  }
+
+  function interfaceRows(){
+    const d = effectiveDrivers();
+    return model.interfaces.map(i => {
+      let value = i.maturity - d.interfaceDrag * .20 + d.evidenceConfidence * .08 - d.benefitVolatility * .06;
+      if(activeLevers().some(l => l.id === "interfaceRoom")) value += .09 * i.weight;
+      if(activeLevers().some(l => l.id === "gateProtocol")) value += .03;
+      return {...i, value:clamp(value)};
+    });
+  }
+
+  function compute(){
+    const benefits = benefitRows();
+    const benefitAvg = benefits.reduce((s,b)=>s+b.value,0) / benefits.length;
+    const variation = benefits.reduce((s,b)=>s+b.exposure,0) / benefits.length;
+    const consent = partyConsent();
+    const proof = evidenceScore();
+    const constraints = constraintRows();
+    return {benefits, benefitAvg, variation, consent, proof, constraints, interfaces:interfaceRows()};
+  }
+
+  function render(){
+    const out = compute();
+    renderKpis(out);
+    renderScenarios();
+    renderSliders();
+    renderLevers();
+    renderBenefits(out);
+    renderHeatmap(out);
+    renderDecisionQueue(out);
+    renderRegulatory(out);
+    renderProof(out);
+    renderInterfaces(out);
+    renderLenses();
+    document.getElementById("stateBox").value = JSON.stringify({model,receipts}, null, 2);
+    persist();
+  }
+
+  function renderKpis(out){
+    const binding = out.constraints[0];
+    const kpis = [
+      {label:"Benefit confidence", value:pct(out.benefitAvg), cls:cls(out.benefitAvg), text:statusText(out.benefitAvg) + " aggregate benefit delivery signal."},
+      {label:"Variation exposure", value:pct(out.variation), cls:out.variation <= .36 ? "good" : out.variation <= .50 ? "warn" : "bad", text:"Weighted sensitivity to live drivers."},
+      {label:"Regulatory consent", value:pct(out.consent.overall), cls:cls(out.consent.overall), text:"Mandatory gate plus optional coalition."},
+      {label:"Evidence coverage", value:pct(out.proof), cls:cls(out.proof), text:"Barrier and proof coverage across scenarios."},
+      {label:"Binding constraint", value:binding.name, cls:binding.severity <= .42 ? "good" : binding.severity <= .62 ? "warn" : "bad", text:pct(binding.severity) + " severity. " + binding.why}
+    ];
+    document.getElementById("kpiGrid").innerHTML = kpis.map(k => `
+      <article class="kpi">
+        <div class="eyebrow">${esc(k.label)}</div>
+        <div class="big status-${k.cls}">${esc(k.value)}</div>
+        <p>${esc(k.text)}</p>
+      </article>
+    `).join("");
+  }
+
+  function renderScenarios(){
+    document.getElementById("scenarioButtons").innerHTML = Object.entries(presets).map(([id,p]) => `
+      <button class="btn ${model.activePreset === id ? "active" : ""}" data-preset="${id}" type="button">${esc(p.label)}</button>
+    `).join("");
+  }
+
+  function renderSliders(){
+    document.getElementById("sliders").innerHTML = Object.entries(driverLabels).map(([id,label]) => `
+      <div class="slider-row">
+        <label for="driver-${id}"><span>${esc(label)}</span><span>${pct(model.drivers[id])}</span></label>
+        <input id="driver-${id}" type="range" min="0" max="100" value="${Math.round(model.drivers[id]*100)}" data-driver="${id}">
+      </div>
+    `).join("");
+  }
+
+  function renderLevers(){
+    document.getElementById("leverList").innerHTML = model.levers.map(l => `
+      <article class="lever ${l.active ? "active" : ""}">
+        <input id="lever-${l.id}" type="checkbox" data-lever="${l.id}" ${l.active ? "checked" : ""}>
+        <div>
+          <label for="lever-${l.id}">${esc(l.label)}</label>
+          <p>${esc(l.text)}</p>
+          <div class="chips"><span class="chip teal">${esc(l.family)}</span><span class="chip">${esc(l.owner)}</span></div>
+        </div>
+      </article>
+    `).join("");
+  }
+
+  function renderBenefits(out){
+    const sorted = [...out.benefits].sort((a,b)=>b.gap-a.gap);
+    document.getElementById("benefitSummary").textContent = `${sorted.filter(b=>b.gap>0).length} below target`;
+    document.getElementById("benefitBars").innerHTML = sorted.map(b => {
+      const c = cls(b.value);
+      const target = clamp(b.target) * 100;
+      return `
+        <div class="bar-row">
+          <div class="bar-label">${esc(b.name)}<div class="mini-note">${esc(b.owner)}</div></div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${pct(b.value)};background:var(--${c === "good" ? "green" : c === "warn" ? "amber" : "red"})"></div>
+            <div class="bar-target" style="left:${target}%"></div>
+          </div>
+          <div class="bar-value status-${c}">${pct(b.value)}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function heatColor(v){
+    const c = clamp(v);
+    if(c < .24) return "#e8f4ea";
+    if(c < .42) return "#d8efe8";
+    if(c < .58) return "#fff3dc";
+    if(c < .74) return "#f4c991";
+    return "#e8a096";
+  }
+
+  function renderHeatmap(out){
+    const keys = Object.keys(driverLabels);
+    const header = `<div class="matrix-row"><div></div>${keys.map(k=>`<div class="matrix-label">${esc(driverLabels[k].split(" ")[0])}</div>`).join("")}</div>`;
+    const rows = out.benefits.map(b => {
+      return `<div class="matrix-row"><div class="matrix-label">${esc(b.name)}</div>${keys.map(k => {
+        const v = b.weights[k] * (k === "evidenceConfidence" ? 1 - effectiveDrivers()[k] : effectiveDrivers()[k]);
+        return `<div class="matrix-cell" style="background:${heatColor(v*2.2)}">${Math.round(v*100)}</div>`;
+      }).join("")}</div>`;
+    }).join("");
+    document.getElementById("heatmap").innerHTML = header + rows;
+  }
+
+  function renderDecisionQueue(out){
+    const binding = out.constraints[0];
+    const weakestBenefit = [...out.benefits].sort((a,b)=>b.gap-a.gap)[0];
+    const weakestParty = [...out.consent.parties].sort((a,b)=>(a.consent-a.threshold)-(b.consent-b.threshold))[0];
+    const recommendedLever = model.levers.find(l => !l.active && (
+      (binding.id === "interfaces" && l.id === "interfaceRoom") ||
+      (binding.id === "funding" && l.id === "fundingCollar") ||
+      (binding.id === "regulatory" && l.id === "assuranceHoldpoints") ||
+      (binding.id === "community" && l.id === "benefitsDeed")
+    )) || model.levers.find(l => !l.active) || model.levers[0];
+    const items = [
+      {title:"Protect " + weakestBenefit.name, tag:"benefit", text:`Gap to target ${pct(Math.max(0, weakestBenefit.gap))}; highest exposure ${driverLabels[Object.entries(weakestBenefit.weights).sort((a,b)=>b[1]-a[1])[0][0]]}.`},
+      {title:"Move " + weakestParty.name, tag:"consent", text:`Consent ${pct(weakestParty.consent)} against threshold ${pct(weakestParty.threshold)}; pivotality ${pct(weakestParty.pivotal)}.`},
+      {title:recommendedLever.label, tag:"next move", text:recommendedLever.text}
+    ];
+    document.getElementById("decisionQueue").innerHTML = items.map(i => `
+      <article class="item">
+        <h3><span>${esc(i.title)}</span><span class="chip teal">${esc(i.tag)}</span></h3>
+        <p>${esc(i.text)}</p>
+      </article>
+    `).join("");
+  }
+
+  function renderRegulatory(out){
+    document.getElementById("consentSummary").textContent = pct(out.consent.overall);
+    renderPartyMap(out);
+    document.getElementById("partyTable").innerHTML = `
+      <thead><tr><th>Party</th><th>Consent</th><th>Threshold</th><th>Pivotality</th><th>Role</th></tr></thead>
+      <tbody>
+        ${out.consent.parties.map(p => `
+          <tr>
+            <td><strong>${esc(p.name)}</strong>${p.mandatory ? ` <span class="chip bad">mandatory</span>` : ""}</td>
+            <td class="status-${cls(p.consent)}"><strong>${pct(p.consent)}</strong></td>
+            <td>${pct(p.threshold)}</td>
+            <td>${pct(p.pivotal)}</td>
+            <td>${esc(p.role)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    `;
+    const binding = out.constraints[0];
+    const pivotal = [...out.consent.parties].sort((a,b)=>b.pivotal-a.pivotal)[0];
+    const obligations = [
+      {title:"Benefit traceability clause", status:binding.id==="benefits" ? "priority" : "ready", text:"Every claimed benefit has an owner, evidence source, measurement date, and change threshold."},
+      {title:"Regulatory evidence protocol", status:binding.id==="regulatory" ? "priority" : "ready", text:"Named evidence packs, response clocks, sampled checks, and unresolved assumption register."},
+      {title:"Interface decision log", status:binding.id==="interfaces" ? "priority" : "watch", text:"Cross-party interface calls produce decisions, ageing, owner, and benefit impact."},
+      {title:pivotal.name + " focused package", status:"pivotal", text:"Move the party with the highest marginal effect before widening the negotiation."}
+    ];
+    document.getElementById("obligations").innerHTML = obligations.map(o => `
+      <article class="item">
+        <h3><span>${esc(o.title)}</span><span class="chip ${o.status==="priority" ? "bad" : o.status==="watch" ? "warn" : "teal"}">${esc(o.status)}</span></h3>
+        <p>${esc(o.text)}</p>
+      </article>
+    `).join("");
+  }
+
+  function renderPartyMap(out){
+    const parties = out.consent.parties;
+    const maxP = Math.max(.1, ...parties.map(p=>p.pivotal));
+    const byId = Object.fromEntries(parties.map(p=>[p.id,p]));
+    const edges = model.influence.map(([a,b,w]) => {
+      const pa = byId[a], pb = byId[b];
+      return `<line x1="${pa.x}" y1="${pa.y}" x2="${pb.x}" y2="${pb.y}" stroke="#9f9789" stroke-width="${1+w*4}" opacity=".45"/>`;
+    }).join("");
+    const nodes = parties.map(p => {
+      const r = 18 + (p.pivotal / maxP) * 22;
+      const color = p.consent >= .72 ? "#247a4b" : p.consent >= .55 ? "#a45f15" : "#a94337";
+      return `
+        <g>
+          <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}" opacity=".90"></circle>
+          <circle cx="${p.x}" cy="${p.y}" r="${Math.max(10,r-7)}" fill="#ffffff" opacity=".16"></circle>
+          <text x="${p.x}" y="${p.y + r + 18}" text-anchor="middle" font-size="12" font-weight="800" fill="#1f2623">${esc(p.name)}</text>
+          <text x="${p.x}" y="${p.y + r + 33}" text-anchor="middle" font-size="11" fill="#65736d">${pct(p.consent)}</text>
+        </g>
+      `;
+    }).join("");
+    document.getElementById("partyMap").innerHTML = `<svg viewBox="0 0 620 540" role="img" aria-label="Regulatory consent network">${edges}${nodes}</svg>`;
+  }
+
+  function renderProof(out){
+    document.getElementById("proofSummary").textContent = pct(out.proof);
+    const rank = {"unassessed":0,"evidence-only":1,"no-proof":2,"covered":3};
+    document.getElementById("evidenceList").innerHTML = [...model.evidence].sort((a,b)=>rank[a.status]-rank[b.status]).map(e => {
+      const chip = e.status === "covered" ? "good" : e.status === "no-proof" ? "warn" : "bad";
+      return `
+        <article class="item">
+          <h3><span>${esc(e.scenario)}</span><span class="chip ${chip}">${esc(e.status)}</span></h3>
+          <p><strong>Barrier:</strong> ${esc(e.barrier || "Missing")}<br><strong>Proof:</strong> ${esc(e.proof || "Missing")}</p>
+          <div class="meta">${esc(e.owner)}</div>
+        </article>
+      `;
+    }).join("");
+    document.getElementById("receiptList").innerHTML = receipts.length ? receipts.map(r => `
+      <article class="item">
+        <h3><span>${esc(r.title)}</span><span class="chip teal">${esc(r.runId)}</span></h3>
+        <p>${esc(r.summary)}</p>
+        <div class="meta">${esc(r.createdAt)}</div>
+      </article>
+    `).join("") : `<div class="item"><p>No receipts committed yet.</p></div>`;
+  }
+
+  function renderInterfaces(out){
+    const avg = out.interfaces.reduce((s,i)=>s+i.value,0) / out.interfaces.length;
+    document.getElementById("interfaceSummary").textContent = pct(avg);
+    const points = out.interfaces;
+    const edges = [];
+    for(let i=0;i<points.length;i++){
+      for(let j=i+1;j<points.length;j++){
+        const a = points[i], b = points[j];
+        const closeness = 1 - Math.min(1, Math.hypot(a.x-b.x,a.y-b.y)/430);
+        if(closeness > .18) edges.push(`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#9f9789" stroke-width="${1+closeness*4}" opacity=".34"/>`);
+      }
+    }
+    const nodes = points.map(p => {
+      const color = p.value >= .72 ? "#247a4b" : p.value >= .55 ? "#a45f15" : "#a94337";
+      const r = 18 + p.weight * 16;
+      return `
+        <g>
+          <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${color}" opacity=".9"></circle>
+          <text x="${p.x}" y="${p.y + r + 17}" text-anchor="middle" font-size="12" font-weight="800" fill="#1f2623">${esc(p.name)}</text>
+          <text x="${p.x}" y="${p.y + r + 32}" text-anchor="middle" font-size="11" fill="#65736d">${pct(p.value)}</text>
+        </g>
+      `;
+    }).join("");
+    document.getElementById("interfaceMap").innerHTML = `<svg viewBox="0 0 620 540" role="img" aria-label="Programme interface network">${edges.join("")}${nodes}</svg>`;
+    document.getElementById("interfaceTable").innerHTML = `
+      <thead><tr><th>Interface</th><th>Maturity</th><th>Weight</th><th>Status</th></tr></thead>
+      <tbody>
+        ${out.interfaces.sort((a,b)=>a.value-b.value).map(i => `
+          <tr>
+            <td><strong>${esc(i.name)}</strong></td>
+            <td class="status-${cls(i.value)}"><strong>${pct(i.value)}</strong></td>
+            <td>${pct(i.weight)}</td>
+            <td>${statusText(i.value)}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    `;
+  }
+
+  function renderLenses(){
+    document.getElementById("lensList").innerHTML = model.sourceLenses.map(l => `
+      <article class="item">
+        <h3><span>${esc(l.name)}</span><a class="chip teal" href="${esc(l.url)}" target="_blank" rel="noopener">Open</a></h3>
+        <p><strong>${esc(l.role)}</strong><br>${esc(l.instantiation)}</p>
+      </article>
+    `).join("");
+  }
+
+  function downloadJson(obj,name){
+    const blob = new Blob([JSON.stringify(obj,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function commitReceipt(){
+    const out = compute();
+    const binding = out.constraints[0];
+    const runId = Math.random().toString(16).slice(2,8).toUpperCase();
+    receipts.unshift({
+      runId,
+      title:"Scenario receipt",
+      createdAt:new Date().toISOString(),
+      summary:`Benefit ${pct(out.benefitAvg)}, consent ${pct(out.consent.overall)}, proof ${pct(out.proof)}, binding constraint ${binding.name}.`,
+      model:clone(model),
+      outputs:{benefitAvg:out.benefitAvg,consent:out.consent.overall,proof:out.proof,binding}
+    });
+    receipts = receipts.slice(0,20);
+    render();
+  }
+
+  function bind(){
+    document.querySelectorAll(".tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+        document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("view-" + btn.dataset.view).classList.add("active");
+      });
+    });
+    document.body.addEventListener("input", e => {
+      const driver = e.target.getAttribute("data-driver");
+      if(driver){
+        model.drivers[driver] = Number(e.target.value) / 100;
+        model.activePreset = "custom";
+        render();
+      }
+    });
+    document.body.addEventListener("change", e => {
+      const leverId = e.target.getAttribute("data-lever");
+      if(leverId){
+        const lever = model.levers.find(l=>l.id===leverId);
+        if(lever) lever.active = e.target.checked;
+        render();
+      }
+    });
+    document.body.addEventListener("click", e => {
+      const preset = e.target.getAttribute("data-preset");
+      if(preset && presets[preset]){
+        model.activePreset = preset;
+        model.scenarioName = presets[preset].label;
+        model.drivers = clone(presets[preset].drivers);
+        render();
+      }
+    });
+    document.getElementById("exportBtn").addEventListener("click", () => downloadJson({model,receipts,outputs:compute()}, "regulatory-benefits-pmo-scenario.json"));
+    document.getElementById("commitBtn").addEventListener("click", commitReceipt);
+    document.getElementById("clearReceiptsBtn").addEventListener("click", () => { receipts = []; render(); });
+    document.getElementById("resetBtn").addEventListener("click", () => { model = clone(starterModel); receipts = []; render(); });
+    document.getElementById("importBtn").addEventListener("click", () => {
+      try{
+        const obj = JSON.parse(document.getElementById("stateBox").value);
+        model = obj.model || obj;
+        receipts = obj.receipts || receipts;
+        render();
+      }catch(err){
+        alert("Could not import JSON: " + err.message);
+      }
+    });
+  }
+
+  bind();
+  render();
+  </script>
+</body>
+</html>

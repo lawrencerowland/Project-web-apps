@@ -2,1571 +2,1063 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Interactive Demo: Advanced Project Planning Ideas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Frontier Lab — Improve the Project Before Optimising the Plan</title>
   <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #5b6874;
+      --paper: #f4f1ea;
+      --panel: #fffdf8;
+      --line: #d9d3c8;
+      --navy: #12324a;
+      --teal: #0d766e;
+      --teal-soft: #dff3ef;
+      --amber: #a75d00;
+      --amber-soft: #fff0d8;
+      --red: #a33a37;
+      --red-soft: #fdebea;
+      --green: #2d6b43;
+      --green-soft: #e5f3e9;
+      --blue-soft: #e5eef8;
+      --shadow: 0 14px 36px rgba(23, 33, 43, .08);
+    }
+    * { box-sizing: border-box; }
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
-      padding: 0;
-      background-color: #f5f5f5;
-      color: #222;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
     }
-
-    header {
-      background-color: #222;
+    button, input, select { font: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+      outline: 3px solid #53a6d8;
+      outline-offset: 2px;
+    }
+    .hero {
+      padding: 42px max(20px, calc((100vw - 1180px) / 2));
       color: #fff;
-      padding: 16px 24px;
+      background:
+        radial-gradient(circle at 88% 12%, rgba(73, 181, 165, .27), transparent 30%),
+        linear-gradient(135deg, #10283c, #163f59 65%, #0d625e);
     }
-
-    header h1 {
-      margin: 0 0 6px 0;
-      font-size: 1.4rem;
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #b9e6df;
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .11em;
+      text-transform: uppercase;
     }
-
-    header p {
+    h1 {
+      max-width: 860px;
       margin: 0;
-      font-size: 0.9rem;
-      opacity: 0.85;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 500;
+      line-height: 1.04;
     }
-
-    main {
-      padding: 16px 24px 40px 24px;
+    .hero-copy {
+      max-width: 830px;
+      margin: 18px 0 0;
+      color: #e6f0f3;
+      font-size: clamp(1rem, 2vw, 1.2rem);
     }
-
-    .nav-buttons {
-      margin-bottom: 16px;
+    .hero-meta {
       display: flex;
       flex-wrap: wrap;
+      gap: 10px 18px;
+      margin-top: 24px;
+      color: #c9dce3;
+      font-size: .86rem;
+    }
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: -20px auto 56px;
+    }
+    .notice {
+      padding: 16px 18px;
+      border: 1px solid #c9ddd8;
+      background: #f7fffd;
+      box-shadow: var(--shadow);
+    }
+    .notice strong { color: var(--teal); }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 8px;
+      margin: 18px 0 14px;
     }
-
-    .nav-buttons button {
-      padding: 6px 10px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      background: #fafafa;
-      cursor: pointer;
-      font-size: 0.85rem;
-    }
-
-    .nav-buttons button.active {
-      background: #1976d2;
-      border-color: #0d47a1;
-      color: #fff;
-    }
-
-    .section {
-      display: none;
-      background: #ffffff;
-      padding: 16px;
-      margin-bottom: 16px;
+    .tab {
+      min-height: 70px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
       border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    }
-
-    .section.active {
-      display: block;
-    }
-
-    h2 {
-      margin-top: 0;
-      font-size: 1.15rem;
-    }
-
-    h3 {
-      font-size: 1rem;
-      margin-top: 16px;
-    }
-
-    p {
-      font-size: 0.9rem;
-      line-height: 1.4;
-      margin-top: 4px;
-      margin-bottom: 8px;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-      gap: 12px;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .card {
-      background: #fafafa;
-      border-radius: 6px;
-      border: 1px solid #ddd;
-      padding: 8px;
-    }
-
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin-top: 8px;
-      font-size: 0.85rem;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 4px 6px;
+      color: var(--navy);
+      background: var(--panel);
+      cursor: pointer;
       text-align: left;
     }
-
-    th {
-      background-color: #eee;
+    .tab span { display: block; color: var(--muted); font-size: .75rem; }
+    .tab[aria-selected="true"] {
+      color: #fff;
+      border-color: var(--navy);
+      background: var(--navy);
     }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 10px;
-      font-size: 0.7rem;
-      margin-right: 4px;
-    }
-
-    .badge-explore {
-      background: #e3f2fd;
-      color: #0d47a1;
-    }
-
-    .badge-exploit {
-      background: #fbe9e7;
-      color: #bf360c;
-    }
-
-    .badge-critical {
-      background: #ffebee;
-      color: #b71c1c;
-    }
-
-    .badge-ok {
-      background: #e8f5e9;
-      color: #1b5e20;
-    }
-
-    .controls {
-      margin-top: 8px;
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-    }
-
-    .controls label {
-      display: block;
-      margin-bottom: 4px;
-    }
-
-    .controls input[type="number"] {
-      width: 80px;
-      padding: 2px 4px;
-      font-size: 0.85rem;
-    }
-
-    .controls input[type="checkbox"],
-    .controls input[type="radio"] {
-      margin-right: 4px;
-    }
-
-    .controls select {
-      padding: 2px 4px;
-      font-size: 0.85rem;
-    }
-
-    button.action {
-      margin-top: 6px;
-      padding: 5px 10px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-      background-color: #e3f2fd;
-      cursor: pointer;
-      font-size: 0.85rem;
-    }
-
-    button.action:hover {
-      background-color: #bbdefb;
-    }
-
-    .output {
-      background: #fafafa;
-      border: 1px solid #ddd;
-      padding: 8px;
-      margin-top: 8px;
-      border-radius: 4px;
-      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 0.8rem;
-      white-space: pre-wrap;
-    }
-
-    .ok {
-      color: #1b5e20;
-      font-weight: 600;
-    }
-
-    .error {
-      color: #b71c1c;
-      font-weight: 600;
-    }
-
-    .hint {
-      font-size: 0.8rem;
-      color: #555;
-      margin-top: 4px;
-    }
-
-    .label-strong {
-      font-weight: 600;
-    }
-
-    .metric-row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 4px;
-      font-size: 0.85rem;
-    }
-
-    .metric-chip {
-      padding: 3px 8px;
+    .tab[aria-selected="true"] span { color: #c7d8e2; }
+    .panel {
+      padding: clamp(18px, 3vw, 32px);
+      border: 1px solid var(--line);
       border-radius: 12px;
-      background: #eceff1;
+      background: var(--panel);
+      box-shadow: var(--shadow);
     }
-
-    .inline-code {
-      font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      background: #eceff1;
-      padding: 1px 3px;
-      border-radius: 3px;
-      font-size: 0.8rem;
+    .panel[hidden] { display: none; }
+    .panel-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(240px, .7fr);
+      gap: 22px;
+      align-items: start;
+      margin-bottom: 24px;
     }
-
-    .subtitle {
-      font-weight: 600;
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: #757575;
-      margin-bottom: 4px;
+    h2 {
+      margin: 0 0 8px;
+      color: var(--navy);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.6rem, 3vw, 2.35rem);
+      font-weight: 500;
+      line-height: 1.1;
     }
-
-    @media (max-width: 900px) {
-      .grid-2, .grid-3 {
-        grid-template-columns: minmax(0, 1fr);
+    h3 { margin: 0 0 10px; color: var(--navy); font-size: 1rem; }
+    p { margin: 0 0 12px; }
+    .method-note {
+      padding-left: 14px;
+      border-left: 3px solid var(--teal);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .layout > *, .panel-head > * { min-width: 0; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: end;
+      margin: 0 0 16px;
+    }
+    label.field { display: grid; gap: 5px; color: var(--muted); font-size: .8rem; }
+    select, input[type="number"] {
+      min-height: 38px;
+      padding: 7px 9px;
+      border: 1px solid #aaa397;
+      border-radius: 6px;
+      color: var(--ink);
+      background: #fff;
+    }
+    button.action {
+      min-height: 40px;
+      padding: 8px 14px;
+      border: 0;
+      border-radius: 6px;
+      color: #fff;
+      background: var(--teal);
+      cursor: pointer;
+      font-weight: 700;
+    }
+    button.secondary {
+      color: var(--navy);
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .table-wrap { max-width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    th, td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; }
+    td input[type="number"], td select { width: 100%; min-width: 82px; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .metric { padding: 13px; border-top: 3px solid var(--teal); background: var(--teal-soft); }
+    .metric span { display: block; color: var(--muted); font-size: .75rem; }
+    .metric strong { display: block; margin-top: 2px; color: var(--navy); font-size: 1.45rem; }
+    .output {
+      padding: 15px;
+      border: 1px solid var(--line);
+      background: #faf8f3;
+      font-size: .88rem;
+    }
+    .output ul { margin: 8px 0 0; padding-left: 20px; }
+    .status {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: .72rem;
+      font-weight: 700;
+    }
+    .status.good { color: var(--green); background: var(--green-soft); }
+    .status.warn { color: var(--amber); background: var(--amber-soft); }
+    .status.stop { color: var(--red); background: var(--red-soft); }
+    .status.info { color: var(--navy); background: var(--blue-soft); }
+    .claim-title { display: block; margin-bottom: 3px; font-weight: 700; }
+    .subtle { color: var(--muted); font-size: .78rem; }
+    .check-cell { text-align: center; }
+    .check-cell input { width: 20px; height: 20px; }
+    .allocation-list, .path-list { display: grid; gap: 8px; }
+    .allocation-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .bar {
+      height: 8px;
+      margin-top: 6px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #e2ded6;
+    }
+    .bar > span { display: block; height: 100%; background: var(--teal); }
+    .network {
+      width: 100%;
+      min-height: 330px;
+      border: 1px solid var(--line);
+      background: #fbfaf6;
+    }
+    .network text { fill: var(--ink); font-size: 11px; }
+    .network .node { fill: #fff; stroke: var(--navy); stroke-width: 1.5; }
+    .network .node.failed { fill: var(--red-soft); stroke: var(--red); }
+    .network .edge { fill: none; stroke-width: 2; }
+    .network .precedence { stroke: var(--navy); }
+    .network .evidence { stroke: var(--teal); }
+    .network .approval { stroke: var(--amber); }
+    .network .feedback { stroke: var(--red); stroke-dasharray: 5 4; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0 16px; color: var(--muted); font-size: .76rem; }
+    .legend i { display: inline-block; width: 18px; height: 3px; margin-right: 5px; vertical-align: middle; background: var(--navy); }
+    .legend .e { background: var(--teal); }
+    .legend .a { background: var(--amber); }
+    .legend .f { height: 0; border-top: 2px dashed var(--red); background: none; }
+    .policy-table tr.selected { background: var(--teal-soft); }
+    .schedule { display: grid; gap: 8px; margin-top: 12px; }
+    .schedule-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 1fr) 2fr auto;
+      gap: 10px;
+      align-items: center;
+      font-size: .8rem;
+    }
+    .timeline { position: relative; height: 18px; border-radius: 3px; background: #e7e2da; }
+    .timeline span { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--teal); }
+    .ledger {
+      margin-top: 18px;
+      padding: clamp(18px, 3vw, 28px);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #172f43;
+      color: #eef5f7;
+    }
+    .ledger h2 { color: #fff; }
+    .ledger p { color: #cbdbe1; }
+    .ledger table { color: #eef5f7; }
+    .ledger th { color: #aecaD5; }
+    .ledger th, .ledger td { border-color: #355066; }
+    details { margin-top: 14px; color: var(--muted); font-size: .83rem; }
+    summary { cursor: pointer; color: var(--navy); font-weight: 700; }
+    footer {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto 40px;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+    @media (max-width: 860px) {
+      .tabs { grid-template-columns: 1fr 1fr; }
+      .panel-head, .layout { grid-template-columns: 1fr; }
+      main { width: min(100% - 20px, 1180px); }
+    }
+    @media (max-width: 520px) {
+      .hero { padding: 30px 16px 38px; }
+      .tabs { grid-template-columns: 1fr; }
+      .panel { padding: 16px 12px; }
+      .metrics { grid-template-columns: 1fr; }
+      .schedule-row { grid-template-columns: 1fr; gap: 4px; }
+      .controls > * { max-width: 100%; }
+      .controls button.action { width: 100%; }
+      .table-wrap { overflow: visible; }
+      .table-wrap table,
+      .table-wrap tbody,
+      .table-wrap tr,
+      .table-wrap td { display: block; width: 100%; }
+      .table-wrap thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
-
-      header, main {
-        padding-left: 12px;
-        padding-right: 12px;
+      .table-wrap tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+      .table-wrap td { padding: 5px 0; border: 0; }
+      .table-wrap td::before {
+        display: block;
+        margin-bottom: 2px;
+        color: var(--muted);
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .05em;
+        text-transform: uppercase;
       }
+      .table-wrap td select,
+      .table-wrap td input[type="number"] { width: 100%; }
+      #demand-body td:nth-child(1)::before { content: "Demand"; }
+      #demand-body td:nth-child(2)::before { content: "Why it exists"; }
+      #demand-body td:nth-child(3)::before { content: "Effort"; }
+      #demand-body td:nth-child(4)::before { content: "Disposition"; }
+      #assurance-body td:nth-child(1)::before { content: "Claim and sensor"; }
+      #assurance-body td:nth-child(2)::before { content: "Activity done"; }
+      #assurance-body td:nth-child(3)::before { content: "Evidence"; }
+      #assurance-body td:nth-child(4)::before { content: "Threshold met"; }
+      #assurance-body td:nth-child(5)::before { content: "Reviewer accepts"; }
+      #assurance-body td:nth-child(6)::before { content: "Chain state"; }
+      #scarcity-body td:nth-child(1)::before { content: "Demand"; }
+      #scarcity-body td:nth-child(2)::before { content: "Delay cost"; }
+      #scarcity-body td:nth-child(3)::before { content: "Evidence confidence"; }
+      #scarcity-body td:nth-child(4)::before { content: "Minimum days"; }
+      #scarcity-body td:nth-child(5)::before { content: "Alternative"; }
+      #topology-body td:nth-child(1)::before { content: "Link"; }
+      #topology-body td:nth-child(2)::before { content: "Type"; }
+      #topology-body td:nth-child(3)::before { content: "Active"; }
+      #policy-body td:nth-child(1)::before { content: "Policy"; }
+      #policy-body td:nth-child(2)::before { content: "Average regret"; }
+      #policy-body td:nth-child(3)::before { content: "Base finish"; }
+      #policy-body td:nth-child(4)::before { content: "First outcome"; }
+      #policy-body td:nth-child(5)::before { content: "Uncertainty at week 6"; }
+      #policy-body td:nth-child(6)::before { content: "Reuse by week 6"; }
+      #ledger-body td:nth-child(1)::before { content: "Lens"; }
+      #ledger-body td:nth-child(2)::before { content: "Current reading"; }
+      #ledger-body td:nth-child(3)::before { content: "Evidence basis"; }
+      #ledger-body td:nth-child(4)::before { content: "Next trigger"; }
+      .ledger .table-wrap tr { border-color: #355066; }
+      .ledger .table-wrap td::before { color: #aecdD5; }
     }
   </style>
 </head>
 <body>
-<header>
-  <h1>Cloud Data Platform Migration – Interactive Planning Sandbox</h1>
-  <p>
-    Example programme: migrate a legacy on-prem data warehouse to a cloud data platform,
-    with regulatory constraints and ambitious self-service analytics goals.
-  </p>
-</header>
-
-<main>
-  <div class="nav-buttons">
-    <button class="active" onclick="showSection('section1', this)">1. Counterfactual Project Calculus</button>
-    <button onclick="showSection('section2', this)">2. Proof-Carrying Plan</button>
-    <button onclick="showSection('section3', this)">3. Mechanism-Designed Coordination</button>
-    <button onclick="showSection('section4', this)">4. Topological Robustness</button>
-    <button onclick="showSection('section5', this)">5. Portfolio Meta-Planners</button>
-  </div>
-
-  <!-- 1. Counterfactual Project Calculus -->
-  <section id="section1" class="section active">
-    <h2>1. Counterfactual Project Calculus (Causal &amp; Epistemic View)</h2>
-    <p>
-      Here the migration plan is treated as a structural causal model: toggling decisions corresponds
-      to interventions, and the tool computes rough outcomes and classifies tasks as exploration or exploitation.
-    </p>
-
-    <div class="grid-2">
-      <div class="card">
-        <div class="subtitle">Decisions as Interventions</div>
-        <p>Choose interventions and then compute outcomes &amp; epistemic mix.</p>
-        <div class="controls">
-          <label><span class="label-strong">Decision 1 – Data quality pilot:</span></label>
-          <label>
-            <input type="radio" name="cpc-pilot" id="cpc-pilot-yes" checked>
-            Run early data quality pilot on a small domain (exploratory).
-          </label>
-          <label>
-            <input type="radio" name="cpc-pilot" id="cpc-pilot-no">
-            Skip pilot and learn during full migration.
-          </label>
-
-          <label style="margin-top:8px;"><span class="label-strong">Decision 2 – Migration mode:</span></label>
-          <label>
-            <input type="radio" name="cpc-mode" id="cpc-mode-incremental" checked>
-            Incremental migration (phased domains).
-          </label>
-          <label>
-            <input type="radio" name="cpc-mode" id="cpc-mode-bigbang">
-            Big-bang cutover.
-          </label>
-
-          <label style="margin-top:8px;"><span class="label-strong">Decision 3 – Automation stance:</span></label>
-          <label>
-            <input type="radio" name="cpc-auto" id="cpc-auto-aggressive" checked>
-            Aggressive automation (schema &amp; pipeline generation).
-          </label>
-          <label>
-            <input type="radio" name="cpc-auto" id="cpc-auto-conservative">
-            Conservative automation with more manual checks.
-          </label>
-
-          <button class="action" onclick="computeCpcOutcomes()">Compute outcomes &amp; epistemic mix</button>
-        </div>
-        <div id="cpc-outcome" class="output"></div>
-      </div>
-
-      <div class="card">
-        <div class="subtitle">Tasks as Measurements or Delivery Steps</div>
-        <p>
-          This is the same plan seen as a set of “experiments” (exploration) and “commitments” (exploitation).
-        </p>
-        <table id="cpc-tasks-table">
-          <thead>
-          <tr>
-            <th>Task</th>
-            <th>Bound to decision</th>
-            <th>Role</th>
-            <th>Epistemic type</th>
-            <th>Active?</th>
-          </tr>
-          </thead>
-          <tbody>
-          <!-- Filled by JavaScript -->
-          </tbody>
-        </table>
-        <div class="hint">
-          The epistemic calculus is simple here, but the idea is that the plan is optimised not just for time,
-          but for where and when it learns about reality.
-        </div>
-      </div>
+  <header class="hero">
+    <p class="eyebrow">Portfolio Wave experiment · rebuilt 11 July 2026</p>
+    <h1>Project Frontier Lab</h1>
+    <p class="hero-copy">Improve the project before optimising its plan: challenge demand, make claims testable, allocate scarce attention, inspect typed dependencies, and compare transparent planning policies.</p>
+    <div class="hero-meta">
+      <span>One illustrative cloud-migration case</span>
+      <span>Five connected planning lenses</span>
+      <span>No live data or hidden AI scoring</span>
     </div>
-  </section>
+  </header>
 
-  <!-- 2. Proof-Carrying Project Plans -->
-  <section id="section2" class="section">
-    <h2>2. Proof-Carrying Project Plans (Toy Typed Plan Checker)</h2>
-    <p>
-      This section treats the plan as a proof object: tasks are proof obligations that must discharge critical requirements,
-      and a simple checker enforces invariants like coverage and ordering.</p>
+  <main>
+    <aside class="notice">
+      <strong>Reasoning aid, not authority.</strong> All figures are invented scenario inputs. Outputs are not forecasts, legal assurance, resource approvals or permission to pass a delivery gate.
+    </aside>
 
-    <div class="grid-2">
-      <div class="card">
-        <div class="subtitle">Requirements</div>
-        <p>Each requirement must be covered by at least one task and, for critical ones, before Go-Live.</p>
-        <table id="proof-req-table">
-          <thead>
-          <tr>
-            <th>Req ID</th>
-            <th>Description</th>
-            <th>Critical?</th>
-          </tr>
-          </thead>
-          <tbody>
-          <!-- Filled by JS -->
-          </tbody>
-        </table>
-        <p class="hint">
-          Think of these as types that certain tasks must inhabit; the “proof” is a mapping from tasks to requirements.
-        </p>
+    <nav class="tabs" role="tablist" aria-label="Project planning lenses">
+      <button class="tab" id="tab-demand" role="tab" aria-selected="true" aria-controls="panel-demand"><span>01 · Scope</span>Challenge demand</button>
+      <button class="tab" id="tab-assurance" role="tab" aria-selected="false" aria-controls="panel-assurance"><span>02 · Evidence</span>Test plan claims</button>
+      <button class="tab" id="tab-scarcity" role="tab" aria-selected="false" aria-controls="panel-scarcity"><span>03 · Attention</span>Allocate scarcity</button>
+      <button class="tab" id="tab-topology" role="tab" aria-selected="false" aria-controls="panel-topology"><span>04 · Structure</span>Inspect dependencies</button>
+      <button class="tab" id="tab-planners" role="tab" aria-selected="false" aria-controls="panel-planners"><span>05 · Policy</span>Run planner tournament</button>
+    </nav>
+
+    <section class="panel" id="panel-demand" role="tabpanel" aria-labelledby="tab-demand">
+      <div class="panel-head">
+        <div>
+          <h2>Challenge the demand</h2>
+          <p>Before scheduling inherited scope, decide what should disappear, shrink, change form, become a standard, be automated, be tested cheaply, or genuinely proceed.</p>
+        </div>
+        <p class="method-note">Effort points are relative workload units, not cost or duration. Mandatory obligations stay visible even when the proposed solution changes.</p>
       </div>
-
-      <div class="card">
-        <div class="subtitle">Tasks &amp; Assignment of Proof Obligations</div>
-        <p>
-          Toggle which requirements each task claims to satisfy, then run the checker to see whether the plan type-checks.
-        </p>
-        <table id="proof-tasks-table">
-          <thead>
-          <tr>
-            <th>Task</th>
-            <th>Resource</th>
-            <th>Start (week)</th>
-            <th>End (week)</th>
-            <th>Reqs implemented</th>
-          </tr>
-          </thead>
-          <tbody>
-          <!-- Filled by JS -->
-          </tbody>
-        </table>
-        <button class="action" onclick="runProofCheck()">Run proof check</button>
-        <div id="proof-output" class="output"></div>
+      <div class="layout">
+        <div>
+          <div class="controls">
+            <button class="action secondary" id="demand-conservative">Keep more scope</button>
+            <button class="action secondary" id="demand-challenge">Challenge harder</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Demand</th><th>Why it exists</th><th>Effort</th><th>Disposition</th></tr></thead>
+              <tbody id="demand-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <aside>
+          <div class="metrics">
+            <div class="metric"><span>Baseline effort</span><strong id="demand-baseline">0</strong></div>
+            <div class="metric"><span>Committed now</span><strong id="demand-residual">0</strong></div>
+            <div class="metric"><span>Avoided / displaced</span><strong id="demand-avoided">0</strong></div>
+            <div class="metric"><span>Open tests</span><strong id="demand-tests">0</strong></div>
+          </div>
+          <div class="output" id="demand-output" aria-live="polite"></div>
+        </aside>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- 3. Mechanism-Designed Coordination Protocols -->
-  <section id="section3" class="section">
-    <h2>3. Mechanism-Designed Coordination (VCG-style Auction for Scarce Expert)</h2>
-    <p>
-      Here the scarce resource is a security architect needed by three teams this sprint;
-      we compare naive allocation with a simple Vickrey auction where truth-telling is a dominant strategy.
-    </p>
-
-    <div class="grid-2">
-      <div class="card">
-        <div class="subtitle">Teams &amp; Private Values</div>
-        <p>Enter how much value each team expects from having the architect this sprint.</p>
+    <section class="panel" id="panel-assurance" role="tabpanel" aria-labelledby="tab-assurance" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>Make plan claims testable</h2>
+          <p>A completed activity is not the same as current evidence; evidence is not the same as a supported claim; and a supported claim is not an approved gate.</p>
+        </div>
+        <p class="method-note">The checker reports the weakest link in each chain. It does not certify GDPR compliance, safety, operational readiness or any other external standard.</p>
+      </div>
+      <div class="table-wrap">
         <table>
-          <thead>
-          <tr>
-            <th>Team</th>
-            <th>Description</th>
-            <th>Value (story points, utility units, etc.)</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr>
-            <td>Data Engineering</td>
-            <td>Hardening ingestion pipelines &amp; IAM design.</td>
-            <td><input type="number" id="auction-val-0" value="15" min="0"></td>
-          </tr>
-          <tr>
-            <td>Analytics</td>
-            <td>Securing new self-service dashboards.</td>
-            <td><input type="number" id="auction-val-1" value="9" min="0"></td>
-          </tr>
-          <tr>
-            <td>Compliance</td>
-            <td>Formalising data retention and legal logging.</td>
-            <td><input type="number" id="auction-val-2" value="13" min="0"></td>
-          </tr>
-          </tbody>
+          <thead><tr><th>Claim and sensor</th><th>Activity done</th><th>Evidence</th><th>Threshold met</th><th>Reviewer accepts</th><th>Chain state</th></tr></thead>
+          <tbody id="assurance-body"></tbody>
         </table>
+      </div>
+      <div class="layout" style="margin-top:18px">
+        <div class="output" id="assurance-detail"></div>
+        <aside>
+          <div class="metric"><span>Illustrative gate state</span><strong id="assurance-gate">Hold</strong></div>
+          <button class="action" id="assurance-check" style="margin-top:10px">Recheck evidence chains</button>
+        </aside>
+      </div>
+    </section>
 
-        <button class="action" onclick="runAuction()">Run Vickrey auction</button>
-        <div class="hint">
-          In a one-item Vickrey auction, the highest bidder wins but pays the second-highest bid; the mechanism is
-          strategy-proof under standard assumptions.
+    <section class="panel" id="panel-scarcity" role="tabpanel" aria-labelledby="tab-scarcity" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>Allocate scarce expertise by opportunity cost</h2>
+          <p>Teams disclose the outcome unlocked, cost of waiting, confidence in that claim, minimum useful package and a credible alternative. The protocol allocates days, not fictional money.</p>
         </div>
+        <p class="method-note">Priority is a transparent scenario score: delay cost × evidence confidence, adjusted for reuse and whether another route exists. Change the inputs and challenge the recommendation.</p>
       </div>
-
-      <div class="card">
-        <div class="subtitle">Allocation &amp; Incentive Comparison</div>
-        <div id="auction-output" class="output"></div>
-        <p class="hint">
-          You can play with bids to see that exaggerating values does not increase expected utility under the Vickrey rule,
-          unlike under naive “first come, first served” or “loudest voice wins” governance.
-        </p>
+      <div class="controls">
+        <label class="field">Architect-days available
+          <input type="number" id="scarcity-pool" min="2" max="12" value="6">
+        </label>
+        <button class="action" id="scarcity-run">Allocate useful packages</button>
       </div>
-    </div>
-  </section>
-
-  <!-- 4. Topological Robustness -->
-  <section id="section4" class="section">
-    <h2>4. Topological Robustness of Dependency Structure</h2>
-    <p>
-      The same migration project is seen as a graph: optional dependencies create cycles and increase the first Betti number,
-      which here stands in as a simple proxy for coordination complexity and fragility.</p>
-
-    <div class="grid-2">
-      <div class="card">
-        <div class="subtitle">Tasks &amp; Dependencies</div>
-        <p>Toggle optional dependencies and inspect how the topology changes.</p>
-        <table id="topo-deps-table">
-          <thead>
-          <tr>
-            <th>Edge ID</th>
-            <th>From</th>
-            <th>To</th>
-            <th>Optional?</th>
-            <th>Active?</th>
-          </tr>
-          </thead>
-          <tbody>
-          <!-- Filled by JS -->
-          </tbody>
-        </table>
-        <button class="action" onclick="analyzeTopology()">Analyse topology</button>
-        <p class="hint">
-          We treat the dependency graph as an undirected simplicial 1-complex and compute a basic Betti-1
-          statistic: <span class="inline-code">β₁ = m − n + c</span>.
-        </p>
-      </div>
-
-      <div class="card">
-        <div class="subtitle">Topological Summary</div>
-        <div id="topo-output" class="output"></div>
-        <p class="hint">
-          In a real tool, you would also compare this morphology against a library of “healthy” and “pathological”
-          programme topologies and propose specific refactorings as “surgery”.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 5. Portfolio-Level Meta-Planners -->
-  <section id="section5" class="section">
-    <h2>5. Portfolio-Level Meta-Planners (Toy Heuristic Synthesis)</h2>
-    <p>
-      Here we plan at the level of the planner: different heuristics (risk-first, value-first, learning-first, and
-      a “meta-learned” weighted combination) induce different schedules and outcome profiles for the same task set.
-    </p>
-
-    <div class="grid-2">
-      <div class="card">
-        <div class="subtitle">Task Library for This Migration</div>
-        <p>These are generic tasks with risk, value, and epistemic uncertainty scores.</p>
-        <table id="meta-tasks-table">
-          <thead>
-          <tr>
-            <th>Task ID</th>
-            <th>Task</th>
-            <th>Risk</th>
-            <th>Value</th>
-            <th>Uncertainty</th>
-            <th>Duration (weeks)</th>
-          </tr>
-          </thead>
-          <tbody>
-          <!-- Filled by JS -->
-          </tbody>
-        </table>
-        <p class="hint">
-          The scores are illustrative; think of them as coming from historical priors or expert elicitation across the portfolio.
-        </p>
-      </div>
-
-      <div class="card">
-        <div class="subtitle">Choose a Planner &amp; Generate Schedule</div>
-        <div class="controls">
-          <label for="planner-select" class="label-strong">Planner heuristic:</label>
-          <select id="planner-select">
-            <option value="risk">Risk-first</option>
-            <option value="value">Value-first</option>
-            <option value="learning">Learning-first</option>
-            <option value="meta">Meta-learned combo</option>
-          </select>
-          <button class="action" onclick="generatePlan()">Generate plan</button>
+      <div class="layout">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Demand</th><th>Delay cost<br>1–10</th><th>Evidence<br>0–100%</th><th>Minimum days</th><th>Alternative</th></tr></thead>
+            <tbody id="scarcity-body"></tbody>
+          </table>
         </div>
+        <aside>
+          <div class="output" id="scarcity-output" aria-live="polite"></div>
+        </aside>
+      </div>
+    </section>
 
-        <div class="metric-row">
-          <div class="metric-chip">
-            <span class="label-strong">Target commit time:</span> week <span id="meta-commit-time">8</span>
-          </div>
-          <div class="metric-chip">
-            <span class="label-strong">Meta weights (risk, value, uncertainty):</span>
-            <span id="meta-weights">(0.4, 0.3, 0.3)</span>
+    <section class="panel" id="panel-topology" role="tabpanel" aria-labelledby="tab-topology" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>Inspect typed, directed dependencies</h2>
+          <p>Precedence, evidence, approval and feedback links mean different things. A directed precedence cycle makes a schedule infeasible; a feedback loop may be useful learning; a second evidence path may be resilience.</p>
+        </div>
+        <p class="method-note">The model tests reachability and directed precedence cycles. It does not reduce programme health to one graph statistic.</p>
+      </div>
+      <div class="controls">
+        <label class="field">Simulate one unavailable node
+          <select id="topology-failure"></select>
+        </label>
+        <button class="action" id="topology-analyse">Analyse consequences</button>
+      </div>
+      <div class="layout">
+        <div>
+          <svg class="network" id="network" viewBox="0 0 680 340" role="img" aria-labelledby="network-title network-desc">
+            <title id="network-title">Typed dependency network</title>
+            <desc id="network-desc">A directed network from legacy profiling to a release decision, with precedence, evidence, approval and feedback links.</desc>
+            <defs>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="context-stroke"></path></marker>
+            </defs>
+            <g id="network-edges"></g>
+            <g id="network-nodes"></g>
+          </svg>
+          <div class="legend">
+            <span><i></i>Precedence</span><span><i class="e"></i>Evidence</span><span><i class="a"></i>Approval</span><span><i class="f"></i>Feedback</span>
           </div>
         </div>
-
-        <h3>Resulting Schedule</h3>
-        <table id="meta-plan-table">
-          <thead>
-          <tr>
-            <th>Order</th>
-            <th>Task ID</th>
-            <th>Task</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>Score used</th>
-          </tr>
-          </thead>
-          <tbody>
-          <!-- Filled by JS -->
-          </tbody>
-        </table>
-
-        <h3>Summary Metrics</h3>
-        <div id="meta-output" class="output"></div>
-        <p class="hint">
-          A real meta-planner would be learned from many past projects via program synthesis or meta-RL,
-          but the interaction pattern is essentially the same.
-        </p>
+        <aside>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Link</th><th>Type</th><th>Active</th></tr></thead>
+              <tbody id="topology-body"></tbody>
+            </table>
+          </div>
+          <div class="output" id="topology-output" style="margin-top:12px" aria-live="polite"></div>
+        </aside>
       </div>
-    </div>
-  </section>
-</main>
+    </section>
 
-<script>
-  /********************************************************************
-   * Navigation
-   ********************************************************************/
-  function showSection(id, button) {
-    var sections = document.querySelectorAll('.section');
-    sections.forEach(function (s) {
-      s.classList.remove('active');
-    });
-    var target = document.getElementById(id);
-    if (target) {
-      target.classList.add('active');
-    }
+    <section class="panel" id="panel-planners" role="tabpanel" aria-labelledby="tab-planners" hidden>
+      <div class="panel-head">
+        <div>
+          <h2>Run a transparent planner tournament</h2>
+          <p>Five declared policies schedule the same dependency-constrained work under three plausible duration scenarios. The app compares consequences; none of the policies is “meta-learned”.</p>
+        </div>
+        <p class="method-note">Lower regret is better. It measures how far a policy’s scenario score is from the best policy in that same scenario. Inputs and scoring rules are illustrative and inspectable.</p>
+      </div>
+      <div class="controls">
+        <label class="field">Parallel work capacity
+          <select id="planner-capacity"><option value="1">1 workstream</option><option value="2" selected>2 workstreams</option><option value="3">3 workstreams</option></select>
+        </label>
+        <label class="field">Inspect policy
+          <select id="planner-policy"></select>
+        </label>
+        <button class="action" id="planner-run">Run tournament</button>
+      </div>
+      <div class="table-wrap">
+        <table class="policy-table">
+          <thead><tr><th>Policy</th><th>Average regret</th><th>Base finish</th><th>First validated outcome</th><th>Critical uncertainty at week 6</th><th>Reusable capability by week 6</th></tr></thead>
+          <tbody id="policy-body"></tbody>
+        </table>
+      </div>
+      <div class="layout" style="margin-top:18px">
+        <div>
+          <h3 id="schedule-title">Base-scenario schedule</h3>
+          <div class="schedule" id="schedule"></div>
+        </div>
+        <aside class="output" id="planner-output"></aside>
+      </div>
+      <details>
+        <summary>See the policy rules and scenario changes</summary>
+        <p>Risk-first prioritises risk exposure; value-first prioritises validated outcomes; learning-first prioritises uncertainty reduction; reuse-first prioritises reusable tests and patterns; robust balances all four and slightly favours shorter work. The stress scenarios extend profiling/pilot work or access-control work.</p>
+      </details>
+    </section>
 
-    var buttons = document.querySelectorAll('.nav-buttons button');
-    buttons.forEach(function (b) {
-      b.classList.remove('active');
-    });
-    if (button) {
-      button.classList.add('active');
-    }
-  }
+    <section class="ledger" aria-labelledby="ledger-title">
+      <h2 id="ledger-title">Current decision ledger</h2>
+      <p>One compact trail of what each lens currently says, what it relies on, and what would trigger another decision.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Lens</th><th>Current reading</th><th>Evidence basis</th><th>Remaining uncertainty / next trigger</th></tr></thead>
+          <tbody id="ledger-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 
-  /********************************************************************
-   * Section 1 – Counterfactual Project Calculus
-   ********************************************************************/
-  var cpcTasks = [
-    {
-      id: 'C1',
-      name: 'Run data quality pilot on Customer domain',
-      decision: 'pilot',
-      type: 'exploration',
-      role: 'Data Eng + Product'
-    },
-    {
-      id: 'C2',
-      name: 'Incremental migration of domains (Customer → Orders → Finance)',
-      decision: 'mode-incremental',
-      type: 'exploitation',
-      role: 'Data Platform'
-    },
-    {
-      id: 'C3',
-      name: 'Big-bang cutover of all ETL flows',
-      decision: 'mode-bigbang',
-      type: 'exploitation',
-      role: 'Data Platform'
-    },
-    {
-      id: 'C4',
-      name: 'Aggressive automation of schema + pipeline generation',
-      decision: 'auto-aggressive',
-      type: 'exploration',
-      role: 'Platform Eng'
-    },
-    {
-      id: 'C5',
-      name: 'Manual review of schemas and mappings',
-      decision: 'auto-conservative',
-      type: 'exploitation',
-      role: 'Data Stewards'
-    }
-  ];
+  <footer>A Portfolio Wave concept experiment. Scenario values are intentionally synthetic; replace them with governed data, named authorities and review criteria before operational use.</footer>
 
-  function renderCpcTasksTable() {
-    var tbody = document.querySelector('#cpc-tasks-table tbody');
-    tbody.innerHTML = '';
-    cpcTasks.forEach(function (t) {
-      var tr = document.createElement('tr');
+  <script>
+    (function () {
+      'use strict';
 
-      var tdName = document.createElement('td');
-      tdName.textContent = t.name;
+      var ledger = {
+        demand: ['No reading yet', 'Synthetic relative effort and stated obligations', 'Review each disposition with the demand owner'],
+        assurance: ['No reading yet', 'Synthetic activity, evidence and review states', 'Obtain current evidence and named reviewer decisions'],
+        scarcity: ['No reading yet', 'Declared delay, confidence, package and alternative inputs', 'Re-run when capacity or evidence changes'],
+        topology: ['No reading yet', 'Typed directed links in this scenario', 'Validate link types and owners against the real plan'],
+        planners: ['No reading yet', 'Three synthetic duration scenarios and declared policy rules', 'Calibrate scores on historical delivery evidence']
+      };
+      var ledgerNames = {
+        demand: 'Challenge demand',
+        assurance: 'Test plan claims',
+        scarcity: 'Allocate scarcity',
+        topology: 'Inspect dependencies',
+        planners: 'Planner tournament'
+      };
 
-      var tdDecision = document.createElement('td');
-      tdDecision.textContent = t.decision;
-
-      var tdRole = document.createElement('td');
-      tdRole.textContent = t.role;
-
-      var tdType = document.createElement('td');
-      var spanType = document.createElement('span');
-      spanType.classList.add('badge');
-      if (t.type === 'exploration') {
-        spanType.classList.add('badge-explore');
-        spanType.textContent = 'exploration';
-      } else {
-        spanType.classList.add('badge-exploit');
-        spanType.textContent = 'exploitation';
+      function renderLedger() {
+        var body = document.getElementById('ledger-body');
+        body.innerHTML = '';
+        Object.keys(ledger).forEach(function (key) {
+          var row = document.createElement('tr');
+          var values = [ledgerNames[key], ledger[key][0], ledger[key][1], ledger[key][2]];
+          values.forEach(function (value) {
+            var cell = document.createElement('td');
+            cell.textContent = value;
+            row.appendChild(cell);
+          });
+          body.appendChild(row);
+        });
       }
-      tdType.appendChild(spanType);
 
-      var tdActive = document.createElement('td');
-      tdActive.id = 'cpc-active-' + t.id;
-      tdActive.textContent = '—';
-
-      tr.appendChild(tdName);
-      tr.appendChild(tdDecision);
-      tr.appendChild(tdRole);
-      tr.appendChild(tdType);
-      tr.appendChild(tdActive);
-
-      tbody.appendChild(tr);
-    });
-  }
-
-  function computeCpcOutcomes() {
-    // Read decision radio buttons
-    var pilot = document.getElementById('cpc-pilot-yes').checked;
-    var incremental = document.getElementById('cpc-mode-incremental').checked;
-    var bigbang = document.getElementById('cpc-mode-bigbang').checked;
-    var autoAggressive = document.getElementById('cpc-auto-aggressive').checked;
-    var autoConservative = document.getElementById('cpc-auto-conservative').checked;
-
-    // Base metrics
-    var timeToStable = 9.0;   // months
-    var majorIncidentRisk = 0.25; // probability of major incident in first 3 months
-    var revenueUplift = 1.0;  // normalized units
-    var explorationCount = 0;
-    var exploitationCount = 0;
-
-    // Effects of decisions (toy SCM)
-    if (pilot) {
-      timeToStable += 0.5;
-      majorIncidentRisk -= 0.10;
-      revenueUplift += 0.10;
-    } else {
-      timeToStable -= 0.3;
-      majorIncidentRisk += 0.07;
-    }
-
-    if (incremental) {
-      timeToStable += 0.5;
-      majorIncidentRisk -= 0.08;
-      revenueUplift -= 0.05;
-    }
-
-    if (bigbang) {
-      timeToStable -= 0.7;
-      majorIncidentRisk += 0.12;
-      revenueUplift += 0.08;
-    }
-
-    if (autoAggressive) {
-      timeToStable -= 0.6;
-      majorIncidentRisk += 0.07;
-      revenueUplift += 0.15;
-    }
-
-    if (autoConservative) {
-      timeToStable += 0.3;
-      majorIncidentRisk -= 0.05;
-      revenueUplift -= 0.03;
-    }
-
-    // Clamp values for sanity
-    if (majorIncidentRisk < 0.01) majorIncidentRisk = 0.01;
-    if (majorIncidentRisk > 0.9) majorIncidentRisk = 0.9;
-    if (timeToStable < 4) timeToStable = 4;
-    if (timeToStable > 18) timeToStable = 18;
-    if (revenueUplift < 0.5) revenueUplift = 0.5;
-    if (revenueUplift > 2.0) revenueUplift = 2.0;
-
-    // Compute exploration/exploitation active tasks
-    cpcTasks.forEach(function (t) {
-      var active = false;
-      if (t.decision === 'pilot') active = pilot;
-      if (t.decision === 'mode-incremental') active = incremental;
-      if (t.decision === 'mode-bigbang') active = bigbang;
-      if (t.decision === 'auto-aggressive') active = autoAggressive;
-      if (t.decision === 'auto-conservative') active = autoConservative;
-
-      var tdActive = document.getElementById('cpc-active-' + t.id);
-      if (tdActive) {
-        tdActive.textContent = active ? 'yes' : 'no';
-      }
-      if (active) {
-        if (t.type === 'exploration') explorationCount++;
-        else exploitationCount++;
-      }
-    });
-
-    var explorationShare = (explorationCount + exploitationCount) > 0
-      ? explorationCount / (explorationCount + exploitationCount)
-      : 0;
-
-    var out = '';
-    out += 'Decisions selected:\n';
-    out += '  • Data quality pilot: ' + (pilot ? 'RUN' : 'SKIP') + '\n';
-    out += '  • Migration mode: ' + (incremental ? 'Incremental' : 'Big-bang') + '\n';
-    out += '  • Automation stance: ' + (autoAggressive ? 'Aggressive automation' : 'Conservative automation') + '\n\n';
-
-    out += 'Predicted outcomes (toy SCM):\n';
-    out += '  • Time to stable operations: ' + timeToStable.toFixed(1) + ' months\n';
-    out += '  • Major incident probability in first 3 months: ' + (majorIncidentRisk * 100).toFixed(1) + '%\n';
-    out += '  • Relative first-year revenue uplift vs baseline: ×' + revenueUplift.toFixed(2) + '\n\n';
-
-    out += 'Epistemic composition of active tasks:\n';
-    out += '  • Exploration tasks active: ' + explorationCount + '\n';
-    out += '  • Exploitation tasks active: ' + exploitationCount + '\n';
-    out += '  • Share of exploration among active tasks: ' + (explorationShare * 100).toFixed(1) + '%\n';
-
-    if (explorationShare < 0.25) {
-      out += '\n⚠️ Warning: Very low exploration share – the plan may be “epistemically brittle” and highly sensitive to hidden assumptions.\n';
-    } else if (explorationShare > 0.65) {
-      out += '\nℹ️ Note: High exploration share – robust learning, but you might be leaving value on the table if timelines are tight.\n';
-    } else {
-      out += '\n✅ Balanced exploration/exploitation regime for this phase.\n';
-    }
-
-    var el = document.getElementById('cpc-outcome');
-    if (el) {
-      el.textContent = out;
-    }
-  }
-
-  /********************************************************************
-   * Section 2 – Proof-Carrying Plans
-   ********************************************************************/
-  var proofRequirements = [
-    {
-      id: 'R1',
-      description: 'GDPR compliance verified (data classification, lawful basis, logging)',
-      critical: true
-    },
-    {
-      id: 'R2',
-      description: 'Rollback path documented and tested for catastrophic failures',
-      critical: true
-    },
-    {
-      id: 'R3',
-      description: 'Critical executive dashboards validated against legacy',
-      critical: false
-    }
-  ];
-
-  var proofTasks = [
-    {
-      id: 'T1',
-      name: 'Design target cloud architecture & IAM model',
-      resource: 'Lead Architect',
-      start: 1,
-      end: 3,
-      defaultReqs: ['R2']
-    },
-    {
-      id: 'T2',
-      name: 'Implement ingestion pipelines for Customer & Orders',
-      resource: 'Data Eng A',
-      start: 3,
-      end: 7,
-      defaultReqs: []
-    },
-    {
-      id: 'T3',
-      name: 'GDPR data classification and policy mapping',
-      resource: 'Compliance Lead',
-      start: 2,
-      end: 6,
-      defaultReqs: ['R1']
-    },
-    {
-      id: 'T4',
-      name: 'User acceptance testing of executive dashboards',
-      resource: 'Product Owner',
-      start: 7,
-      end: 9,
-      defaultReqs: ['R3']
-    },
-    {
-      id: 'T5',
-      name: 'Go-live cutover to cloud platform',
-      resource: 'Ops Lead',
-      start: 9,
-      end: 10,
-      defaultReqs: []
-    }
-  ];
-
-  var goLiveStartWeek = 9;
-
-  function renderProofTables() {
-    // Requirements
-    var reqBody = document.querySelector('#proof-req-table tbody');
-    reqBody.innerHTML = '';
-    proofRequirements.forEach(function (r) {
-      var tr = document.createElement('tr');
-
-      var tdId = document.createElement('td');
-      tdId.textContent = r.id;
-
-      var tdDesc = document.createElement('td');
-      tdDesc.textContent = r.description;
-
-      var tdCrit = document.createElement('td');
-      var span = document.createElement('span');
-      span.classList.add('badge');
-      if (r.critical) {
-        span.classList.add('badge-critical');
-        span.textContent = 'critical';
-      } else {
-        span.classList.add('badge-ok');
-        span.textContent = 'non-critical';
-      }
-      tdCrit.appendChild(span);
-
-      tr.appendChild(tdId);
-      tr.appendChild(tdDesc);
-      tr.appendChild(tdCrit);
-
-      reqBody.appendChild(tr);
-    });
-
-    // Tasks
-    var taskBody = document.querySelector('#proof-tasks-table tbody');
-    taskBody.innerHTML = '';
-    proofTasks.forEach(function (t) {
-      var tr = document.createElement('tr');
-
-      var tdName = document.createElement('td');
-      tdName.textContent = t.id + ' – ' + t.name;
-
-      var tdRes = document.createElement('td');
-      tdRes.textContent = t.resource;
-
-      var tdStart = document.createElement('td');
-      tdStart.textContent = t.start;
-
-      var tdEnd = document.createElement('td');
-      tdEnd.textContent = t.end;
-
-      var tdReqs = document.createElement('td');
-      proofRequirements.forEach(function (r) {
-        var lbl = document.createElement('label');
-        lbl.style.display = 'inline-block';
-        lbl.style.marginRight = '8px';
-
-        var cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.id = 'task-' + t.id + '-req-' + r.id;
-        cb.value = r.id;
-        if (t.defaultReqs.indexOf(r.id) !== -1) {
-          cb.checked = true;
-        }
-
-        lbl.appendChild(cb);
-        lbl.appendChild(document.createTextNode(' ' + r.id));
-
-        tdReqs.appendChild(lbl);
-      });
-
-      tr.appendChild(tdName);
-      tr.appendChild(tdRes);
-      tr.appendChild(tdStart);
-      tr.appendChild(tdEnd);
-      tr.appendChild(tdReqs);
-
-      taskBody.appendChild(tr);
-    });
-  }
-
-  function runProofCheck() {
-    var outLines = [];
-    var ok = true;
-
-    // Build task->requirements map
-    var taskReqMap = {};
-    proofTasks.forEach(function (t) {
-      var selected = [];
-      proofRequirements.forEach(function (r) {
-        var cbId = 'task-' + t.id + '-req-' + r.id;
-        var cb = document.getElementById(cbId);
-        if (cb && cb.checked) {
-          selected.push(r.id);
-        }
-      });
-      taskReqMap[t.id] = selected;
-    });
-
-    // 1. Requirement coverage
-    outLines.push('Checking requirement coverage...');
-    proofRequirements.forEach(function (r) {
-      var covered = false;
-      proofTasks.forEach(function (t) {
-        if (taskReqMap[t.id].indexOf(r.id) !== -1) {
-          covered = true;
-        }
-      });
-      if (covered) {
-        outLines.push('  ✓ ' + r.id + ' is implemented by at least one task.');
-      } else {
-        ok = false;
-        outLines.push('  ✗ ' + r.id + ' is NOT implemented by any task.');
-      }
-    });
-    outLines.push('');
-
-    // 2. Critical requirements satisfied before Go-Live
-    outLines.push('Checking that critical requirements finish before Go-Live (week ' + goLiveStartWeek + ')...');
-    proofRequirements.forEach(function (r) {
-      if (!r.critical) return;
-      var earliestEnd = Infinity;
-      proofTasks.forEach(function (t) {
-        if (taskReqMap[t.id].indexOf(r.id) !== -1) {
-          if (t.end < earliestEnd) earliestEnd = t.end;
-        }
-      });
-
-      if (earliestEnd === Infinity) {
-        ok = false;
-        outLines.push('  ✗ ' + r.id + ' has no implementing task; cannot satisfy before Go-Live.');
-      } else if (earliestEnd <= goLiveStartWeek) {
-        outLines.push('  ✓ ' + r.id + ' is satisfied by week ' + earliestEnd + ', before Go-Live.');
-      } else {
-        ok = false;
-        outLines.push('  ✗ ' + r.id + ' only satisfied at week ' + earliestEnd + ', which is AFTER Go-Live.');
-      }
-    });
-    outLines.push('');
-
-    // 3. Double-booking of resources
-    outLines.push('Checking for double-booked resources...');
-    var resourceMap = {};
-    proofTasks.forEach(function (t) {
-      if (!resourceMap[t.resource]) {
-        resourceMap[t.resource] = [];
-      }
-      resourceMap[t.resource].push(t);
-    });
-
-    Object.keys(resourceMap).forEach(function (res) {
-      var tasks = resourceMap[res];
-      // naive pairwise overlap check
-      for (var i = 0; i < tasks.length; i++) {
-        for (var j = i + 1; j < tasks.length; j++) {
-          var t1 = tasks[i];
-          var t2 = tasks[j];
-          var overlap = Math.max(t1.start, t2.start) < Math.min(t1.end, t2.end);
-          if (overlap) {
-            ok = false;
-            outLines.push(
-              '  ✗ Resource "' + res + '" is double-booked: ' +
-              t1.id + ' (weeks ' + t1.start + '-' + t1.end + ')' +
-              ' overlaps with ' + t2.id + ' (weeks ' + t2.start + '-' + t2.end + ').'
-            );
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+      tabs.forEach(function (tab, index) {
+        tab.addEventListener('click', function () { activateTab(tab); });
+        tab.addEventListener('keydown', function (event) {
+          var next = null;
+          if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
+          if (event.key === 'ArrowLeft') next = tabs[(index - 1 + tabs.length) % tabs.length];
+          if (event.key === 'Home') next = tabs[0];
+          if (event.key === 'End') next = tabs[tabs.length - 1];
+          if (next) {
+            event.preventDefault();
+            activateTab(next);
+            next.focus();
           }
-        }
-      }
-    });
-
-    if (ok) {
-      outLines.unshift('✅ All invariants satisfied: the plan type-checks as a proof of safe Go-Live under the stated assumptions.\n');
-    } else {
-      outLines.unshift('⚠️ Some invariants failed: the plan is not yet a valid proof of safe Go-Live.\n');
-    }
-
-    var el = document.getElementById('proof-output');
-    if (el) {
-      el.textContent = outLines.join('\n');
-    }
-  }
-
-  /********************************************************************
-   * Section 3 – Mechanism-Designed Coordination
-   ********************************************************************/
-  function runAuction() {
-    var teams = [
-      { name: 'Data Engineering', idx: 0 },
-      { name: 'Analytics', idx: 1 },
-      { name: 'Compliance', idx: 2 }
-    ];
-
-    var bids = [];
-    teams.forEach(function (t) {
-      var input = document.getElementById('auction-val-' + t.idx);
-      var val = parseFloat(input && input.value ? input.value : '0');
-      if (isNaN(val) || val < 0) val = 0;
-      bids.push({ team: t.name, value: val });
-    });
-
-    // Baseline naive allocation: first non-zero bidder gets it, no payment.
-    var baselineWinner = null;
-    bids.forEach(function (b) {
-      if (!baselineWinner && b.value > 0) baselineWinner = b.team;
-    });
-
-    // Vickrey auction: highest bidder wins, pays second-highest bid.
-    var sorted = bids.slice().sort(function (a, b) {
-      return b.value - a.value;
-    });
-
-    var winner = sorted[0];
-    var second = sorted[1] || { value: 0 };
-    var payment = second.value;
-    var winnerUtility = winner.value - payment;
-
-    var lines = [];
-    lines.push('Reported values (private valuations):');
-    bids.forEach(function (b) {
-      lines.push('  • ' + b.team + ': ' + b.value.toFixed(2));
-    });
-    lines.push('');
-
-    lines.push('Naive governance (first non-zero claim wins, zero price):');
-    if (baselineWinner) {
-      lines.push('  → Winner: ' + baselineWinner + ' (pays 0; incentives to exaggerate need are strong).');
-    } else {
-      lines.push('  → No team claims the architect; resource is idle.');
-    }
-    lines.push('');
-
-    lines.push('Vickrey auction (strategy-proof for truth-telling):');
-    if (winner.value === 0) {
-      lines.push('  → All bids are zero; architect remains unallocated.');
-    } else {
-      lines.push('  → Highest bidder: ' + winner.team + ' with value ' + winner.value.toFixed(2));
-      lines.push('  → Price charged (second-highest bid): ' + payment.toFixed(2));
-      lines.push('  → Winner utility if truthful: ' + winnerUtility.toFixed(2));
-    }
-    lines.push('');
-
-    lines.push('Qualitative incentive comparison:');
-    lines.push('  • Under the naive rule, a team benefits by exaggerating its value and shouting early.');
-    lines.push('  • Under the Vickrey rule, a team maximises expected utility by bidding its true value,');
-    lines.push('    because the price it pays does not depend on its own bid (within the winning region).');
-
-    var out = document.getElementById('auction-output');
-    if (out) {
-      out.textContent = lines.join('\n');
-    }
-  }
-
-  /********************************************************************
-   * Section 4 – Topological Robustness Analysis
-   ********************************************************************/
-  var topoTasks = [
-    { id: 'A', name: 'Assess current on-prem data warehouse' },
-    { id: 'B', name: 'Design cloud schema and zone layout' },
-    { id: 'C', name: 'Build migration tooling' },
-    { id: 'D', name: 'Migrate historical data' },
-    { id: 'E', name: 'Parallel run and reconciliation' },
-    { id: 'F', name: 'Decommission legacy warehouse' },
-    { id: 'G', name: 'Self-service dashboard rollout' }
-  ];
-
-  var topoEdges = [
-    { id: 'e1', from: 'A', to: 'B', optional: false, active: true },
-    { id: 'e2', from: 'B', to: 'C', optional: false, active: true },
-    { id: 'e3', from: 'C', to: 'D', optional: false, active: true },
-    { id: 'e4', from: 'D', to: 'E', optional: false, active: true },
-    { id: 'e5', from: 'E', to: 'F', optional: false, active: true },
-    // Optional cross-edges that create cycles and extra coordination complexity
-    { id: 'e6', from: 'B', to: 'E', optional: true, active: true },
-    { id: 'e7', from: 'C', to: 'G', optional: true, active: true },
-    { id: 'e8', from: 'G', to: 'E', optional: true, active: false }
-  ];
-
-  function renderTopoDepsTable() {
-    var tbody = document.querySelector('#topo-deps-table tbody');
-    tbody.innerHTML = '';
-
-    topoEdges.forEach(function (e) {
-      var tr = document.createElement('tr');
-
-      var tdId = document.createElement('td');
-      tdId.textContent = e.id;
-
-      var tdFrom = document.createElement('td');
-      tdFrom.textContent = e.from + ' – ' + getTopoTaskName(e.from);
-
-      var tdTo = document.createElement('td');
-      tdTo.textContent = e.to + ' – ' + getTopoTaskName(e.to);
-
-      var tdOpt = document.createElement('td');
-      tdOpt.textContent = e.optional ? 'yes' : 'no';
-
-      var tdActive = document.createElement('td');
-      if (e.optional) {
-        var cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.id = 'topo-edge-' + e.id;
-        cb.checked = e.active;
-        tdActive.appendChild(cb);
-      } else {
-        tdActive.textContent = 'always on';
-      }
-
-      tr.appendChild(tdId);
-      tr.appendChild(tdFrom);
-      tr.appendChild(tdTo);
-      tr.appendChild(tdOpt);
-      tr.appendChild(tdActive);
-
-      tbody.appendChild(tr);
-    });
-  }
-
-  function getTopoTaskName(id) {
-    var t = topoTasks.find(function (x) { return x.id === id; });
-    return t ? t.name : '';
-  }
-
-  function analyzeTopology() {
-    // Determine active edges based on checkboxes for optional ones
-    var activeEdges = topoEdges.map(function (e) {
-      var copy = Object.assign({}, e);
-      if (copy.optional) {
-        var cb = document.getElementById('topo-edge-' + copy.id);
-        copy.active = !!(cb && cb.checked);
-      }
-      return copy;
-    }).filter(function (e) { return e.active; });
-
-    var n = topoTasks.length;
-    var m = activeEdges.length;
-
-    // Build undirected adjacency
-    var adj = {};
-    topoTasks.forEach(function (t) {
-      adj[t.id] = [];
-    });
-    activeEdges.forEach(function (e) {
-      if (!adj[e.from]) adj[e.from] = [];
-      if (!adj[e.to]) adj[e.to] = [];
-      adj[e.from].push(e.to);
-      adj[e.to].push(e.from);
-    });
-
-    // Count connected components
-    var visited = {};
-    var components = 0;
-    topoTasks.forEach(function (t) {
-      if (!visited[t.id]) {
-        components++;
-        dfsComponent(t.id, adj, visited);
-      }
-    });
-
-    // Compute Betti-1: β1 = m − n + c
-    var betti1 = m - n + components;
-    if (betti1 < 0) betti1 = 0;
-
-    // Detect nodes that lie on a cycle
-    var cycleNodes = findCycleNodes(adj);
-
-    // Suggest optional edges that are likely contributing to cycles
-    var cycleEdgeCandidates = activeEdges.filter(function (e) {
-      return e.optional &&
-        cycleNodes.indexOf(e.from) !== -1 &&
-        cycleNodes.indexOf(e.to) !== -1;
-    }).map(function (e) { return e.id; });
-
-    var lines = [];
-    lines.push('Active nodes: ' + n + ', active edges: ' + m + ', connected components: ' + components + '.');
-    lines.push('Computed Betti-1 (cycle rank): β₁ = ' + betti1 + '.');
-    lines.push('');
-
-    if (betti1 === 0) {
-      lines.push('✅ The dependency graph is a tree (no cycles); coordination structure is minimal but brittle to failures on critical edges.');
-    } else {
-      lines.push('⚠️ The graph contains cycles; some parallel paths and feedback loops exist.');
-      lines.push('Nodes that appear on at least one cycle (approximate): ' + (cycleNodes.length ? cycleNodes.join(', ') : 'none detected') + '.');
-      if (cycleEdgeCandidates.length > 0) {
-        lines.push('');
-        lines.push('Optional edges likely contributing to cycle complexity: ' + cycleEdgeCandidates.join(', ') + '.');
-        lines.push('→ Consider removing or “loosening” these dependencies, or explicitly managing them with dedicated coordination roles.');
-      }
-    }
-
-    var out = document.getElementById('topo-output');
-    if (out) {
-      out.textContent = lines.join('\n');
-    }
-  }
-
-  function dfsComponent(node, adj, visited) {
-    var stack = [node];
-    visited[node] = true;
-    while (stack.length > 0) {
-      var current = stack.pop();
-      var neighbors = adj[current] || [];
-      for (var i = 0; i < neighbors.length; i++) {
-        var nb = neighbors[i];
-        if (!visited[nb]) {
-          visited[nb] = true;
-          stack.push(nb);
-        }
-      }
-    }
-  }
-
-  function findCycleNodes(adj) {
-    var visited = {};
-    var parent = {};
-    var cycleSet = new Set();
-
-    Object.keys(adj).forEach(function (node) {
-      if (!visited[node]) {
-        parent[node] = null;
-        dfsCycle(node, parent, visited, adj, cycleSet);
-      }
-    });
-
-    return Array.from(cycleSet);
-  }
-
-  function dfsCycle(node, parent, visited, adj, cycleSet) {
-    visited[node] = true;
-    var neighbors = adj[node] || [];
-    for (var i = 0; i < neighbors.length; i++) {
-      var nb = neighbors[i];
-      if (!visited[nb]) {
-        parent[nb] = node;
-        dfsCycle(nb, parent, visited, adj, cycleSet);
-      } else if (nb !== parent[node]) {
-        // Found a back edge; reconstruct path node → ... → nb
-        cycleSet.add(nb);
-        var cur = node;
-        while (cur !== undefined && cur !== null && cur !== nb) {
-          cycleSet.add(cur);
-          cur = parent[cur];
-        }
-      }
-    }
-  }
-
-  /********************************************************************
-   * Section 5 – Meta-Planners
-   ********************************************************************/
-  var metaTasks = [
-    {
-      id: 'T1',
-      name: 'Baseline data quality assessment (profiling legacy warehouse)',
-      risk: 5,
-      value: 3,
-      uncertainty: 4,
-      duration: 2
-    },
-    {
-      id: 'T2',
-      name: 'Prototype migration of one high-value domain (Customer)',
-      risk: 4,
-      value: 4,
-      uncertainty: 5,
-      duration: 3
-    },
-    {
-      id: 'T3',
-      name: 'Implement core ingestion and transformation framework',
-      risk: 3,
-      value: 5,
-      uncertainty: 3,
-      duration: 4
-    },
-    {
-      id: 'T4',
-      name: 'Design GDPR logging and access control patterns',
-      risk: 5,
-      value: 4,
-      uncertainty: 3,
-      duration: 2
-    },
-    {
-      id: 'T5',
-      name: 'Roll out self-service BI layer to early adopters',
-      risk: 2,
-      value: 5,
-      uncertainty: 2,
-      duration: 3
-    }
-  ];
-
-  // Fixed "meta-learned" weights (pretend these came from portfolio synthesis)
-  var metaWeights = {
-    risk: 0.4,
-    value: 0.3,
-    uncertainty: 0.3
-  };
-
-  var targetCommitTime = 8; // week by which you want key unknowns resolved
-
-  function renderMetaTasksTable() {
-    var tbody = document.querySelector('#meta-tasks-table tbody');
-    tbody.innerHTML = '';
-    metaTasks.forEach(function (t) {
-      var tr = document.createElement('tr');
-
-      var tdId = document.createElement('td');
-      tdId.textContent = t.id;
-
-      var tdName = document.createElement('td');
-      tdName.textContent = t.name;
-
-      var tdRisk = document.createElement('td');
-      tdRisk.textContent = t.risk;
-
-      var tdValue = document.createElement('td');
-      tdValue.textContent = t.value;
-
-      var tdUnc = document.createElement('td');
-      tdUnc.textContent = t.uncertainty;
-
-      var tdDur = document.createElement('td');
-      tdDur.textContent = t.duration;
-
-      tr.appendChild(tdId);
-      tr.appendChild(tdName);
-      tr.appendChild(tdRisk);
-      tr.appendChild(tdValue);
-      tr.appendChild(tdUnc);
-      tr.appendChild(tdDur);
-
-      tbody.appendChild(tr);
-    });
-
-    var wEl = document.getElementById('meta-weights');
-    if (wEl) {
-      wEl.textContent = '(' +
-        metaWeights.risk.toFixed(1) + ', ' +
-        metaWeights.value.toFixed(1) + ', ' +
-        metaWeights.uncertainty.toFixed(1) + ')';
-    }
-
-    var cEl = document.getElementById('meta-commit-time');
-    if (cEl) {
-      cEl.textContent = targetCommitTime;
-    }
-  }
-
-  function generatePlan() {
-    var plannerSelect = document.getElementById('planner-select');
-    var planner = plannerSelect ? plannerSelect.value : 'risk';
-
-    var tasksCopy = metaTasks.map(function (t) {
-      return Object.assign({}, t);
-    });
-
-    // Compute scores and sort
-    tasksCopy.forEach(function (t) {
-      if (planner === 'risk') {
-        t.score = t.risk * 2 + t.value;
-      } else if (planner === 'value') {
-        t.score = t.value * 2 + t.risk;
-      } else if (planner === 'learning') {
-        t.score = t.uncertainty * 2 + t.risk;
-      } else {
-        // meta: weighted combination
-        t.score =
-          metaWeights.risk * t.risk +
-          metaWeights.value * t.value +
-          metaWeights.uncertainty * t.uncertainty;
-      }
-    });
-
-    tasksCopy.sort(function (a, b) {
-      return b.score - a.score;
-    });
-
-    // Build schedule and simple metrics
-    var time = 0;
-    var scheduleRows = [];
-    var firstHighValueTime = null;
-    var uncertaintyResolvedByCommit = 0;
-    var cumulativeRiskExposure = 0;
-
-    tasksCopy.forEach(function (t, index) {
-      var start = time;
-      var end = time + t.duration;
-      time = end;
-
-      if (t.value >= 4 && firstHighValueTime === null) {
-        firstHighValueTime = end;
-      }
-      if (end <= targetCommitTime) {
-        uncertaintyResolvedByCommit += t.uncertainty;
-      }
-      // crude approximation: risk exposure ~ risk * duration
-      cumulativeRiskExposure += t.risk * t.duration;
-
-      scheduleRows.push({
-        order: index + 1,
-        id: t.id,
-        name: t.name,
-        start: start,
-        end: end,
-        score: t.score
+        });
       });
-    });
+      function activateTab(tab) {
+        tabs.forEach(function (item) {
+          var selected = item === tab;
+          item.setAttribute('aria-selected', selected ? 'true' : 'false');
+          document.getElementById(item.getAttribute('aria-controls')).hidden = !selected;
+        });
+      }
 
-    // Render table
-    var tbody = document.querySelector('#meta-plan-table tbody');
-    tbody.innerHTML = '';
-    scheduleRows.forEach(function (row) {
-      var tr = document.createElement('tr');
+      var demandActions = {
+        delete: { label: 'Delete', factor: 0, note: 'remove the demand' },
+        shrink: { label: 'Shrink', factor: .45, note: 'retain only the smallest useful slice' },
+        substitute: { label: 'Substitute', factor: .35, note: 'meet the need another way' },
+        standardise: { label: 'Standardise', factor: .55, note: 'adopt a common pattern' },
+        automate: { label: 'Automate', factor: .65, note: 'trade build effort for repeatability' },
+        test: { label: 'Test first', factor: .2, note: 'buy evidence before commitment' },
+        proceed: { label: 'Proceed', factor: 1, note: 'retain the demand as stated' }
+      };
+      var demands = [
+        { id: 'D1', name: 'Rebuild all 42 dashboards', why: 'User continuity; only 11 are active', effort: 12, mandatory: false, action: 'shrink' },
+        { id: 'D2', name: 'Retain seven years of audit history', why: 'Stated records obligation', effort: 10, mandatory: true, action: 'proceed' },
+        { id: 'D3', name: 'Recreate bespoke customer scoring', why: 'Commercial differentiation is assumed', effort: 8, mandatory: false, action: 'test' },
+        { id: 'D4', name: 'Replicate daily spreadsheet extracts', why: 'Habit; downstream need is unclear', effort: 6, mandatory: false, action: 'delete' },
+        { id: 'D5', name: 'Convert every legacy schema automatically', why: 'Speed; exception rate is unknown', effort: 9, mandatory: false, action: 'test' }
+      ];
+      function renderDemandRows() {
+        var body = document.getElementById('demand-body');
+        body.innerHTML = '';
+        demands.forEach(function (item) {
+          var row = document.createElement('tr');
+          var name = document.createElement('td');
+          name.innerHTML = '<span class="claim-title">' + item.id + ' · ' + item.name + '</span>' +
+            (item.mandatory ? '<span class="status warn">obligation</span>' : '<span class="status info">choice</span>');
+          var why = document.createElement('td');
+          why.textContent = item.why;
+          var effort = document.createElement('td');
+          effort.textContent = item.effort;
+          var actionCell = document.createElement('td');
+          var select = document.createElement('select');
+          select.setAttribute('aria-label', 'Disposition for ' + item.name);
+          Object.keys(demandActions).forEach(function (key) {
+            var option = document.createElement('option');
+            option.value = key;
+            option.textContent = demandActions[key].label;
+            option.selected = item.action === key;
+            select.appendChild(option);
+          });
+          select.addEventListener('change', function () { item.action = select.value; computeDemand(); });
+          actionCell.appendChild(select);
+          [name, why, effort, actionCell].forEach(function (cell) { row.appendChild(cell); });
+          body.appendChild(row);
+        });
+      }
+      function computeDemand() {
+        var baseline = demands.reduce(function (sum, item) { return sum + item.effort; }, 0);
+        var residual = 0;
+        var tests = 0;
+        var obligationWarnings = [];
+        demands.forEach(function (item) {
+          residual += item.effort * demandActions[item.action].factor;
+          if (item.action === 'test') tests += 1;
+          if (item.mandatory && item.action === 'delete') obligationWarnings.push(item.id);
+        });
+        var avoided = baseline - residual;
+        document.getElementById('demand-baseline').textContent = baseline.toFixed(0);
+        document.getElementById('demand-residual').textContent = residual.toFixed(1);
+        document.getElementById('demand-avoided').textContent = avoided.toFixed(1);
+        document.getElementById('demand-tests').textContent = tests;
+        var output = '<strong>' + (obligationWarnings.length ? 'Obligation conflict' : 'Scope challenge is internally coherent') + '</strong>' +
+          '<ul><li>' + avoided.toFixed(1) + ' relative effort points are avoided, displaced or held behind a test.</li>' +
+          '<li>' + tests + ' demand decision' + (tests === 1 ? ' remains' : 's remain') + ' conditional on evidence.</li>' +
+          '<li>' + (obligationWarnings.length ? 'Do not delete ' + obligationWarnings.join(', ') + ' without resolving the stated obligation.' : 'The stated records obligation remains visible.') + '</li></ul>';
+        document.getElementById('demand-output').innerHTML = output;
+        ledger.demand[0] = residual.toFixed(1) + ' of ' + baseline + ' effort points committed; ' + tests + ' test-first decision(s)';
+        ledger.demand[2] = obligationWarnings.length ? 'Resolve obligation conflict on ' + obligationWarnings.join(', ') : 'Run the open tests, then confirm residual scope';
+        renderLedger();
+      }
+      document.getElementById('demand-conservative').addEventListener('click', function () {
+        var preset = ['shrink', 'proceed', 'proceed', 'standardise', 'automate'];
+        demands.forEach(function (item, i) { item.action = preset[i]; });
+        renderDemandRows(); computeDemand();
+      });
+      document.getElementById('demand-challenge').addEventListener('click', function () {
+        var preset = ['shrink', 'standardise', 'test', 'delete', 'test'];
+        demands.forEach(function (item, i) { item.action = preset[i]; });
+        renderDemandRows(); computeDemand();
+      });
 
-      var tdOrder = document.createElement('td');
-      tdOrder.textContent = row.order;
+      var claims = [
+        { id: 'A1', claim: 'Priority pipeline can be restored within four hours', sensor: 'Timed recovery rehearsal ≤ 4h', owner: 'Operations lead', activity: true, evidence: 'current', threshold: true, review: true },
+        { id: 'A2', claim: 'Customer totals reconcile within 0.5%', sensor: 'Parallel-run variance ≤ 0.5%', owner: 'Data product owner', activity: true, evidence: 'stale', threshold: true, review: false },
+        { id: 'A3', claim: 'Cross-domain reads are blocked by the access model', sensor: 'Negative access tests show zero unauthorised reads', owner: 'Security architect', activity: true, evidence: 'missing', threshold: false, review: false },
+        { id: 'A4', claim: 'Day-two operations can be run by the service team', sensor: 'Observed runbook exercise with no critical assist', owner: 'Service owner', activity: false, evidence: 'missing', threshold: false, review: false }
+      ];
+      function chainState(claim) {
+        if (!claim.activity) return ['Activity incomplete', 'info'];
+        if (claim.evidence === 'missing') return ['Evidence missing', 'stop'];
+        if (claim.evidence === 'stale') return ['Evidence stale', 'warn'];
+        if (!claim.threshold) return ['Claim not supported', 'stop'];
+        if (!claim.review) return ['Awaiting review', 'warn'];
+        return ['Chain accepted', 'good'];
+      }
+      function renderAssurance() {
+        var body = document.getElementById('assurance-body');
+        body.innerHTML = '';
+        claims.forEach(function (claim) {
+          var row = document.createElement('tr');
+          var title = document.createElement('td');
+          title.innerHTML = '<span class="claim-title">' + claim.id + ' · ' + claim.claim + '</span><span class="subtle">Sensor: ' + claim.sensor + '<br>Owner: ' + claim.owner + '</span>';
+          var activity = checkboxCell(claim, 'activity', 'Activity done for ' + claim.id);
+          var evidenceCell = document.createElement('td');
+          var select = document.createElement('select');
+          select.setAttribute('aria-label', 'Evidence state for ' + claim.id);
+          ['current', 'stale', 'missing'].forEach(function (value) {
+            var option = document.createElement('option');
+            option.value = value; option.textContent = value; option.selected = claim.evidence === value;
+            select.appendChild(option);
+          });
+          select.addEventListener('change', function () { claim.evidence = select.value; renderAssurance(); });
+          evidenceCell.appendChild(select);
+          var threshold = checkboxCell(claim, 'threshold', 'Threshold met for ' + claim.id);
+          var review = checkboxCell(claim, 'review', 'Reviewer accepts ' + claim.id);
+          var stateCell = document.createElement('td');
+          var state = chainState(claim);
+          stateCell.innerHTML = '<span class="status ' + state[1] + '">' + state[0] + '</span>';
+          [title, activity, evidenceCell, threshold, review, stateCell].forEach(function (cell) { row.appendChild(cell); });
+          body.appendChild(row);
+        });
+        computeAssurance();
+      }
+      function checkboxCell(object, key, label) {
+        var cell = document.createElement('td');
+        cell.className = 'check-cell';
+        var input = document.createElement('input');
+        input.type = 'checkbox'; input.checked = object[key]; input.setAttribute('aria-label', label);
+        input.addEventListener('change', function () { object[key] = input.checked; renderAssurance(); });
+        cell.appendChild(input);
+        return cell;
+      }
+      function computeAssurance() {
+        var accepted = claims.filter(function (claim) { return chainState(claim)[0] === 'Chain accepted'; }).length;
+        var blockers = claims.filter(function (claim) { return chainState(claim)[0] !== 'Chain accepted'; });
+        var ready = accepted === claims.length;
+        document.getElementById('assurance-gate').textContent = ready ? 'Eligible for review' : 'Hold';
+        document.getElementById('assurance-detail').innerHTML = '<strong>' + accepted + ' of ' + claims.length + ' evidence chains accepted.</strong><ul>' +
+          (blockers.length ? blockers.map(function (claim) { return '<li>' + claim.id + ': ' + chainState(claim)[0] + '.</li>'; }).join('') : '<li>No internal chain gaps remain; an authorised gate decision is still separate.</li>') + '</ul>';
+        ledger.assurance[0] = accepted + ' of ' + claims.length + ' evidence chains accepted; gate remains ' + (ready ? 'eligible for review' : 'on hold');
+        ledger.assurance[2] = blockers.length ? 'Repair ' + blockers.map(function (claim) { return claim.id; }).join(', ') : 'Seek the named authority’s separate gate decision';
+        renderLedger();
+      }
+      document.getElementById('assurance-check').addEventListener('click', computeAssurance);
 
-      var tdId = document.createElement('td');
-      tdId.textContent = row.id;
+      var scarcityDemands = [
+        { id: 'S1', name: 'Identity boundary pattern', outcome: 'Unblocks three delivery teams', delay: 10, confidence: 90, min: 3, alternative: 'none', reuse: 4 },
+        { id: 'S2', name: 'Dashboard hardening', outcome: 'Protects early-adopter release', delay: 7, confidence: 65, min: 2, alternative: 'partial', reuse: 2 },
+        { id: 'S3', name: 'Retention design', outcome: 'Clarifies records migration', delay: 9, confidence: 80, min: 3, alternative: 'none', reuse: 3 },
+        { id: 'S4', name: 'CI policy template', outcome: 'Creates repeatable assurance', delay: 5, confidence: 70, min: 1, alternative: 'yes', reuse: 5 }
+      ];
+      function renderScarcityRows() {
+        var body = document.getElementById('scarcity-body');
+        body.innerHTML = '';
+        scarcityDemands.forEach(function (item) {
+          var row = document.createElement('tr');
+          var title = document.createElement('td');
+          title.innerHTML = '<span class="claim-title">' + item.id + ' · ' + item.name + '</span><span class="subtle">' + item.outcome + '</span>';
+          var delay = numberCell(item, 'delay', 1, 10, 'Delay cost for ' + item.id);
+          var confidence = numberCell(item, 'confidence', 0, 100, 'Evidence confidence for ' + item.id);
+          var min = numberCell(item, 'min', 1, 6, 'Minimum useful days for ' + item.id);
+          var alt = document.createElement('td');
+          var select = document.createElement('select');
+          select.setAttribute('aria-label', 'Alternative route for ' + item.id);
+          ['none', 'partial', 'yes'].forEach(function (value) {
+            var option = document.createElement('option'); option.value = value; option.textContent = value; option.selected = item.alternative === value; select.appendChild(option);
+          });
+          select.addEventListener('change', function () { item.alternative = select.value; allocateScarcity(); });
+          alt.appendChild(select);
+          [title, delay, confidence, min, alt].forEach(function (cell) { row.appendChild(cell); });
+          body.appendChild(row);
+        });
+      }
+      function numberCell(object, key, min, max, label) {
+        var cell = document.createElement('td');
+        var input = document.createElement('input'); input.type = 'number'; input.min = min; input.max = max; input.value = object[key]; input.setAttribute('aria-label', label);
+        input.addEventListener('change', function () {
+          object[key] = Math.max(min, Math.min(max, Number(input.value) || min));
+          input.value = object[key]; allocateScarcity();
+        });
+        cell.appendChild(input); return cell;
+      }
+      function scarcityScore(item) {
+        var alternativeFactor = item.alternative === 'none' ? 1.15 : item.alternative === 'partial' ? 1 : .82;
+        return ((item.delay * item.confidence / 100) * alternativeFactor + item.reuse * .55) / item.min;
+      }
+      function allocateScarcity() {
+        var poolInput = document.getElementById('scarcity-pool');
+        var pool = Math.max(2, Math.min(12, Number(poolInput.value) || 6));
+        poolInput.value = pool;
+        var ranked = scarcityDemands.slice().sort(function (a, b) { return scarcityScore(b) - scarcityScore(a); });
+        var remaining = pool;
+        var funded = [];
+        var deferred = [];
+        ranked.forEach(function (item) {
+          if (item.min <= remaining) {
+            funded.push(item); remaining -= item.min;
+          } else {
+            deferred.push(item);
+          }
+        });
+        var html = '<strong>' + pool + ' architect-days → ' + funded.length + ' useful package(s)</strong><div class="allocation-list">';
+        funded.forEach(function (item) {
+          html += '<div class="allocation-row"><div><strong>' + item.id + ' · ' + item.name + '</strong><div class="subtle">' + item.outcome + '</div><div class="bar"><span style="width:' + Math.min(100, scarcityScore(item) * 11) + '%"></span></div></div><span class="status good">' + item.min + 'd</span></div>';
+        });
+        deferred.forEach(function (item) {
+          var trigger = item.confidence < 70 ? 'stronger evidence' : item.alternative === 'none' ? 'more capacity or lower delay elsewhere' : 'failure of the alternative route';
+          html += '<div class="allocation-row"><div><strong>' + item.id + ' · ' + item.name + '</strong><div class="subtle">Reconsider after ' + trigger + '.</div></div><span class="status warn">defer</span></div>';
+        });
+        html += '</div><p class="subtle">' + remaining + ' day(s) remain below the next minimum useful package; do not fragment them automatically.</p>';
+        document.getElementById('scarcity-output').innerHTML = html;
+        ledger.scarcity[0] = pool + ' days fund ' + (funded.map(function (item) { return item.id; }).join(', ') || 'no complete package') + '; ' + remaining + ' day(s) uncommitted';
+        ledger.scarcity[2] = deferred.length ? 'Re-run after evidence, alternatives or capacity change for ' + deferred.map(function (item) { return item.id; }).join(', ') : 'Confirm owners and dates before committing the allocation';
+        renderLedger();
+      }
+      document.getElementById('scarcity-run').addEventListener('click', allocateScarcity);
+      document.getElementById('scarcity-pool').addEventListener('change', allocateScarcity);
 
-      var tdName = document.createElement('td');
-      tdName.textContent = row.name;
+      var nodes = [
+        { id: 'A', name: 'Profile legacy estate', x: 75, y: 170 },
+        { id: 'B', name: 'Design target model', x: 215, y: 95 },
+        { id: 'C', name: 'Build migration tooling', x: 350, y: 70 },
+        { id: 'D', name: 'Migrate pilot domain', x: 490, y: 80 },
+        { id: 'E', name: 'Reconcile evidence', x: 490, y: 235 },
+        { id: 'G', name: 'Test access pattern', x: 330, y: 260 },
+        { id: 'F', name: 'Release decision', x: 625, y: 170 }
+      ];
+      var edges = [
+        { id: 'e1', from: 'A', to: 'B', type: 'precedence', active: true },
+        { id: 'e2', from: 'B', to: 'C', type: 'precedence', active: true },
+        { id: 'e3', from: 'C', to: 'D', type: 'precedence', active: true },
+        { id: 'e4', from: 'D', to: 'E', type: 'evidence', active: true },
+        { id: 'e5', from: 'E', to: 'F', type: 'approval', active: true },
+        { id: 'e6', from: 'B', to: 'G', type: 'precedence', active: true },
+        { id: 'e7', from: 'G', to: 'F', type: 'evidence', active: true },
+        { id: 'e8', from: 'E', to: 'B', type: 'feedback', active: true },
+        { id: 'e9', from: 'G', to: 'E', type: 'evidence', active: false },
+        { id: 'e10', from: 'D', to: 'B', type: 'precedence', active: false }
+      ];
+      function nodeById(id) { return nodes.filter(function (node) { return node.id === id; })[0]; }
+      function renderTopologyControls() {
+        var failure = document.getElementById('topology-failure');
+        failure.innerHTML = '<option value="">None</option>';
+        nodes.filter(function (node) { return node.id !== 'A' && node.id !== 'F'; }).forEach(function (node) {
+          var option = document.createElement('option'); option.value = node.id; option.textContent = node.id + ' · ' + node.name; failure.appendChild(option);
+        });
+        var body = document.getElementById('topology-body');
+        body.innerHTML = '';
+        edges.forEach(function (edge) {
+          var row = document.createElement('tr');
+          var link = document.createElement('td'); link.textContent = edge.from + ' → ' + edge.to;
+          var type = document.createElement('td'); type.textContent = edge.type;
+          var active = document.createElement('td'); active.className = 'check-cell';
+          var input = document.createElement('input'); input.type = 'checkbox'; input.checked = edge.active; input.setAttribute('aria-label', 'Activate ' + edge.id + ' ' + edge.from + ' to ' + edge.to);
+          input.addEventListener('change', function () { edge.active = input.checked; analyseTopology(); });
+          active.appendChild(input);
+          [link, type, active].forEach(function (cell) { row.appendChild(cell); }); body.appendChild(row);
+        });
+      }
+      function pathExists(from, to, failure, types) {
+        var stack = [from]; var seen = {};
+        while (stack.length) {
+          var current = stack.pop();
+          if (current === failure) continue;
+          if (current === to) return true;
+          if (seen[current]) continue;
+          seen[current] = true;
+          edges.forEach(function (edge) {
+            if (edge.active && edge.from === current && edge.to !== failure && types.indexOf(edge.type) !== -1) stack.push(edge.to);
+          });
+        }
+        return false;
+      }
+      function precedenceCycle(failure) {
+        var visiting = {}; var visited = {}; var cycle = false;
+        function visit(id) {
+          if (id === failure || cycle) return;
+          if (visiting[id]) { cycle = true; return; }
+          if (visited[id]) return;
+          visiting[id] = true;
+          edges.forEach(function (edge) {
+            if (edge.active && edge.type === 'precedence' && edge.from === id && edge.to !== failure) visit(edge.to);
+          });
+          visiting[id] = false; visited[id] = true;
+        }
+        nodes.forEach(function (node) { visit(node.id); });
+        return cycle;
+      }
+      function renderNetwork(failure) {
+        var edgeGroup = document.getElementById('network-edges'); edgeGroup.innerHTML = '';
+        edges.filter(function (edge) { return edge.active; }).forEach(function (edge) {
+          var from = nodeById(edge.from); var to = nodeById(edge.to);
+          var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', from.x); line.setAttribute('y1', from.y); line.setAttribute('x2', to.x); line.setAttribute('y2', to.y);
+          line.setAttribute('class', 'edge ' + edge.type); line.setAttribute('marker-end', 'url(#arrow)');
+          if (from.id === failure || to.id === failure) line.setAttribute('opacity', '.18');
+          edgeGroup.appendChild(line);
+        });
+        var nodeGroup = document.getElementById('network-nodes'); nodeGroup.innerHTML = '';
+        nodes.forEach(function (node) {
+          var group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', node.x - 52); rect.setAttribute('y', node.y - 25); rect.setAttribute('width', 104); rect.setAttribute('height', 50); rect.setAttribute('rx', 7);
+          rect.setAttribute('class', 'node' + (node.id === failure ? ' failed' : ''));
+          var idText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          idText.setAttribute('x', node.x); idText.setAttribute('y', node.y - 5); idText.setAttribute('text-anchor', 'middle'); idText.setAttribute('font-weight', '700'); idText.textContent = node.id;
+          var name = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          name.setAttribute('x', node.x); name.setAttribute('y', node.y + 12); name.setAttribute('text-anchor', 'middle'); name.textContent = node.name.length > 18 ? node.name.slice(0, 17) + '…' : node.name;
+          group.appendChild(rect); group.appendChild(idText); group.appendChild(name); nodeGroup.appendChild(group);
+        });
+      }
+      function analyseTopology() {
+        var failure = document.getElementById('topology-failure').value;
+        var cycle = precedenceCycle(failure);
+        var deliveryPath = pathExists('A', 'F', failure, ['precedence', 'evidence', 'approval']);
+        var evidencePath = pathExists('D', 'F', failure, ['evidence', 'approval']);
+        var accessPath = pathExists('G', 'F', failure, ['evidence', 'approval']);
+        var feedback = edges.filter(function (edge) { return edge.active && edge.type === 'feedback'; }).length;
+        var status = cycle ? 'Infeasible precedence loop' : deliveryPath ? 'Release route remains connected' : 'Release route is broken';
+        document.getElementById('topology-output').innerHTML = '<strong>' + status + '</strong><ul>' +
+          '<li>Precedence cycle: ' + (cycle ? 'yes — resolve before scheduling' : 'none detected') + '.</li>' +
+          '<li>Migration evidence reaches release: ' + (evidencePath ? 'yes' : 'no') + '; access evidence reaches release: ' + (accessPath ? 'yes' : 'no') + '.</li>' +
+          '<li>' + feedback + ' feedback link(s) are modelled separately; they are not treated as schedule cycles.</li>' +
+          (failure ? '<li>Simulated unavailable node: ' + failure + ' · ' + nodeById(failure).name + '.</li>' : '<li>No node outage is being simulated.</li>') + '</ul>';
+        renderNetwork(failure);
+        ledger.topology[0] = status + (failure ? ' with ' + failure + ' unavailable' : '');
+        ledger.topology[2] = cycle ? 'Remove or retype the precedence loop' : !deliveryPath ? 'Add or restore an owned route to the release decision' : 'Validate optional links and single-owner dependencies';
+        renderLedger();
+      }
+      document.getElementById('topology-analyse').addEventListener('click', analyseTopology);
+      document.getElementById('topology-failure').addEventListener('change', analyseTopology);
 
-      var tdStart = document.createElement('td');
-      tdStart.textContent = row.start;
+      var tasks = [
+        { id: 'P0', name: 'Observe early-adopter work', deps: [], duration: 2, risk: 2, value: 4, uncertainty: 5, reuse: 2, outcome: false },
+        { id: 'P1', name: 'Profile legacy data', deps: [], duration: 2, risk: 5, value: 2, uncertainty: 5, reuse: 3, outcome: false },
+        { id: 'P2', name: 'Test access-control pattern', deps: [], duration: 2, risk: 5, value: 3, uncertainty: 4, reuse: 4, outcome: false },
+        { id: 'P3', name: 'Migrate customer pilot', deps: ['P1', 'P2'], duration: 3, risk: 4, value: 5, uncertainty: 5, reuse: 4, outcome: true },
+        { id: 'P4', name: 'Build ingestion framework', deps: ['P1'], duration: 4, risk: 3, value: 5, uncertainty: 3, reuse: 5, outcome: true },
+        { id: 'P5', name: 'Build reconciliation harness', deps: ['P3', 'P4'], duration: 2, risk: 5, value: 4, uncertainty: 4, reuse: 5, outcome: true },
+        { id: 'P6', name: 'Release dashboard slice', deps: ['P0', 'P3'], duration: 2, risk: 2, value: 5, uncertainty: 2, reuse: 2, outcome: true },
+        { id: 'P7', name: 'Run readiness review', deps: ['P2', 'P5', 'P6'], duration: 1, risk: 5, value: 3, uncertainty: 2, reuse: 3, outcome: false }
+      ];
+      var policies = [
+        { id: 'risk', name: 'Risk-first' },
+        { id: 'value', name: 'Value-first' },
+        { id: 'learning', name: 'Learning-first' },
+        { id: 'reuse', name: 'Reuse-first' },
+        { id: 'robust', name: 'Robust balance' }
+      ];
+      var scenarios = [
+        { id: 'base', changes: {} },
+        { id: 'data', changes: { P1: 2, P3: 1 } },
+        { id: 'security', changes: { P2: 2, P7: 1 } }
+      ];
+      function priority(task, policy) {
+        if (policy === 'risk') return task.risk * 2 + task.uncertainty - task.duration * .2;
+        if (policy === 'value') return task.value * 2 + task.risk * .4 - task.duration * .2;
+        if (policy === 'learning') return task.uncertainty * 2 + task.risk * .5 - task.duration * .2;
+        if (policy === 'reuse') return task.reuse * 2 + task.value * .4 - task.duration * .2;
+        return task.risk + task.value + task.uncertainty + task.reuse - task.duration * .45;
+      }
+      function simulate(policy, scenario, capacity) {
+        var pending = tasks.map(function (task) {
+          var copy = Object.assign({}, task); copy.duration = task.duration + (scenario.changes[task.id] || 0); return copy;
+        });
+        var completed = {}; var running = []; var rows = []; var week = 0;
+        while (pending.length || running.length) {
+          for (var i = running.length - 1; i >= 0; i -= 1) {
+            if (running[i].end <= week) { completed[running[i].id] = true; running.splice(i, 1); }
+          }
+          var eligible = pending.filter(function (task) { return task.deps.every(function (dep) { return completed[dep]; }); });
+          eligible.sort(function (a, b) { return priority(b, policy) - priority(a, policy) || a.id.localeCompare(b.id); });
+          while (running.length < capacity && eligible.length) {
+            var next = eligible.shift();
+            pending.splice(pending.indexOf(next), 1);
+            next.start = week; next.end = week + next.duration; running.push(next); rows.push(next);
+          }
+          if (!running.length && pending.length) throw new Error('Planner deadlock: check task dependencies.');
+          if (running.length) week = Math.min.apply(null, running.map(function (task) { return task.end; }));
+        }
+        var finish = Math.max.apply(null, rows.map(function (task) { return task.end; }));
+        var outcomes = rows.filter(function (task) { return task.outcome; });
+        var firstOutcome = Math.min.apply(null, outcomes.map(function (task) { return task.end; }));
+        var uncertainty6 = rows.filter(function (task) { return task.end > 6; }).reduce(function (sum, task) { return sum + task.uncertainty; }, 0);
+        var reuse6 = rows.filter(function (task) { return task.end <= 6; }).reduce(function (sum, task) { return sum + task.reuse; }, 0);
+        var riskExposure = rows.reduce(function (sum, task) { return sum + task.risk * task.end; }, 0);
+        var objective = finish * 2 + firstOutcome * 3 + uncertainty6 * 1.2 + riskExposure * .18 - reuse6 * .65;
+        return { rows: rows, finish: finish, firstOutcome: firstOutcome, uncertainty6: uncertainty6, reuse6: reuse6, objective: objective };
+      }
+      function runTournament() {
+        var capacity = Number(document.getElementById('planner-capacity').value);
+        var selectedPolicy = document.getElementById('planner-policy').value;
+        var results = {};
+        policies.forEach(function (policy) {
+          results[policy.id] = scenarios.map(function (scenario) { return simulate(policy.id, scenario, capacity); });
+        });
+        var bestByScenario = scenarios.map(function (scenario, index) {
+          return Math.min.apply(null, policies.map(function (policy) { return results[policy.id][index].objective; }));
+        });
+        var body = document.getElementById('policy-body'); body.innerHTML = '';
+        policies.forEach(function (policy) {
+          var averageRegret = results[policy.id].reduce(function (sum, result, index) { return sum + result.objective - bestByScenario[index]; }, 0) / scenarios.length;
+          policy.regret = averageRegret;
+          var base = results[policy.id][0];
+          var row = document.createElement('tr');
+          if (policy.id === selectedPolicy) row.className = 'selected';
+          [policy.name, averageRegret.toFixed(1), 'week ' + base.finish, 'week ' + base.firstOutcome, base.uncertainty6, base.reuse6].forEach(function (value) {
+            var cell = document.createElement('td'); cell.textContent = value; row.appendChild(cell);
+          });
+          body.appendChild(row);
+        });
+        var selected = results[selectedPolicy][0];
+        renderSchedule(selected.rows, selected.finish, selectedPolicy);
+        var winner = policies.slice().sort(function (a, b) { return a.regret - b.regret; })[0];
+        document.getElementById('planner-output').innerHTML = '<strong>Lowest average regret: ' + winner.name + '</strong><ul><li>Selected policy: ' + policyName(selectedPolicy) + '.</li><li>Base finish: week ' + selected.finish + '; first validated outcome: week ' + selected.firstOutcome + '.</li><li>' + selected.uncertainty6 + ' critical uncertainty points remain at week 6; ' + selected.reuse6 + ' reuse points are completed by then.</li></ul>';
+        ledger.planners[0] = winner.name + ' has lowest average regret; selected view is ' + policyName(selectedPolicy);
+        ledger.planners[2] = 'Challenge the scoring rule and stress scenarios before choosing a real policy';
+        renderLedger();
+      }
+      function policyName(id) { return policies.filter(function (policy) { return policy.id === id; })[0].name; }
+      function renderSchedule(rows, finish, policy) {
+        document.getElementById('schedule-title').textContent = policyName(policy) + ' · base-scenario schedule';
+        var schedule = document.getElementById('schedule'); schedule.innerHTML = '';
+        rows.slice().sort(function (a, b) { return a.start - b.start || a.id.localeCompare(b.id); }).forEach(function (task) {
+          var row = document.createElement('div'); row.className = 'schedule-row';
+          var label = document.createElement('span'); label.textContent = task.id + ' · ' + task.name;
+          var line = document.createElement('div'); line.className = 'timeline';
+          var bar = document.createElement('span'); bar.style.left = (task.start / finish * 100) + '%'; bar.style.width = (task.duration / finish * 100) + '%'; line.appendChild(bar);
+          var weeks = document.createElement('span'); weeks.textContent = 'w' + task.start + '–' + task.end;
+          row.appendChild(label); row.appendChild(line); row.appendChild(weeks); schedule.appendChild(row);
+        });
+      }
+      function initPlannerControls() {
+        var select = document.getElementById('planner-policy');
+        policies.forEach(function (policy) { var option = document.createElement('option'); option.value = policy.id; option.textContent = policy.name; if (policy.id === 'robust') option.selected = true; select.appendChild(option); });
+        select.addEventListener('change', runTournament);
+        document.getElementById('planner-capacity').addEventListener('change', runTournament);
+        document.getElementById('planner-run').addEventListener('click', runTournament);
+      }
 
-      var tdEnd = document.createElement('td');
-      tdEnd.textContent = row.end;
-
-      var tdScore = document.createElement('td');
-      tdScore.textContent = row.score.toFixed(2);
-
-      tr.appendChild(tdOrder);
-      tr.appendChild(tdId);
-      tr.appendChild(tdName);
-      tr.appendChild(tdStart);
-      tr.appendChild(tdEnd);
-      tr.appendChild(tdScore);
-
-      tbody.appendChild(tr);
-    });
-
-    // Summary text
-    var lines = [];
-    lines.push('Planner heuristic: ' + plannerLabel(planner) + '.');
-    lines.push('');
-    lines.push('Total project duration under this planner: ' + time + ' weeks.');
-    if (firstHighValueTime !== null) {
-      lines.push('Time until first high-value deliverable (value ≥ 4): week ' + firstHighValueTime + '.');
-    } else {
-      lines.push('No task with value ≥ 4 in this toy set; adjust scores.');
-    }
-    lines.push('Total uncertainty resolved by target commit time (week ' + targetCommitTime + '): ' +
-      uncertaintyResolvedByCommit + ' (sum of uncertainty scores).');
-    lines.push('Cumulative risk exposure (∑ risk × duration): ' + cumulativeRiskExposure.toFixed(1) + '.');
-    lines.push('');
-    lines.push('Heuristic interpretation:');
-    if (planner === 'risk') {
-      lines.push('  • Risk-first tends to front-load risk burn-down, often delaying visible value but improving downside protection.');
-    } else if (planner === 'value') {
-      lines.push('  • Value-first aims to show impact early, at the cost of sometimes “flying blind” on deeper uncertainties.');
-    } else if (planner === 'learning') {
-      lines.push('  • Learning-first treats the project as an experiment: high-uncertainty items occur early to shrink the hypothesis space.');
-    } else {
-      lines.push('  • Meta-learned weights reflect an inferred organisational preference over risk, value, and uncertainty from the wider portfolio.');
-    }
-
-    var out = document.getElementById('meta-output');
-    if (out) {
-      out.textContent = lines.join('\n');
-    }
-  }
-
-  function plannerLabel(planner) {
-    if (planner === 'risk') return 'Risk-first (lexicographic risk burn-down)';
-    if (planner === 'value') return 'Value-first (impact-first)';
-    if (planner === 'learning') return 'Learning-first (epistemic optimisation)';
-    if (planner === 'meta') return 'Meta-learned weighted combination';
-    return planner;
-  }
-
-  /********************************************************************
-   * Initialisation
-   ********************************************************************/
-  document.addEventListener('DOMContentLoaded', function () {
-    renderCpcTasksTable();
-    computeCpcOutcomes();
-    renderProofTables();
-    renderTopoDepsTable();
-    renderMetaTasksTable();
-    // Generate an initial plan for the default planner
-    generatePlan();
-  });
-</script>
+      renderDemandRows();
+      computeDemand();
+      renderAssurance();
+      renderScarcityRows();
+      allocateScarcity();
+      renderTopologyControls();
+      analyseTopology();
+      initPlannerControls();
+      runTournament();
+      renderLedger();
+    }());
+  </script>
 </body>
 </html>

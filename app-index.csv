@@ -38,7 +38,7 @@
 37,pm_causal_playground,"PM causal DAG playground for back-door paths, colliders, and adjustment sets",ChatGPT,GPT5,"causal, visualization, project_management, education",,
 38,white_space_analysis,Capability scorecard and whitespace map for digital transformation delivery,ChatGPT,GPT-5.2-Codex,"capabilities, whitespace, visualization, d3, strategy",,
 
-39,advanced_project_planning_ideas,"Interactive sandbox exploring counterfactual planning, proof-carrying plans, coordination mechanisms, topology, and meta-planners.",ChatGPT,GPT-5.2-Codex,"project_management, planning, governance, education",,
+39,advanced_project_planning_ideas,"Project Frontier Lab: challenge demand, test assurance chains, allocate scarce expertise, inspect typed dependencies, and compare planning policies under uncertainty.",User,GPT-5.3-Codex,"project_management, demand_management, assurance, resource_allocation, dependencies, portfolio_management, decision_support, visualization",,
 40,project_viability_state_space_navigator_plus,"State-space navigator for project viability, safe-to-fail probes, and walk-based diagnostics.",ChatGPT,GPT-5.2-Codex,"viability, systems, simulation, visualization",,
 41,scenario_barrier_proof_fca_lattice,"Scenario × barrier × proof FCA lattice for causal coverage and gap analysis.",ChatGPT,GPT-5.2-Codex,"risk, fca, lattice, visualization, safety",,
 42,critical-path-spotter,"Critical path spotter for project schedules with dependency delays.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, critical_path, visualization",,

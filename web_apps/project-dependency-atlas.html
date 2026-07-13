@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Dependency Atlas — Edge Bundles & Timeline Facets</title>
+<meta name="description" content="Interactive programme-controls examples for tracing cross-phase dependencies and comparing delivery timelines.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap');
+
+  :root {
+    --bg: #0c0e13;
+    --bg2: #12151c;
+    --bg3: #181c26;
+    --border: #252a36;
+    --text: #c8cdd8;
+    --text-dim: #6b7280;
+    --text-bright: #e8ecf4;
+    --accent-cyan: #38bdf8;
+    --accent-amber: #f59e0b;
+    --accent-rose: #f43f5e;
+    --accent-emerald: #34d399;
+    --accent-violet: #a78bfa;
+    --accent-orange: #fb923c;
+    --focus: #f8fafc;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html { color-scheme: dark; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.45;
+  }
+
+  button { font: inherit; }
+
+  .app-shell {
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .header {
+    padding: 24px 32px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #10131a 0%, var(--bg) 100%);
+  }
+
+  .header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(28px, 3vw, 42px);
+    font-weight: 400;
+    color: var(--text-bright);
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+  }
+
+  .header p {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 32px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab {
+    padding: 14px 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--accent-cyan);
+    border-bottom-color: var(--accent-cyan);
+  }
+
+  .viz-container {
+    display: none;
+    padding: 18px 32px 28px;
+  }
+  .viz-container.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+    grid-template-areas:
+      "controls controls"
+      "chart meta"
+      "chart insight";
+    gap: 14px 20px;
+    align-items: start;
+  }
+
+  .viz-meta {
+    grid-area: meta;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 0;
+  }
+
+  .meta-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 18px;
+    min-width: 0;
+  }
+
+  .meta-card .label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .meta-card .value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    color: var(--text-bright);
+  }
+
+  .meta-card .sub {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .chart-frame {
+    grid-area: chart;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .chart-title-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+
+  .chart-title-bar h3 {
+    font-size: 11px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .chart-title-bar .hint {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  #edge-bundle-svg text {
+    font-family: 'DM Mono', monospace;
+    font-size: 9.5px;
+    fill: var(--text-dim);
+    transition: fill 0.2s;
+  }
+
+  .link {
+    fill: none;
+    stroke-opacity: 0.35;
+    stroke-width: 1.2;
+    transition: stroke-opacity 0.2s, stroke-width 0.2s;
+  }
+
+  .link.highlighted {
+    stroke-opacity: 1;
+    stroke-width: 2.2;
+  }
+
+  .link.faded {
+    stroke-opacity: 0.06;
+  }
+
+  .node-dot {
+    transition: r 0.2s, fill-opacity 0.2s;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--bg3);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+  }
+
+  /* Faceted timeline styles */
+  .facet-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .facet-row {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 16px;
+  }
+
+  .facet-label {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .timeline-bar {
+    transition: opacity 0.2s, filter 0.2s;
+  }
+
+  .timeline-bar:hover {
+    filter: brightness(1.3);
+  }
+
+  .tooltip {
+    position: fixed;
+    background: #1e2130;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text);
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.15s;
+    max-width: 280px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+
+  .tooltip.visible { opacity: 1; }
+
+  .tooltip .tt-title {
+    font-weight: 500;
+    color: var(--text-bright);
+    margin-bottom: 4px;
+  }
+
+  .tooltip .tt-sub {
+    color: var(--text-dim);
+    font-size: 10px;
+  }
+
+  .scenario-controls {
+    grid-area: controls;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 0;
+    flex-wrap: wrap;
+  }
+
+  .scenario-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    padding: 8px 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .scenario-btn:hover { color: var(--text); border-color: var(--text-dim); }
+  .scenario-btn.active {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    background: rgba(56,189,248,0.08);
+  }
+
+  .tab:focus-visible,
+  .scenario-btn:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  .risk-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .risk-high { background: rgba(244,63,94,0.15); color: var(--accent-rose); }
+  .risk-med { background: rgba(245,158,11,0.15); color: var(--accent-amber); }
+  .risk-low { background: rgba(52,211,153,0.15); color: var(--accent-emerald); }
+
+  .insight-panel {
+    grid-area: insight;
+    margin-top: 0;
+    padding: 16px 18px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-amber);
+    border-radius: 4px;
+  }
+
+  .insight-panel h4 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--accent-amber);
+    margin-bottom: 8px;
+  }
+
+  .insight-panel p {
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-dim);
+  }
+
+  .nowline {
+    stroke: var(--accent-rose);
+    stroke-width: 1.5;
+    stroke-dasharray: 4 3;
+  }
+
+  .milestone-diamond {
+    cursor: pointer;
+  }
+
+  .provenance {
+    padding: 0 32px 24px;
+    color: var(--text-dim);
+    font-size: 9px;
+    letter-spacing: 0.45px;
+    text-transform: uppercase;
+  }
+
+  #edge-bundle-chart { padding: 10px !important; }
+  #edge-bundle-chart svg {
+    width: min(100%, 660px);
+    max-height: 68vh;
+  }
+
+  #timeline-chart { padding: 12px 14px !important; }
+
+  .node-focus:focus .node-dot,
+  .timeline-bar:focus,
+  .milestone-diamond:focus {
+    outline: none;
+    filter: brightness(1.35) drop-shadow(0 0 3px rgba(248,250,252,0.75));
+  }
+
+  @media (max-width: 900px) {
+    .viz-container.active {
+      grid-template-columns: 1fr;
+      grid-template-areas: "controls" "meta" "chart" "insight";
+    }
+
+    .viz-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #edge-bundle-chart svg { max-height: none; }
+  }
+
+  @media (max-width: 560px) {
+    .header { padding: 22px 16px 16px; }
+    .header p { line-height: 1.55; }
+
+    .tabs { padding: 0 16px; }
+    .tab {
+      flex: 1;
+      padding: 12px 8px;
+      line-height: 1.35;
+    }
+
+    .viz-container { padding: 16px; }
+    .viz-container.active { gap: 12px; }
+
+    .scenario-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .scenario-btn { padding: 8px 10px; line-height: 1.35; }
+
+    .meta-card { padding: 11px 12px; }
+    .meta-card .value { font-size: 18px; }
+
+    .chart-title-bar {
+      align-items: flex-start;
+      gap: 5px;
+      flex-direction: column;
+    }
+
+    #edge-bundle-chart { padding: 2px !important; }
+    #timeline-chart { padding: 6px 2px !important; }
+    .legend { gap: 10px; padding: 10px 12px; }
+    .insight-panel { padding: 14px; }
+    .provenance { padding: 0 16px 20px; line-height: 1.55; }
+  }
+
+  @media (max-width: 350px) {
+    .viz-meta { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
+</style>
+</head>
+<body>
+<main class="app-shell">
+
+<header class="header">
+  <h1>Project Dependency Atlas</h1>
+  <p>Two visual lenses for programme controls — trace dependencies, then compare delivery rhythm</p>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Visualisation lens">
+  <button id="tab-bundle" class="tab active" role="tab" data-tab="bundle" aria-controls="bundle" aria-selected="true" tabindex="0" onclick="switchTab('bundle')">① Radial Edge Bundle</button>
+  <button id="tab-timeline" class="tab" role="tab" data-tab="timeline" aria-controls="timeline" aria-selected="false" tabindex="-1" onclick="switchTab('timeline')">② Faceted Timelines</button>
+</nav>
+
+<!-- ═══════════════ EDGE BUNDLE ═══════════════ -->
+<section id="bundle" class="viz-container active" role="tabpanel" aria-labelledby="tab-bundle" tabindex="0">
+
+  <div class="scenario-controls" role="group" aria-label="Dependency scenario">
+    <button class="scenario-btn active" data-scenario="pennine" aria-pressed="true" onclick="loadBundleScenario('pennine')">Pennine Viaduct Renewal</button>
+    <button class="scenario-btn" data-scenario="srp" aria-pressed="false" onclick="loadBundleScenario('srp')">Sellafield SRP</button>
+  </div>
+
+  <div class="viz-meta" id="bundle-meta" aria-live="polite"></div>
+
+  <div class="chart-frame">
+    <div class="chart-title-bar">
+      <h3 id="bundle-chart-title">Phase-bundled dependency map</h3>
+      <span class="hint">hover or focus a node to trace dependencies</span>
+    </div>
+    <div id="edge-bundle-chart" style="display:flex;justify-content:center;padding:20px;"></div>
+    <div class="legend" id="bundle-legend"></div>
+  </div>
+
+  <aside class="insight-panel" id="bundle-insight" aria-live="polite"></aside>
+</section>
+
+<!-- ═══════════════ FACETED TIMELINES ═══════════════ -->
+<section id="timeline" class="viz-container" role="tabpanel" aria-labelledby="tab-timeline" tabindex="0">
+
+  <div class="scenario-controls" role="group" aria-label="Timeline scenario">
+    <button class="scenario-btn active" data-scenario="portfolio" aria-pressed="true" onclick="loadTimelineScenario('portfolio')">Portfolio Overview</button>
+    <button class="scenario-btn" data-scenario="pennine-tl" aria-pressed="false" onclick="loadTimelineScenario('pennine-tl')">Pennine Workstreams</button>
+  </div>
+
+  <div class="viz-meta" id="timeline-meta" aria-live="polite"></div>
+
+  <div class="chart-frame">
+    <div class="chart-title-bar">
+      <h3 id="timeline-chart-title">Faceted schedule comparison</h3>
+      <span class="hint">hover or focus for detail · red dashed = source date</span>
+    </div>
+    <div id="timeline-chart" style="padding:16px 20px;"></div>
+    <div class="legend" id="timeline-legend"></div>
+  </div>
+
+  <aside class="insight-panel" id="timeline-insight" aria-live="polite"></aside>
+</section>
+
+<footer class="provenance">Illustrative worked examples · source conversation 25 March 2026 · counts reflect the displayed graph</footer>
+
+</main>
+
+<div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────
+const SCENARIOS = {
+  pennine: {
+    title: "Pennine Viaduct Renewal Programme",
+    subtitle: "Phase-bundled dependency map",
+    meta: [
+      { label: "Programme", value: "PVRP", sub: "Network Rail CP7" },
+      { label: "Phases", value: "5", sub: "Concept → Handback" },
+      { label: "Dependencies", value: "36", sub: "23 cross-phase" },
+      { label: "Critical Node", value: "Design", sub: "11 incident links" }
+    ],
+    insight: {
+      title: "Choke-point detected",
+      text: "Design Integration acts as the structural hub: 11 of the 36 dependency links touch it directly, including six outgoing links into Build and Possession. That makes it the clearest point to test decoupling between permanent works approval, temporary works coordination, and downstream access planning."
+    },
+    hierarchy: {
+      name: "PVRP",
+      children: [
+        { name: "Concept", children: [
+          { name: "Feasibility Study" },
+          { name: "Options Appraisal" },
+          { name: "GRIP 1 Output" },
+          { name: "Funding Case" }
+        ]},
+        { name: "Design", children: [
+          { name: "Perm Works Design" },
+          { name: "Temp Works Coord" },
+          { name: "Design Integration" },
+          { name: "Signalling Scheme" },
+          { name: "GRIP 4 Gate" }
+        ]},
+        { name: "Build", children: [
+          { name: "Piling & Foundations" },
+          { name: "Steelwork Erection" },
+          { name: "Deck Pour" },
+          { name: "Drainage & Services" },
+          { name: "Safety Barriers" }
+        ]},
+        { name: "Possession", children: [
+          { name: "Possession Planning" },
+          { name: "Line Blockage" },
+          { name: "Rail Reinstatement" },
+          { name: "Signalling Comms" }
+        ]},
+        { name: "Handback", children: [
+          { name: "Test & Commission" },
+          { name: "Defects Resolution" },
+          { name: "As-Built Records" },
+          { name: "Operator Handback" }
+        ]}
+      ]
+    },
+    imports: [
+      // Concept → Design
+      { s: "Feasibility Study", t: "Perm Works Design" },
+      { s: "Options Appraisal", t: "Design Integration" },
+      { s: "GRIP 1 Output", t: "GRIP 4 Gate" },
+      { s: "Funding Case", t: "Design Integration" },
+      // Concept → Build
+      { s: "Options Appraisal", t: "Piling & Foundations" },
+      // Design → Design (internal cross)
+      { s: "Perm Works Design", t: "Design Integration" },
+      { s: "Temp Works Coord", t: "Design Integration" },
+      { s: "Signalling Scheme", t: "Design Integration" },
+      // Design → Build
+      { s: "Design Integration", t: "Piling & Foundations" },
+      { s: "Design Integration", t: "Steelwork Erection" },
+      { s: "Design Integration", t: "Deck Pour" },
+      { s: "Perm Works Design", t: "Steelwork Erection" },
+      { s: "Temp Works Coord", t: "Piling & Foundations" },
+      { s: "GRIP 4 Gate", t: "Piling & Foundations" },
+      { s: "Signalling Scheme", t: "Signalling Comms" },
+      { s: "Design Integration", t: "Drainage & Services" },
+      { s: "Design Integration", t: "Safety Barriers" },
+      // Build → Build (internal)
+      { s: "Piling & Foundations", t: "Steelwork Erection" },
+      { s: "Steelwork Erection", t: "Deck Pour" },
+      { s: "Deck Pour", t: "Drainage & Services" },
+      { s: "Drainage & Services", t: "Safety Barriers" },
+      // Build → Possession
+      { s: "Safety Barriers", t: "Possession Planning" },
+      { s: "Steelwork Erection", t: "Line Blockage" },
+      { s: "Deck Pour", t: "Possession Planning" },
+      { s: "Piling & Foundations", t: "Line Blockage" },
+      // Design → Possession
+      { s: "Design Integration", t: "Possession Planning" },
+      { s: "Signalling Scheme", t: "Rail Reinstatement" },
+      // Possession → Possession
+      { s: "Possession Planning", t: "Line Blockage" },
+      { s: "Line Blockage", t: "Rail Reinstatement" },
+      { s: "Rail Reinstatement", t: "Signalling Comms" },
+      // Possession → Handback
+      { s: "Signalling Comms", t: "Test & Commission" },
+      { s: "Rail Reinstatement", t: "Test & Commission" },
+      // Build → Handback
+      { s: "Safety Barriers", t: "Defects Resolution" },
+      // Handback internal
+      { s: "Test & Commission", t: "Defects Resolution" },
+      { s: "Defects Resolution", t: "As-Built Records" },
+      { s: "As-Built Records", t: "Operator Handback" }
+    ],
+    phaseColors: {
+      "Concept": "#38bdf8",
+      "Design": "#a78bfa",
+      "Build": "#f59e0b",
+      "Possession": "#fb923c",
+      "Handback": "#34d399"
+    }
+  },
+
+  srp: {
+    title: "Sellafield SRP — Retrievals Programme",
+    subtitle: "Gate-bundled dependency map",
+    meta: [
+      { label: "Programme", value: "SRP", sub: "Sellafield Ltd" },
+      { label: "Gates", value: "6", sub: "FBC → Decommission" },
+      { label: "Dependencies", value: "28", sub: "13 cross-gate" },
+      { label: "Critical Node", value: "Reg approval", sub: "6 incident links" }
+    ],
+    insight: {
+      title: "Regulatory coupling risk",
+      text: "The ONR Safety Case has three direct outgoing links: to the ALARP demonstration, retrieval tooling design, and waste characterisation. That couples regulatory assurance to two delivery pathways; the Reg Approval Gate is the busiest node overall, with six incident links."
+    },
+    hierarchy: {
+      name: "SRP",
+      children: [
+        { name: "FBC", children: [
+          { name: "Business Case" },
+          { name: "Cost Model" },
+          { name: "Schedule Baseline" }
+        ]},
+        { name: "Regulatory", children: [
+          { name: "ONR Safety Case" },
+          { name: "EA Permit" },
+          { name: "ALARP Demo" },
+          { name: "Reg Approval Gate" }
+        ]},
+        { name: "Retrievals", children: [
+          { name: "Tooling Design" },
+          { name: "Remote Handling" },
+          { name: "Silo Access" },
+          { name: "Fuel Retrieval Ops" },
+          { name: "Monitoring Systems" }
+        ]},
+        { name: "Waste", children: [
+          { name: "Characterisation" },
+          { name: "Conditioning" },
+          { name: "Interim Storage" },
+          { name: "Transport Package" }
+        ]},
+        { name: "Decomm", children: [
+          { name: "Structure Demo" },
+          { name: "Site Remediation" },
+          { name: "Final Survey" },
+          { name: "Delicensing" }
+        ]},
+        { name: "DigitalPMO", children: [
+          { name: "Data Integration" },
+          { name: "Digital Twin" },
+          { name: "AI Monitoring" }
+        ]}
+      ]
+    },
+    imports: [
+      { s: "Business Case", t: "ONR Safety Case" },
+      { s: "Cost Model", t: "Schedule Baseline" },
+      { s: "Schedule Baseline", t: "Tooling Design" },
+      { s: "Business Case", t: "Reg Approval Gate" },
+      { s: "ONR Safety Case", t: "ALARP Demo" },
+      { s: "ALARP Demo", t: "Reg Approval Gate" },
+      { s: "EA Permit", t: "Reg Approval Gate" },
+      { s: "ONR Safety Case", t: "Tooling Design" },
+      { s: "ONR Safety Case", t: "Characterisation" },
+      { s: "Reg Approval Gate", t: "Silo Access" },
+      { s: "Reg Approval Gate", t: "Remote Handling" },
+      { s: "Reg Approval Gate", t: "Fuel Retrieval Ops" },
+      { s: "Tooling Design", t: "Remote Handling" },
+      { s: "Remote Handling", t: "Silo Access" },
+      { s: "Silo Access", t: "Fuel Retrieval Ops" },
+      { s: "Fuel Retrieval Ops", t: "Characterisation" },
+      { s: "Monitoring Systems", t: "AI Monitoring" },
+      { s: "Characterisation", t: "Conditioning" },
+      { s: "Conditioning", t: "Interim Storage" },
+      { s: "Interim Storage", t: "Transport Package" },
+      { s: "Fuel Retrieval Ops", t: "Structure Demo" },
+      { s: "Transport Package", t: "Structure Demo" },
+      { s: "Structure Demo", t: "Site Remediation" },
+      { s: "Site Remediation", t: "Final Survey" },
+      { s: "Final Survey", t: "Delicensing" },
+      { s: "Data Integration", t: "Digital Twin" },
+      { s: "Digital Twin", t: "AI Monitoring" },
+      { s: "Data Integration", t: "Monitoring Systems" }
+    ],
+    phaseColors: {
+      "FBC": "#38bdf8",
+      "Regulatory": "#f43f5e",
+      "Retrievals": "#f59e0b",
+      "Waste": "#a78bfa",
+      "Decomm": "#34d399",
+      "DigitalPMO": "#fb923c"
+    }
+  }
+};
+
+const TIMELINE_SCENARIOS = {
+  portfolio: {
+    title: "UK Infrastructure Portfolio — Q1/Q2 2026",
+    subtitle: "Faceted schedule comparison",
+    meta: [
+      { label: "Programmes", value: "4", sub: "Active UK infrastructure" },
+      { label: "Tasks tracked", value: "16", sub: "Across all streams" },
+      { label: "Schedule risk", value: "2 slips", sub: "Amber/Red flags" },
+      { label: "Window", value: "6 months", sub: "Jan — Jun 2026" }
+    ],
+    insight: {
+      title: "Capacity collision ahead",
+      text: "Pennine Viaduct steelwork and HS2 civils both demand specialist crane capacity in April-May. The Sellafield retrievals ramp overlaps with both. Three programmes competing for the same specialist subcontractor pool — flag to Portfolio Board for sequencing decision."
+    },
+    streams: [
+      {
+        name: "Pennine Viaduct Renewal",
+        tasks: [
+          { task: "GRIP 4 Design", start: "2026-01-05", end: "2026-02-28", status: "complete", milestone: false },
+          { task: "Piling Works", start: "2026-03-01", end: "2026-04-15", status: "active", milestone: false },
+          { task: "Steelwork Erection", start: "2026-04-16", end: "2026-06-10", status: "planned", milestone: false },
+          { task: "GRIP 5 Gate", start: "2026-06-10", end: "2026-06-10", status: "milestone", milestone: true }
+        ]
+      },
+      {
+        name: "Sellafield SRP",
+        tasks: [
+          { task: "ONR Submission", start: "2026-01-15", end: "2026-03-01", status: "complete", milestone: false },
+          { task: "Tooling Procurement", start: "2026-02-15", end: "2026-04-30", status: "active", milestone: false },
+          { task: "Silo Access Prep", start: "2026-04-01", end: "2026-05-30", status: "at-risk", milestone: false },
+          { task: "Retrieval Start", start: "2026-06-01", end: "2026-06-01", status: "milestone", milestone: true }
+        ]
+      },
+      {
+        name: "HS2 Phase 2a Civils",
+        tasks: [
+          { task: "Earthworks Package C", start: "2026-01-10", end: "2026-03-20", status: "delayed", milestone: false },
+          { task: "Viaduct Civils", start: "2026-03-21", end: "2026-05-25", status: "planned", milestone: false },
+          { task: "Utilities Diversion", start: "2026-02-01", end: "2026-04-10", status: "active", milestone: false },
+          { task: "NR Possession Window", start: "2026-05-25", end: "2026-05-25", status: "milestone", milestone: true }
+        ]
+      },
+      {
+        name: "Thames Tideway — East",
+        tasks: [
+          { task: "Shaft Sinking", start: "2026-01-08", end: "2026-03-15", status: "complete", milestone: false },
+          { task: "TBM Drive", start: "2026-03-01", end: "2026-06-30", status: "active", milestone: false },
+          { task: "Secondary Lining", start: "2026-05-01", end: "2026-06-20", status: "planned", milestone: false },
+          { task: "Connection Milestone", start: "2026-06-28", end: "2026-06-28", status: "milestone", milestone: true }
+        ]
+      }
+    ]
+  },
+  "pennine-tl": {
+    title: "Pennine Viaduct — Workstream Breakdown",
+    subtitle: "Faceted schedule comparison",
+    meta: [
+      { label: "Programme", value: "PVRP", sub: "Detailed view" },
+      { label: "Workstreams", value: "5", sub: "Discipline breakdown" },
+      { label: "Critical path", value: "Steelwork", sub: "Longest chain" },
+      { label: "Window", value: "8 months", sub: "Jan — Aug 2026" }
+    ],
+    insight: {
+      title: "Float consumption warning",
+      text: "Signalling integration has consumed 80% of its float due to late Network Rail design approvals. If the ERTMS interface specification slips past April, it becomes critical path and delays the possession window by the full slip duration — no remaining buffer."
+    },
+    streams: [
+      {
+        name: "Permanent Works",
+        tasks: [
+          { task: "Foundation Design", start: "2026-01-05", end: "2026-02-15", status: "complete", milestone: false },
+          { task: "Piling", start: "2026-02-16", end: "2026-04-01", status: "active", milestone: false },
+          { task: "Substructure", start: "2026-04-02", end: "2026-05-15", status: "planned", milestone: false },
+          { task: "Superstructure", start: "2026-05-16", end: "2026-07-30", status: "planned", milestone: false }
+        ]
+      },
+      {
+        name: "Temporary Works",
+        tasks: [
+          { task: "Scaffold Design", start: "2026-01-12", end: "2026-02-08", status: "complete", milestone: false },
+          { task: "Access Platform", start: "2026-02-20", end: "2026-03-25", status: "complete", milestone: false },
+          { task: "Crane Base", start: "2026-03-15", end: "2026-04-20", status: "active", milestone: false },
+          { task: "Demobilisation", start: "2026-07-15", end: "2026-08-10", status: "planned", milestone: false }
+        ]
+      },
+      {
+        name: "Signalling",
+        tasks: [
+          { task: "Scheme Design", start: "2026-01-20", end: "2026-03-30", status: "at-risk", milestone: false },
+          { task: "ERTMS Interface", start: "2026-03-15", end: "2026-05-10", status: "at-risk", milestone: false },
+          { task: "Installation", start: "2026-05-20", end: "2026-07-15", status: "planned", milestone: false },
+          { task: "Sig Test Gate", start: "2026-07-15", end: "2026-07-15", status: "milestone", milestone: true }
+        ]
+      },
+      {
+        name: "Drainage & Services",
+        tasks: [
+          { task: "Survey & Design", start: "2026-02-01", end: "2026-03-10", status: "complete", milestone: false },
+          { task: "Diversion Works", start: "2026-03-11", end: "2026-04-25", status: "active", milestone: false },
+          { task: "New Drainage", start: "2026-05-01", end: "2026-06-15", status: "planned", milestone: false }
+        ]
+      },
+      {
+        name: "Possession & Handback",
+        tasks: [
+          { task: "Possession Bid", start: "2026-02-01", end: "2026-03-15", status: "complete", milestone: false },
+          { task: "Line Blockage", start: "2026-06-01", end: "2026-07-20", status: "planned", milestone: false },
+          { task: "Rail Reinstatement", start: "2026-07-21", end: "2026-08-05", status: "planned", milestone: false },
+          { task: "Handback Gate", start: "2026-08-10", end: "2026-08-10", status: "milestone", milestone: true }
+        ]
+      }
+    ]
+  }
+};
+
+const statusColors = {
+  complete: "#34d399",
+  active: "#38bdf8",
+  planned: "#6b7280",
+  "at-risk": "#f59e0b",
+  delayed: "#f43f5e",
+  milestone: "#a78bfa"
+};
+
+// ─── TAB SWITCHING ───────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => {
+    const selected = t.dataset.tab === id;
+    t.classList.toggle('active', selected);
+    t.setAttribute('aria-selected', String(selected));
+    t.tabIndex = selected ? 0 : -1;
+  });
+  document.querySelectorAll('.viz-container').forEach(v =>
+    v.classList.toggle('active', v.id === id));
+}
+
+const tabButtons = [...document.querySelectorAll('.tab')];
+tabButtons.forEach((tab, index) => tab.addEventListener('keydown', event => {
+  const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+  if (!keys.includes(event.key)) return;
+  event.preventDefault();
+  let next = index;
+  if (event.key === 'ArrowLeft') next = (index - 1 + tabButtons.length) % tabButtons.length;
+  if (event.key === 'ArrowRight') next = (index + 1) % tabButtons.length;
+  if (event.key === 'Home') next = 0;
+  if (event.key === 'End') next = tabButtons.length - 1;
+  switchTab(tabButtons[next].dataset.tab);
+  tabButtons[next].focus();
+}));
+
+// ─── TOOLTIP ─────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+function showTooltip(evt, html) {
+  tooltip.innerHTML = html;
+  tooltip.classList.add('visible');
+  const anchor = evt.currentTarget?.getBoundingClientRect?.();
+  const pointerX = evt.clientX || (anchor ? anchor.left + anchor.width / 2 : 16);
+  const pointerY = evt.clientY || (anchor ? anchor.top + anchor.height / 2 : 16);
+  const x = Math.max(8, Math.min(pointerX + 12, window.innerWidth - 296));
+  const y = Math.max(8, Math.min(pointerY - 10, window.innerHeight - 86));
+  tooltip.style.left = `${x}px`;
+  tooltip.style.top = `${y}px`;
+}
+function hideTooltip() { tooltip.classList.remove('visible'); }
+
+// ─── RENDER META CARDS ───────────────────────────
+function renderMeta(containerId, items) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(m =>
+    `<div class="meta-card">
+      <div class="label">${m.label}</div>
+      <div class="value">${m.value}</div>
+      <div class="sub">${m.sub}</div>
+    </div>`
+  ).join('');
+}
+
+// ─── RENDER INSIGHT ──────────────────────────────
+function renderInsight(containerId, data) {
+  document.getElementById(containerId).innerHTML =
+    `<h4>${data.title}</h4><p>${data.text}</p>`;
+}
+
+// ═══════════════════════════════════════════════════
+// EDGE BUNDLE
+// ═══════════════════════════════════════════════════
+function renderEdgeBundle(scenario) {
+  const S = SCENARIOS[scenario];
+  renderMeta('bundle-meta', S.meta);
+  renderInsight('bundle-insight', S.insight);
+  document.getElementById('bundle-chart-title').textContent = S.subtitle;
+
+  const container = document.getElementById('edge-bundle-chart');
+  container.innerHTML = '';
+
+  const width = 720, radius = width / 2;
+  const svg = d3.select(container).append('svg')
+    .attr('viewBox', [-radius, -radius, width, width])
+    .attr('width', '100%')
+    .attr('preserveAspectRatio', 'xMidYMid meet')
+    .attr('role', 'img')
+    .attr('aria-label', `${S.title}: ${S.subtitle}`)
+    .attr('style', 'max-width:660px')
+    .attr('id', 'edge-bundle-svg');
+
+  // Background glow
+  const defs = svg.append('defs');
+  const radGrad = defs.append('radialGradient').attr('id', 'bg-glow');
+  radGrad.append('stop').attr('offset', '0%').attr('stop-color', '#1a1f2e');
+  radGrad.append('stop').attr('offset', '100%').attr('stop-color', '#0c0e13');
+  svg.append('circle').attr('r', radius).attr('fill', 'url(#bg-glow)');
+
+  // Phase ring arcs
+  const root = d3.hierarchy(S.hierarchy).sum(d => d.children ? 0 : 1);
+  const cluster = d3.cluster().size([2 * Math.PI, radius - 110]);
+  cluster(root);
+
+  const phases = root.children;
+  const phaseArcs = phases.map(phase => {
+    const leaves = phase.leaves();
+    const angles = leaves.map(l => l.x);
+    const pad = 0.04;
+    return {
+      name: phase.data.name,
+      start: Math.min(...angles) - pad,
+      end: Math.max(...angles) + pad
+    };
+  });
+
+  const arcGen = d3.arc().innerRadius(radius - 105).outerRadius(radius - 95);
+  svg.append('g').selectAll('path')
+    .data(phaseArcs)
+    .join('path')
+    .attr('d', d => arcGen({ startAngle: d.start, endAngle: d.end }))
+    .attr('fill', d => S.phaseColors[d.name] || '#555')
+    .attr('opacity', 0.4);
+
+  // Phase labels
+  svg.append('g').selectAll('text')
+    .data(phaseArcs)
+    .join('text')
+    .attr('transform', d => {
+      const a = (d.start + d.end) / 2;
+      const r = radius - 80;
+      return `rotate(${a * 180 / Math.PI - 90}) translate(${r},0) ${a > Math.PI ? 'rotate(180)' : ''}`;
+    })
+    .attr('text-anchor', d => ((d.start + d.end) / 2) > Math.PI ? 'end' : 'start')
+    .attr('fill', d => S.phaseColors[d.name] || '#888')
+    .attr('font-size', '10px')
+    .attr('font-weight', '500')
+    .attr('letter-spacing', '0.5px')
+    .text(d => d.name.toUpperCase());
+
+  // Node map
+  const nodeByName = new Map();
+  root.leaves().forEach(d => nodeByName.set(d.data.name, d));
+
+  // Find phase for a leaf
+  function phaseOf(leaf) {
+    let n = leaf;
+    while (n.parent && n.parent.parent) n = n.parent;
+    return n.data.name;
+  }
+
+  // Bundle paths
+  const line = d3.lineRadial()
+    .curve(d3.curveBundle.beta(0.82))
+    .radius(d => d.y)
+    .angle(d => d.x);
+
+  function bundlePath(source, target) {
+    // Walk up from source and target to LCA, then concatenate
+    const sAnc = source.ancestors().reverse();
+    const tAnc = target.ancestors().reverse();
+    let lca = sAnc[0];
+    for (let i = 0; i < Math.min(sAnc.length, tAnc.length); i++) {
+      if (sAnc[i] === tAnc[i]) lca = sAnc[i]; else break;
+    }
+    const pathUp = [];
+    for (let n = source; n !== lca; n = n.parent) pathUp.push(n);
+    pathUp.push(lca);
+    const pathDown = [];
+    for (let n = target; n !== lca; n = n.parent) pathDown.push(n);
+    return line(pathUp.concat(pathDown.reverse()));
+  }
+
+  const edgeData = S.imports
+    .map(({ s, t }) => ({ source: nodeByName.get(s), target: nodeByName.get(t), sName: s, tName: t }))
+    .filter(d => d.source && d.target);
+
+  // Draw edges
+  const links = svg.append('g').selectAll('path')
+    .data(edgeData)
+    .join('path')
+    .attr('class', 'link')
+    .attr('d', d => bundlePath(d.source, d.target))
+    .attr('stroke', d => {
+      const sp = phaseOf(d.source), tp = phaseOf(d.target);
+      return sp === tp ? S.phaseColors[sp] : '#667';
+    });
+
+  // Draw nodes
+  const nodes = svg.append('g').selectAll('g')
+    .data(root.leaves())
+    .join('g')
+    .attr('class', 'node-focus')
+    .attr('tabindex', 0)
+    .attr('role', 'button')
+    .attr('aria-label', d => `${d.data.name}, ${phaseOf(d)} phase dependency node`)
+    .attr('transform', d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`);
+
+  nodes.append('circle')
+    .attr('class', 'node-dot')
+    .attr('r', 3)
+    .attr('fill', d => S.phaseColors[phaseOf(d)] || '#888');
+
+  nodes.append('text')
+    .attr('dy', '0.31em')
+    .attr('x', d => d.x < Math.PI ? 6 : -6)
+    .attr('text-anchor', d => d.x < Math.PI ? 'start' : 'end')
+    .attr('transform', d => d.x >= Math.PI ? 'rotate(180)' : null)
+    .text(d => d.data.name);
+
+  // Interaction
+  function highlightNode(evt, d) {
+    const name = d.data.name;
+    const connected = new Set();
+    connected.add(name);
+    const incoming = [], outgoing = [];
+
+    edgeData.forEach(e => {
+      if (e.sName === name) { connected.add(e.tName); outgoing.push(e.tName); }
+      if (e.tName === name) { connected.add(e.sName); incoming.push(e.sName); }
+    });
+
+    links.classed('highlighted', e => e.sName === name || e.tName === name)
+         .classed('faded', e => e.sName !== name && e.tName !== name);
+
+    nodes.select('text')
+      .attr('fill', n => connected.has(n.data.name) ? '#e8ecf4' : '#333');
+    nodes.select('circle')
+      .attr('r', n => n.data.name === name ? 5 : connected.has(n.data.name) ? 4 : 2.5)
+      .attr('fill-opacity', n => connected.has(n.data.name) ? 1 : 0.3);
+
+    const phase = phaseOf(d);
+    showTooltip(evt,
+      `<div class="tt-title">${name}</div>
+       <div class="tt-sub">${phase} phase · ${incoming.length} in · ${outgoing.length} out</div>`
+    );
+  }
+
+  function resetNodes() {
+    links.classed('highlighted', false).classed('faded', false);
+    nodes.select('text').attr('fill', null);
+    nodes.select('circle').attr('r', 3).attr('fill-opacity', 1);
+    hideTooltip();
+  }
+
+  nodes.on('mouseenter focusin', highlightNode)
+    .on('mouseleave focusout', resetNodes);
+
+  // Legend
+  const legendEl = document.getElementById('bundle-legend');
+  legendEl.innerHTML = Object.entries(S.phaseColors).map(([name, col]) =>
+    `<div class="legend-item"><div class="legend-swatch" style="background:${col}"></div>${name}</div>`
+  ).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// FACETED TIMELINES
+// ═══════════════════════════════════════════════════
+function renderTimeline(scenario) {
+  const S = TIMELINE_SCENARIOS[scenario];
+  renderMeta('timeline-meta', S.meta);
+  renderInsight('timeline-insight', S.insight);
+  document.getElementById('timeline-chart-title').textContent = S.subtitle;
+
+  const container = document.getElementById('timeline-chart');
+  container.innerHTML = '';
+
+  // Compute global time extent
+  const allDates = S.streams.flatMap(s => s.tasks.flatMap(t => [new Date(t.start), new Date(t.end)]));
+  const minDate = d3.min(allDates);
+  const maxDate = d3.max(allDates);
+  const pad = 7 * 86400000;
+  const domainStart = new Date(minDate - pad);
+  const domainEnd = new Date(+maxDate + pad);
+
+  const compactTimeline = window.matchMedia('(max-width: 560px)').matches;
+  const margin = compactTimeline
+    ? { top: 8, right: 18, bottom: 28, left: 142 }
+    : { top: 8, right: 24, bottom: 28, left: 180 };
+  const fullWidth = compactTimeline ? 520 : 680;
+  const barH = compactTimeline ? 18 : 16;
+  const barGap = compactTimeline ? 5 : 4;
+
+  const xScale = d3.scaleTime()
+    .domain([domainStart, domainEnd])
+    .range([margin.left, fullWidth - margin.right]);
+
+  // The data is a worked-example snapshot created on 25 March 2026.
+  const sourceDate = new Date('2026-03-25');
+
+  S.streams.forEach(stream => {
+    const facetH = stream.tasks.filter(t => !t.milestone).length * (barH + barGap) + 30;
+    const totalH = facetH + margin.top + margin.bottom;
+
+    const svg = d3.select(container).append('svg')
+      .attr('viewBox', `0 0 ${fullWidth} ${totalH}`)
+      .attr('width', '100%')
+      .attr('role', 'img')
+      .attr('aria-label', `${stream.name} timeline in ${S.title}`)
+      .attr('style', 'display:block;margin-bottom:2px;');
+
+    // Stream label
+    svg.append('text')
+      .attr('x', 12)
+      .attr('y', margin.top + 14)
+      .attr('fill', '#6b7280')
+      .attr('font-size', '10px')
+      .attr('font-family', 'DM Mono, monospace')
+      .attr('letter-spacing', '0.5px')
+      .text(stream.name.toUpperCase());
+
+    // Grid lines (months)
+    const months = d3.timeMonth.range(domainStart, domainEnd);
+    svg.append('g').selectAll('line')
+      .data(months)
+      .join('line')
+      .attr('x1', d => xScale(d)).attr('x2', d => xScale(d))
+      .attr('y1', margin.top).attr('y2', totalH - margin.bottom)
+      .attr('stroke', '#1e2130').attr('stroke-width', 1);
+
+    // Month labels (only on first stream)
+    if (stream === S.streams[0]) {
+      svg.append('g').selectAll('text')
+        .data(months)
+        .join('text')
+        .attr('x', d => xScale(d) + 4)
+        .attr('y', totalH - 6)
+        .attr('fill', '#4b5563')
+        .attr('font-size', '8px')
+        .attr('font-family', 'DM Mono, monospace')
+        .text(d => d3.timeFormat('%b %y')(d));
+    }
+
+    // Source-date line: retained as provenance, not presented as the live date.
+    if (sourceDate >= domainStart && sourceDate <= domainEnd) {
+      svg.append('line')
+        .attr('class', 'nowline')
+        .attr('x1', xScale(sourceDate)).attr('x2', xScale(sourceDate))
+        .attr('y1', margin.top).attr('y2', totalH - margin.bottom);
+
+      if (stream === S.streams[0]) {
+        svg.append('text')
+          .attr('x', xScale(sourceDate) + 4)
+          .attr('y', margin.top + 8)
+          .attr('fill', '#f43f5e')
+          .attr('font-size', '7px')
+          .attr('font-family', 'DM Mono, monospace')
+          .attr('letter-spacing', '0.4px')
+          .text('SOURCE · 25 MAR');
+      }
+    }
+
+    // Bars
+    let yi = 0;
+    const nonMilestones = stream.tasks.filter(t => !t.milestone);
+    const milestones = stream.tasks.filter(t => t.milestone);
+
+    nonMilestones.forEach(task => {
+      const y = margin.top + 24 + yi * (barH + barGap);
+      const x1 = xScale(new Date(task.start));
+      const x2 = xScale(new Date(task.end));
+
+      svg.append('rect')
+        .attr('class', 'timeline-bar')
+        .attr('tabindex', 0)
+        .attr('role', 'img')
+        .attr('aria-label', `${task.task}, ${stream.name}, ${task.start} to ${task.end}, ${task.status}`)
+        .attr('x', x1)
+        .attr('y', y)
+        .attr('width', Math.max(x2 - x1, 2))
+        .attr('height', barH)
+        .attr('rx', 3)
+        .attr('fill', statusColors[task.status] || '#555')
+        .attr('opacity', task.status === 'planned' ? 0.4 : 0.75)
+        .on('mouseenter focusin', function(evt) {
+          d3.select(this).attr('opacity', 1);
+          const dur = Math.ceil((new Date(task.end) - new Date(task.start)) / 86400000);
+          const riskClass = task.status === 'at-risk' || task.status === 'delayed' ? 'risk-high' :
+                           task.status === 'active' ? 'risk-med' : 'risk-low';
+          showTooltip(evt,
+            `<div class="tt-title">${task.task}</div>
+             <div class="tt-sub">${stream.name} · ${dur} days<br>
+             ${task.start} → ${task.end}<br>
+             <span class="risk-tag ${riskClass}">${task.status}</span></div>`
+          );
+        })
+        .on('mouseleave focusout', function() {
+          d3.select(this).attr('opacity', task.status === 'planned' ? 0.4 : 0.75);
+          hideTooltip();
+        });
+
+      // Inline label
+      if (x2 - x1 > 60) {
+        svg.append('text')
+          .attr('x', x1 + 6)
+          .attr('y', y + barH / 2 + 3.5)
+          .attr('fill', task.status === 'planned' ? '#4b5563' : '#0c0e13')
+          .attr('font-size', '8.5px')
+          .attr('font-family', 'DM Mono, monospace')
+          .attr('font-weight', '500')
+          .attr('pointer-events', 'none')
+          .text(task.task);
+      }
+
+      yi++;
+    });
+
+    // Milestones (diamonds)
+    milestones.forEach(m => {
+      const mx = xScale(new Date(m.start));
+      const my = margin.top + 24 + yi * (barH + barGap) - barH/2;
+
+      svg.append('path')
+        .attr('class', 'milestone-diamond')
+        .attr('tabindex', 0)
+        .attr('role', 'img')
+        .attr('aria-label', `${m.task}, ${stream.name}, milestone on ${m.start}`)
+        .attr('d', d3.symbol().type(d3.symbolDiamond).size(80)())
+        .attr('transform', `translate(${mx},${my})`)
+        .attr('fill', statusColors.milestone)
+        .on('mouseenter focusin', evt => showTooltip(evt,
+          `<div class="tt-title">${m.task}</div>
+           <div class="tt-sub">${stream.name} · ${m.start}<br>
+           <span class="risk-tag" style="background:rgba(167,139,250,0.15);color:#a78bfa;">MILESTONE</span></div>`
+        ))
+        .on('mouseleave focusout', hideTooltip);
+
+      svg.append('text')
+        .attr('x', mx + 10)
+        .attr('y', my + 3.5)
+        .attr('fill', '#a78bfa')
+        .attr('font-size', '8px')
+        .attr('font-family', 'DM Mono, monospace')
+        .attr('pointer-events', 'none')
+        .text(m.task);
+    });
+  });
+
+  // Legend
+  const legendEl = document.getElementById('timeline-legend');
+  legendEl.innerHTML = Object.entries(statusColors).map(([name, col]) =>
+    `<div class="legend-item"><div class="legend-swatch" style="background:${col}"></div>${name}</div>`
+  ).join('');
+}
+
+// ─── SCENARIO SWITCHING ──────────────────────────
+function loadBundleScenario(key) {
+  document.querySelectorAll('#bundle .scenario-btn').forEach(b => {
+    const selected = b.dataset.scenario === key;
+    b.classList.toggle('active', selected);
+    b.setAttribute('aria-pressed', String(selected));
+  });
+  renderEdgeBundle(key);
+}
+
+function loadTimelineScenario(key) {
+  document.querySelectorAll('#timeline .scenario-btn').forEach(b => {
+    const selected = b.dataset.scenario === key;
+    b.classList.toggle('active', selected);
+    b.setAttribute('aria-pressed', String(selected));
+  });
+  renderTimeline(key);
+}
+
+// ─── INIT ────────────────────────────────────────
+renderEdgeBundle('pennine');
+renderTimeline('portfolio');
+</script>
+</body>
+</html>

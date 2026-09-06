@@ -329,8 +329,10 @@
         rigor: 8, legibility: 6, buildability: 3,
         status: 'warn',
         signals: ['Encodes non-decreasing safety/throughput intuitions', 'Highlights coupling constraints'],
-        failureModes: ['Library/tooling missing', 'Abstraction mismatch to contracts', 'Stakeholders treat monotonicity as optional'],
-        nextProbe: 'Mock the MCDP engine with a simple Pareto-front enumerator; keep the story monotone even if the solver is crude.'
+        failureModes: ['Real engineering methods and permissions must be supplied', 'Abstraction mismatch to contracts', 'Synthetic results are not transport validation'],
+        nextProbe: 'Use the co-design foray to compare subsystem couplings, programme templates and exact finite stage paths; test what changes when service or access promises tighten.',
+        appUrl: 'https://lawrencerowland.github.io/project-co-design/',
+        appLabel: 'Open the Project Co-design foray'
       },
       {
         id: 'handover-compile',
@@ -533,6 +535,7 @@
             <div class="pill"><div class="k">Next probe</div><div class="v">${escapeHtml(d.nextProbe || '—')}</div></div>
           </div>
 
+          ${d.appUrl ? `<p><a href="${escapeHtml(d.appUrl)}">${escapeHtml(d.appLabel || 'Open experiment')} →</a></p>` : ''}
           <div class="detail">
             <details>
               <summary>Show failure modes / more signals</summary>

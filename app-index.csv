@@ -47,7 +47,6 @@
 45,intent_field_navigator,"CSV-first intent field navigator for alignment, coverage, entropy, and nudges.",ChatGPT,GPT-5.2-Codex,"intent, alignment, csv, analytics, visualization",,
 46,living-graph-transform-system,"Living graph-transform rescheduler with rewrite rules, ES/EF scheduling, and Cytoscape-based propagation log.",ChatGPT,GPT-5.2-Codex,"project_management, scheduling, graph, visualization, simulation",,
 
-47,animal_crossing_codesign,"Interactive monotone co-design timeline for UK motorway wildlife crossings.",ChatGPT,GPT-5.2-Codex,"transport, ecology, codesign, visualization",,
 
 48,portfolio_loom,Chrono-speculative portfolio loom for weaving scenario fibres into temporal resilience fields.,ChatGPT,GPT-5.2-Codex,"portfolio_management, risk, simulation, visualization, decision_support",,
 49,interface_maturity_simulator,"SharpCloud-style interface maturity simulator with coupling, spillover, network, and KPI views.",ChatGPT,GPT-5.2-Codex,"simulation, interfaces, governance, visualization, network",,
@@ -56,10 +55,8 @@
 52,Graph to sharp,"Project Graph → SharpCloud (role views, audit bundle, and graph ingest).",ChatGPT,GPT-5.2-Codex,"graph, sharpcloud, visualization, data_ingest, audit",,
 53,Graph-sharp1,"Project Graph → SharpCloud variant with role views and audit bundle outputs.",ChatGPT,GPT-5.2-Codex,"graph, sharpcloud, visualization, data_ingest, audit",,
 54,climate-sequential-decision-paths,"Sequential decision path diagram for a climate engineering mega-project with branching states, decisions, and information.",ChatGPT,GPT-5.2-Codex,"climate, decision, visualization, scenario, governance",,
-56,monotone_codesign_rail_upgrade,Monotone Co-Design — Incremental Rail Upgrade (Worked Example),ChatGPT,GPT-5.2-Codex,"rail, codesign, visualization, simulation",,
 
 54,climate-sequential-decision-paths,"Sequential decision path diagram for a climate engineering mega-project with branching states, decisions, and information.",ChatGPT,GPT-5.2-Codex,"climate, decision, visualization, scenario, governance",,
-55,monotone-codesign-rail-transit,"Monotone co-design demo for rail platform, signal, and power upgrades with enforced cross-constraints.",ChatGPT,GPT-5.2-Codex,"transport, rail, codesign, monotone, visualization",,
 
 58,tangled_triangle_conceptual_plan_section,"Interactive conceptual plan/section for a constrained triangular site with canal, road, rail viaduct, HV line, and mining passage.",ChatGPT,GPT-5.2-Codex,"visualization, planning, infrastructure, rail, geometry, interactive",,
 57,regional-signalling-control-centre,"Regional signalling control centre plan/section with three architecture option tabs.",ChatGPT,GPT-5.2-Codex,"rail, architecture, planning, visualization, infrastructure",,
@@ -75,7 +72,6 @@
 67,hs2_stakeholders_network,"HS2 stakeholders and delivery partners network graph with an embedded agent/role ontology.",User,GPT-5.2-Codex,"hs2, stakeholders, network, knowledge_graph, ontology, visualization",,
 68,interface_topology_sketch_v0,"Interface topology sketch for a regional signalling control centre site with canal, road, rail, OHL, and mining constraints.",ChatGPT,GPT-5.2-Codex,"rail, interfaces, topology, planning, visualization, infrastructure",,
 
-69,monotone_codesign_rail,"Monotone co-design rail upgrade staging simulator with Pareto plans and resource trade-offs.",User,GPT-5.2-Codex,"rail, codesign, staging, simulation, decision_support",,
 70,climate_megaproject_sdam,"Sequential decision analytics for a climate engineering megaproject with SDAM framing and simulations.",User,GPT-5.2-Codex,"climate, decision_support, sdam, simulation, policy",,
 
 71,project-approach-atlas,"Project-Approach atlas for comparing project control methods by rigor, legibility, and buildability.",User,GPT-5.2-Codex,"project_controls, methods, visualization, decision_support",,
@@ -91,4 +87,3 @@
 78,project-risk-gradient,"Interactive risk-gradient sandbox showing where the next day of task buffer yields the largest modeled risk reduction and whether it moves the finish date.",User,GPT-5.3-Codex,"risk, schedule, slack, critical_path, visualization, decision_support",,
 79,project-dependency-atlas,"Project Dependency Atlas: trace phase- and gate-bundled dependencies and compare faceted programme timelines.",User,GPT-5.2-Codex,"project_management, dependencies, scheduling, edge_bundling, timelines, visualization, programme_controls",,
 80,social-debt-explorer,"Social Debt: from technical debt to the hidden coordination costs of software teamwork. Illustrated situations and an ontology explorer in More Project Apps.",User,Codex,"social_debt, teamwork, ontology, knowledge_graph, visualization",,"Canonical app is in more-project-apps; this gallery entry redirects there."
-81,rail-staged-codesign,"Co-design the way there: derive staged railway upgrades that keep service promises, compare resource trade-offs and replay the construction path.",User,GPT-6,"rail, codesign, staging, category_theory, decision_support, verification",,Foray 180 / 182; exact fictional finite catalogue; source and independent checker included.

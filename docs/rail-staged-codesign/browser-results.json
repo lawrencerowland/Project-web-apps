@@ -1,6 +1,6 @@
 {
   "status": "PASS",
-  "base": "http://127.0.0.1:8769/web_apps/rail-staged-codesign.html",
+  "base": "https://lawrencerowland.github.io/Project-web-apps/web_apps/rail-staged-codesign.html",
   "cases": [
     {
       "id": "continuity",

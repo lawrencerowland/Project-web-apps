@@ -78,7 +78,7 @@
     <div>
       <h1>Tangled Triangle — Conceptual Geometry</h1>
       <p class="note">Plan and section sketches that show the nature of the physical boundaries: <strong>canal (south, ground level)</strong>; <strong>road (west) crossing over canal</strong>; <strong>railway (NW–SE) on viaduct over road &amp; canal</strong>; <strong>old mining passage (W–E at ~10&nbsp;m depth)</strong>; <strong>overhead HV line (N–S)</strong>.</p>
-      <div class="badge">Completed staff work — deliverable 1</div>
+      <div class="badge">Concept sketch — illustrative geometry</div>
     </div>
   </header>
 
@@ -94,14 +94,14 @@
           <label class="chip"><input type="checkbox" data-layer="canal" checked> Canal</label>
           <label class="chip"><input type="checkbox" data-layer="road" checked> Road &amp; bridge</label>
           <label class="chip"><input type="checkbox" data-layer="rail" checked> Railway viaduct</label>
-          <label class="chip"><input type="checkbox" data-layer="hv" checked> HV line &amp; wayleave</label>
+          <label class="chip"><input type="checkbox" data-layer="hv" checked> HV line &amp; assumed band</label>
           <label class="chip"><input type="checkbox" data-layer="mine" checked> Old mining passage</label>
           <label class="chip"><input type="checkbox" data-layer="buffers"> Show buffer bands</label>
         </div>
         <div class="row" style="margin-top:.5rem">
           <div class="slider">
-            <label for="hvClear">HV wayleave (each side):</label>
-            <input type="range" id="hvClear" min="5" max="30" value="12" step="1" aria-label="HV wayleave metres">
+            <label for="hvClear">Illustrative HV band (each side):</label>
+            <input type="range" id="hvClear" min="5" max="30" value="12" step="1" aria-label="Assumed HV band width in metres">
             <span id="hvClearVal" class="tag">12 m</span>
           </div>
           <div class="slider">
@@ -110,12 +110,12 @@
             <span id="railClearVal" class="tag">8 m</span>
           </div>
           <div class="slider">
-            <label for="roadClear">Road verge/easement:</label>
+            <label for="roadClear">Illustrative road band:</label>
             <input type="range" id="roadClear" min="2" max="20" value="6" step="1" aria-label="Road buffer metres">
             <span id="roadClearVal" class="tag">6 m</span>
           </div>
           <div class="slider">
-            <label for="canalClear">Canal easement:</label>
+            <label for="canalClear">Illustrative canal band:</label>
             <input type="range" id="canalClear" min="5" max="30" value="10" step="1" aria-label="Canal buffer metres">
             <span id="canalClearVal" class="tag">10 m</span>
           </div>
@@ -140,7 +140,7 @@
             <span class="key"><span class="swatch" style="background:var(--hv)"></span>HV line &amp; buffer</span>
             <span class="key"><span class="swatch" style="background:var(--mine)"></span>Old mining passage</span>
           </div>
-          <p class="dim">Tip: toggle layers and adjust buffers to explore how constraints shape the buildable envelope.</p>
+          <p class="dim">Tip: toggle layers and adjust assumed bands to compare their geometric overlaps with the site. Overlap does not determine buildability.</p>
         </div>
       </div>
     </article>
@@ -190,7 +190,7 @@
       <div class="pad">
         <ul>
           <li><strong>Geometry.</strong> Site is idealised as a triangle with vertices at: A(100,200) intersection of railway &amp; west road; B(100,550) road–canal bridge; C(800,550) railway–canal. Railway runs on a viaduct from NW to SE; the road runs north–south; the canal runs east–west at ground level. The road crosses over the canal on a bridge; the railway viaduct flies over both. An old mining passage runs west–east at roughly 10&nbsp;m below ground. An overhead HV line runs north–south across the site.</li>
-          <li><strong>Buffers.</strong> Sliders expose indicative easements (road verge, canal maintenance strip, railway safety offset, and HV wayleave) to visualise how a buildable envelope might shrink under constraints. (Values are illustrative only.)</li>
+          <li><strong>Buffers.</strong> Sliders show illustrative bands beside the road, canal, railway and overhead line. They are drawing inputs, not established easements, safety offsets or a calculated buildable envelope. Site-specific requirements would need separate evidence and assessment.</li>
           <li><strong>Section logic.</strong> The section is taken along a vertical plane at x&nbsp;=&nbsp;<span id="secXNote">100</span> m; its horizontal axis represents distance from the north boundary (left) to the south boundary (right). The railway deck is drawn where the section crosses the railway alignment; likewise for the HV line.</li>
           <li><strong>Scale &amp; orientation.</strong> Plan view: north is up (arrow). A light 24&nbsp;m grid supports quick eyeballing. Section: vertical exaggeration may be present for clarity.</li>
         </ul>
@@ -199,7 +199,7 @@
   </section>
 
   <footer>
-    <p class="dim">This single‑file canvas follows the project’s canvas guidance.</p>
+    <p class="dim">Use the layers and section cut to explore this fictional layout; the sketch does not determine whether a design is feasible or compliant.</p>
   </footer>
 </div>
 

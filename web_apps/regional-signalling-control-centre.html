@@ -34,6 +34,8 @@ svg[data-view="section"]{min-height:20rem;}
 <div id="app" data-timeout="3000">
 
   <h1>Regional Signalling Control Centre – Site &amp; Architecture Options</h1>
+  <p style="max-width:80ch;line-height:1.5;text-align:center"><strong>Fictional concept study.</strong> These alternatives organise questions about a constrained site. No survey, engineering design, asset-owner agreement or approval is supplied. Drawing levels are illustrative; the pages do not test structural, electrical or operational feasibility.</p>
+  <p><a href="../index.html">Back to App Gallery</a></p>
 
   <!-- TAB CONTROLS -->
   <div class="tab-buttons" role="tablist">
@@ -83,15 +85,15 @@ svg[data-view="section"]{min-height:20rem;}
       <rect x="260" y="200" width="20" height="100" fill="#757575"/>
       <rect x="710" y="200" width="20" height="100" fill="#757575"/>
       <!-- Mining passage -->
-      <rect x="200" y="380" width="600" height="20" fill="#5D4037" data-info="Old mining passage – 10 m below ground" />
+      <rect x="200" y="380" width="600" height="20" fill="#5D4037" data-info="Old mining passage – illustrative depth only; not surveyed" />
       <!-- HV line towers -->
       <line x1="500" y1="0" x2="500" y2="120" stroke="#D32F2F" stroke-width="6" />
       <polygon points="490,120 510,120 530,150 470,150" fill="#D32F2F"/>
       <text x="515" y="160" font-size="14" fill="#D32F2F">HV Line</text>
       <!-- Height labels -->
-      <text x="850" y="315" font-size="12">Ground 0 m</text>
-      <text x="850" y="185" font-size="12">+6 m (Railway)</text>
-      <text x="850" y="395" font-size="12">–10 m (Mine)</text>
+      <text x="850" y="315" font-size="12">Illustrative datum</text>
+      <text x="850" y="185" font-size="12">Rail: illustrative level</text>
+      <text x="850" y="395" font-size="12">Mine: illustrative depth</text>
     </svg>
   </div>
 
@@ -99,28 +101,25 @@ svg[data-view="section"]{min-height:20rem;}
   <div id="panel-app1" role="tabpanel" hidden>
     <article>
       <h2>Approach 1 – Integrated Podium Deck</h2>
-
-      <h3>Approach to System Architecture &amp; Engineering</h3>
+      <h3>Concept to investigate</h3>
       <ul>
-        <li>Create a single reinforced-concrete podium that <strong>bridges across the canal and the mining void</strong>, tying into piled foundations positioned clear of the old passage.</li>
-        <li>House the control-centre building on top of the podium so that occupied floors start at +7 m, matching (or slightly below) railway viaduct soffit. Utilities run inside the deck, away from mining risk.</li>
-        <li>Design podium edges as crash-rated barriers where they meet the road, allowing an at-grade service loop road on the west side.</li>
-        <li>Use vibration-isolating bearings where podium meets viaduct piers to decouple rail-borne vibration.</li>
+        <li>Explore a shared podium supporting the control centre and its services. Spanning the canal or mining passage is a hypothesis; the sketch establishes neither a feasible span nor a suitable foundation location.</li>
+        <li>Compare possible occupied-floor and service-deck levels against surveyed rail, road, canal and electrical envelopes. No floor elevation has been selected.</li>
+        <li>Study access, vehicle impact protection and emergency routes along the road edge. Their layout and performance requirements remain open.</li>
+        <li>Assess vibration transmission and structural independence. A connection to viaduct piers or the use of isolation bearings would require evidence of feasibility and asset-owner acceptance.</li>
       </ul>
-
-      <h3>Approach to Infrastructure Interface Definition</h3>
+      <h3>Interface questions</h3>
       <ul>
-        <li><em>Internal (Rail)</em> – structural bearings plus shared inspection gallery beneath viaduct constitute the controlled interface; <abbr title="Network Rail’s asset protection agreement">ASPRO</abbr> scope captured.</li>
-        <li><em>External (Canal &amp; Road)</em> – podium soffit clearance fixed at 5.7 m (canal authority) and structural loads over bridge deck agreed with highway authority.</li>
-        <li><em>External (HV Line)</em> – magnetic-field and lightning-protection study defines safe vertical offset (&gt;6 m); earthing mat interface with DNO.</li>
-        <li><em>External (Mining)</em> – compensation-grouting easement envelope, secured via deed with Coal Authority, becomes a “no-drill zone”.</li>
+        <li><em>Rail</em> – identify the asset owner, required protection/approval process, inspection access, loading and movement limits. No agreement or use of existing structures is assumed.</li>
+        <li><em>Canal &amp; road</em> – establish navigation, flood, maintenance, highway and construction-access requirements with the responsible parties. Clearances and permitted loads are not yet known.</li>
+        <li><em>Overhead line</em> – obtain the operator’s asset information and assess electrical, construction and maintenance constraints. No safe offset or earthing arrangement has been demonstrated.</li>
+        <li><em>Mining</em> – investigate the workings and ground response before defining foundation exclusions or treatment options. Rights, consents and any grouting proposal remain to be established.</li>
       </ul>
-
-      <h3>Justification</h3>
+      <h3>Potential benefits and trade-offs to test</h3>
       <ul>
-        <li>One civil contract, fewer foundations, eliminates interference with mine void and canal bank stability.</li>
-        <li>Deck offers future capacity for building extension or PV arrays.</li>
-        <li>Clear, single-line interfaces simplify contract packaging and reduce multi-party risk.</li>
+        <li>A shared deck might concentrate civil works and services, but could also concentrate structural dependencies and create difficult canal or ground interfaces.</li>
+        <li>Future extension or rooftop plant would need an explicit capacity allowance; the concept reserves no verified capacity.</li>
+        <li>A common package may simplify some coordination while concentrating delivery risk. Compare procurement and interface responsibilities before selecting it.</li>
       </ul>
     </article>
   </div>
@@ -128,28 +127,25 @@ svg[data-view="section"]{min-height:20rem;}
   <div id="panel-app2" role="tabpanel" hidden>
     <article>
       <h2>Approach 2 – Distributed Modular Clusters</h2>
-
-      <h3>Approach to System Architecture &amp; Engineering</h3>
+      <h3>Concept to investigate</h3>
       <ul>
-        <li>Divide the facility into three prefabricated steel-frame modules (operations, resilience, staff welfare) positioned in <strong>low-risk ground strips</strong> between constraints.</li>
-        <li>Link modules at first-floor level with enclosed bridges to clear the canal and service highway.</li>
-        <li>Place plant rooms at roof level; each module has its own independent pile group sized to miss the mining passage completely.</li>
-        <li>Underground services run in micro-tunnel PVC ducts bored at –4 m, shallow enough to avoid the mine yet below frost line.</li>
+        <li>Explore three modules for operations, resilience and staff welfare in candidate spaces between corridors. The drawing does not identify low-risk or buildable ground.</li>
+        <li>Investigate links between modules, including whether any crossing of the road or canal is necessary and feasible. Route, level and support locations are undecided.</li>
+        <li>Compare foundation and plant-location options for each module using ground, loading, vibration and access evidence. Independent foundations do not by themselves avoid mining risk.</li>
+        <li>Compare surface, elevated and underground service routes. A micro-tunnel is one option; no depth, material or separation from existing assets has been validated.</li>
       </ul>
-
-      <h3>Approach to Infrastructure Interface Definition</h3>
+      <h3>Interface questions</h3>
       <ul>
-        <li><em>Internal (Rail)</em> – footbridge clear span set 3 m below viaduct; vibration design handled by tuned-mass dampers per module.</li>
-        <li><em>External (Road)</em> – air-rights licence for bridges acts as contract deliverable, road authority inspects parapets.</li>
-        <li><em>External (Canal)</em> – steel bridge abutments borne on mini-piles outside canal maintenance strip; navigation lighting interface defined.</li>
-        <li><em>External (HV Line)</em> – Faraday-cage analysis ensures module roof grids stay outside 45° safety cone.</li>
+        <li><em>Rail</em> – establish structural and operational envelopes, access needs and acceptable vibration performance before choosing clearances or mitigation.</li>
+        <li><em>Road</em> – establish the crossing’s geometry, loading, protection and legal/approval requirements with the road owner. No licence or inspection arrangement is in place.</li>
+        <li><em>Canal</em> – investigate bank stability, navigation, flood behaviour and maintenance access before locating supports or defining a crossing.</li>
+        <li><em>Overhead line</em> – obtain operator-specific constraints for buildings, plant and construction equipment. This concept supplies no generic safety cone or verified electrical clearance.</li>
       </ul>
-
-      <h3>Justification</h3>
+      <h3>Potential benefits and trade-offs to test</h3>
       <ul>
-        <li>Factory-built modules accelerate programme and reduce on-site labour near the live railway.</li>
-        <li>Failure in one module does not down the whole facility (good resilience).</li>
-        <li>Separate contracts per module allow staggered procurement, useful under CAPEX limits.</li>
+        <li>Off-site manufacture could reduce some on-site work, but transport, lifting, access windows and interfaces may offset the programme benefit.</li>
+        <li>Separate modules could support resilience only if their power, communications, access and other shared dependencies are designed and checked accordingly.</li>
+        <li>Staged procurement could spread commitments, while adding contracts and integration work. Compare those effects against the delivery and funding constraints.</li>
       </ul>
     </article>
   </div>
@@ -157,28 +153,25 @@ svg[data-view="section"]{min-height:20rem;}
   <div id="panel-app3" role="tabpanel" hidden>
     <article>
       <h2>Approach 3 – Lightweight Frame Suspended from Viaduct Pier Caps</h2>
-
-      <h3>Approach to System Architecture &amp; Engineering</h3>
+      <h3>Concept to investigate</h3>
       <ul>
-        <li>Exploit <strong>air-rights under the viaduct</strong>; erect a trussed steel exoskeleton that is <em>suspended</em> from pier caps, keeping the ground almost untouched.</li>
-        <li>Office floors hung on cable-stayed members; glazed façades set back 3 m from track centre-line to satisfy Network Rail structural-gauge.</li>
-        <li>Equipment rooms sit in weather-tight modules between piers; canal remains fully open beneath.</li>
-        <li>HV line clearance verified via 3-D BIM clash detection; structure earthed via isolated down-conductors.</li>
+        <li>Consider suspension from existing pier caps as a speculative alternative. It depends on structural capacity, rail operations and owner acceptance that this sketch has not established.</li>
+        <li>Compare support arrangements, floor positions and façade envelopes against surveyed assets and the applicable requirements. No track offset proves compliance here.</li>
+        <li>Explore equipment modules between piers while checking navigation, inspection, escape and maintenance access. Keeping the canal open has not been demonstrated.</li>
+        <li>Use a coordinated spatial model to examine clashes alongside structural and electrical assessments. A clash-free drawing alone would not verify safety or an earthing design.</li>
       </ul>
-
-      <h3>Approach to Infrastructure Interface Definition</h3>
+      <h3>Interface questions</h3>
       <ul>
-        <li><em>Internal (Rail)</em> – lease of pier cap bearing capacity; periodic inspection access built into soffit walkways.</li>
-        <li><em>External (Canal)</em> – nothing touches water; Canal &amp; River Trust only reviews drip-shield design.</li>
-        <li><em>External (Road)</em> – no loads imposed; interface limited to traffic management during construction lifts.</li>
-        <li><em>External (Mining)</em> – no new ground loads =&gt; risk matrix closed.</li>
+        <li><em>Rail</em> – determine whether the owner would consider additional loads or attachments, and assess capacity, fatigue, movements, construction and inspection access. No right to use pier caps is assumed.</li>
+        <li><em>Canal</em> – agree the scope of navigation, flood, access and environmental assessment with the relevant parties, including construction effects. Review is not limited to drip protection.</li>
+        <li><em>Road</em> – assess temporary and permanent effects, falling-object protection, access and lifting arrangements. The absence of a ground-level support does not remove this interface.</li>
+        <li><em>Mining</em> – trace changed loads through the existing foundations and consider ground response and construction effects. Mining risk remains open until assessed; it is not closed by this concept.</li>
       </ul>
-
-      <h3>Justification</h3>
+      <h3>Potential benefits and trade-offs to test</h3>
       <ul>
-        <li>Eliminates piling near historic workings and reduces construction carbon.</li>
-        <li>Creates an iconic architectural statement, potential community acceptance benefit.</li>
-        <li>Single, rail-led contract may streamline approvals, but demands early buy-in from rail asset owner.</li>
+        <li>The scheme might reduce new ground supports, but it could require strengthening or other works. Compare total construction effort, carbon and ground effects.</li>
+        <li>The architectural form may attract different responses from users, neighbours and asset owners; no acceptance benefit is assumed.</li>
+        <li>A rail-led package would depend on owner willingness and a workable allocation of design, operational and long-term liabilities.</li>
       </ul>
     </article>
   </div>

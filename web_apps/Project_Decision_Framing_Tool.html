@@ -21,7 +21,7 @@
 <p><a href="../index.html">Back to Card Index</a></p>
 
 <h1>Project Decision Framing Tool</h1>
-<p>This tool helps you structure a recurring project decision using Warren Powell's Sequential Decision Framework (State, Decision, Exogenous Information).</p>
+<p>This tool helps you structure a recurring project decision using Warren Powell’s five-element framework: state, decision, new information, transition and objective. <a href="https://warrenpowell.org/universal-modeling-framework/">Read the source framework</a>. This questionnaire organises your assumptions; it does not validate a model.</p>
 
 <div class="container">
     <h2>1. Identify the Decision Context</h2>
@@ -36,7 +36,7 @@
     <h2>2. Identify State (S<sub>t</sub>): Information Needed AT the Decision Point</h2>
     <label for="statePhysical">Physical State (R<sub>t</sub>): What describes the tangible status of the project?</label>
     <textarea id="statePhysical" placeholder="List items like: % tasks complete, budget spent, resources available, current schedule status..."></textarea>
-    <div class="info-box">This is the 'physical reality' you control or that constraints you.</div>
+    <div class="info-box">Describe the resources and physical position known at decision time; estimates and unknown quantities belong in the information or belief description.</div>
 
     <label for="stateInfo">Informational State (I<sub>t</sub>): What other known factors influence the decision?</label>
     <textarea id="stateInfo" placeholder="List items like: Current market prices, weather forecast, stakeholder availability, known dependencies..."></textarea>
@@ -63,20 +63,27 @@
     <h2>4. Identify Exogenous Information (W<sub>t+1</sub>): New Info Arriving AFTER Decision</h2>
     <label for="exoInfo">What new, relevant information typically arrives *after* you make the decision but *before* the next one?</label>
     <textarea id="exoInfo" placeholder="List items like: Actual task completion time, new risks identified, actual costs incurred, stakeholder feedback, market changes..."></textarea>
-    <div class="info-box">This is information from 'outside' the decision process itself, revealing outcomes or changes.</div>
+    <div class="info-box">These observations and shocks are unknown when the current decision is chosen. Their distribution may depend on the state or action—for example, more monitoring can reduce measurement noise.</div>
 
     <label for="exoInfoUncertainty">How does this new information (W<sub>t+1</sub>) help reduce the key uncertainties identified earlier?</label>
     <textarea id="exoInfoUncertainty" placeholder="Connect the new information back to the Belief State uncertainties."></textarea>
 </div>
 
 <div class="container">
-    <h2>5. Identify Objective / Metrics</h2>
+    <h2>5. Describe the Transition (S<sup>M</sup>)</h2>
+    <label for="transition">How do the current state, chosen action and newly arriving information produce the next state?</label>
+    <textarea id="transition" placeholder="For each state item: what changes because of the action, what changes because of new information, and what remains unchanged? How are beliefs updated?"></textarea>
+    <div class="info-box">Write a rule or plain-language update: S_(t+1) = S^M(S_t, x_t, W_(t+1)). Distinguish an action’s intended effect from its observed outcome.</div>
+</div>
+
+<div class="container">
+    <h2>6. Identify Objective / Metrics</h2>
     <label for="objective">How do you measure the success of this decision over time?</label>
     <textarea id="objective" placeholder="e.g., Minimize schedule delay, maximize features delivered, stay within budget, maximize stakeholder satisfaction..."></textarea>
 </div>
 
 <div class="container">
-    <h2>6. Cadence Check</h2>
+    <h2>7. Cadence Check</h2>
     <label for="cadenceInfo">Does critical new information (W<sub>t+1</sub>) often arrive *much faster* than your decision frequency?</label>
     <textarea id="cadenceInfo" placeholder="e.g., Daily market changes vs. monthly strategy review. Describe any mismatches."></textarea>
 
@@ -107,6 +114,8 @@
         <li><strong>New Info:</strong> <span id="outExoInfo"></span></li>
         <li><strong>Reduces Uncertainty On:</strong> <span id="outExoInfoUncertainty"></span></li>
     </ul>
+    <h3>Transition to the Next State:</h3>
+    <p><span id="outTransition"></span></p>
      <h3>Objective:</h3>
     <p><span id="outObjective"></span></p>
     <h3>Cadence Considerations:</h3>
@@ -136,6 +145,7 @@
         document.getElementById('outDecisionConstraints').textContent = document.getElementById('decisionConstraints').value.replace(/\n/g, '; ') || 'N/A';
         document.getElementById('outExoInfo').textContent = document.getElementById('exoInfo').value.replace(/\n/g, '; ') || 'N/A';
         document.getElementById('outExoInfoUncertainty').textContent = document.getElementById('exoInfoUncertainty').value.replace(/\n/g, '; ') || 'N/A';
+        document.getElementById('outTransition').textContent = document.getElementById('transition').value.replace(/\n/g, '; ') || 'Not yet specified';
         document.getElementById('outObjective').textContent = document.getElementById('objective').value.replace(/\n/g, '; ') || 'N/A';
         document.getElementById('outCadenceInfo').textContent = document.getElementById('cadenceInfo').value.replace(/\n/g, '; ') || 'N/A';
         document.getElementById('outCadenceFeasibility').textContent = document.getElementById('cadenceFeasibility').value.replace(/\n/g, '; ') || 'N/A';

@@ -1,264 +1,92 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Grounded theory and a finite colimit</title>
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!="dataLayer"?"&l="+l:"";j.async=true;j.src="https://www.googletagmanager.com/gtm.js?id="+i+dl;f.parentNode.insertBefore(j,f);})(window,document,"script","dataLayer","GTM-WXM2VXQH");</script>
 <!-- End Google Tag Manager -->
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Grounded Theory as Colimit – Interactive Visual</title>
 <style>
-    /* === Critical CSS ( < 9 kB ) === */
-    html,body{margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#fafafa;color:#111;line-height:1.45}
-    h1{font-size:clamp(1.4rem,2vw+1rem,2.4rem);margin:0 0 .5em;text-align:center}
-    #app{display:flex;flex-direction:column;gap:1rem;max-width:1200px;width:90%;margin:0 auto;padding:2vh 0}
-    #vis-wrapper{position:relative;width:100%;flex:1;min-height:20rem;border:1px dashed #bbb;border-radius:1rem;overflow:auto}
-    #controls{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center}
-    button{padding:.6em 1em;border:none;border-radius:1rem;font-size:1rem;cursor:pointer;background:#333;color:#fff}
-    button:active{transform:scale(.97)}
-    #explanation,#readalong{font-size:clamp(.9rem,1.2vw+0.4rem,1.1rem);background:#fff;border-radius:1rem;padding:1rem;box-shadow:0 2px 4px rgba(0,0,0,.1)}
-    #readalong{border-left:4px solid #4f8df7}
-    .toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:.7em 1.2em;border-radius:1rem;font-size:.9rem;opacity:0;transition:opacity .4s}
-    .toast.show{opacity:1}
-    svg text{user-select:none;font-size:.8rem}
-</style>
-</head>
-<body>
+:root{color-scheme:light;font-family:system-ui,-apple-system,sans-serif;color:#182337;background:#f5f7fb;line-height:1.55}body{margin:0}main,nav{max-width:1000px;margin:auto;padding:1.2rem}h1{font-size:clamp(1.7rem,4vw,2.6rem);line-height:1.15}h2{font-size:1.25rem}a{color:#184d91}.card{background:white;border:1px solid #ccd5df;border-radius:14px;padding:1rem;margin:1rem 0}.lede{max-width:76ch}.muted{color:#45546a}.controls{display:flex;gap:.6rem;flex-wrap:wrap;align-items:end}button,select,input{font:inherit;border:1px solid #8293a9;border-radius:7px;padding:.55rem;min-height:42px}button{cursor:pointer;background:#e8eef7;color:#142d51}button.primary{background:#224e83;color:#fff}button:disabled{opacity:.5;cursor:default}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #d97706;outline-offset:3px}label{display:flex;flex-direction:column;gap:.2rem}#coding-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.6rem;margin:1rem 0}#coding-fields input{width:100%;box-sizing:border-box}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%}th,td{padding:.5rem;border-bottom:1px solid #dce2ea;text-align:left}.result{padding:.65rem;border-left:4px solid #7290b4;margin-top:.8rem;overflow-wrap:anywhere}.pass{border-color:#237a4e}.fail{border-color:#ac422c}#vis-wrapper{overflow:auto}svg{display:block;width:100%;min-width:320px}#status{min-height:1.7em}details summary{cursor:pointer;font-weight:600}code{font-size:.95em}@media(max-width:520px){main,nav{padding:.7rem}.controls label{flex:1;min-width:95px}.controls button{flex-grow:1}}
+</style></head><body>
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WXM2VXQH" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
-<p><a href="../index.html">Back to Card Index</a></p>
-<div id="app" data-timeout="3000">
-    <h1>Grounded Theory as a Colimit &amp; Initial Algebra</h1>
-    <div id="explanation">
-        <p>Each empirical <em>incident</em> is an <strong>object</strong>; your comparison memos are <strong>morphisms</strong>. Coding phases quotient this diagram until a universal cone – the <strong>core category</strong> – emerges. You’re effectively constructing the diagram’s colimit, an <em>initial algebra</em> into which every future incident factors uniquely.</p>
-    </div>
-    <div id="readalong"></div>
-    <div id="controls">
-        <button id="addIncident">Add Incident</button>
-        <button id="addMorphism">Add Morphism</button>
-        <button id="stepPhase">Next Phase</button>
-        <button id="reset">Reset</button>
-    </div>
-    <div id="vis-wrapper" class="min-h-64">
-        <noscript>Interactive visualisation (enable JavaScript).</noscript>
-    </div>
-</div>
-<div id="toast" class="toast"></div>
-<script>
-(()=>{"use strict";
-/********************
- * Helper functions *
- *******************/
-const $ = sel => document.querySelector(sel);
-const showToast = msg => { const t=$('#toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2500); };
-const rnd = (min,max) => Math.random()*(max-min)+min;
-/************************
- * Main visualisation    *
- ************************/
-try {
-    const visWrapper = $('#vis-wrapper');
-    const readBox    = $('#readalong');
-    const NS         = 'http://www.w3.org/2000/svg';
-    let phase = 0; // 0=open,1=axial,2=selective,3=saturation
-    const phases = ['Open coding','Axial coding','Selective coding','Saturation'];
-    const phaseText = {
-        0:`<strong>Open coding</strong>: fracture the data; each incident stands alone as you name properties and dimensions without assuming relations.`,
-        1:`<strong>Axial coding</strong>: relate categories to sub‑categories; you start clustering incidents by shared properties, turning the diagram into coloured branches.`,
-        2:`<strong>Selective coding</strong>: integrate around a <em>core</em> category; branches attach to a universal node, giving the colimit that organises the model.`,
-        3:`<strong>Saturation</strong>: no new incidents re‑shape the core; morphisms now factor uniquely through it – the structure has stabilised.`
-    };
-    // --- data stores ---
-    let incidents  = []; // {id,label,x,y,group}
-    let morphisms  = []; // {from,to}
-    // --- SVG set‑up ---
-    const svg = document.createElementNS(NS,'svg');
-    svg.setAttribute('width','100%');
-    svg.style.height = '400px';  // starting height; will auto‑grow
-    visWrapper.appendChild(svg);
-    // mark pending for watchdog
-    visWrapper.dataset.smoke = 'pending';
-    /*********************
-     * Utility functions *
-     *********************/
-    const safeSize = () => {
-        const rect = svg.getBoundingClientRect();
-        let  w = rect.width  || visWrapper.clientWidth  || 600; // guarantee sane size
-        let  h = rect.height || parseFloat(svg.style.height) || 400;
-        if (w < 200) w = 600; // fallback if measured too early
-        return { w, h };
-    };
-    const updateReadAlong = () => { readBox.innerHTML = phaseText[phase]; };
-    const applyTreeLayout = () => {
-        const { w } = safeSize();
-        const groups = [...new Set(incidents.map(n => n.group))].sort((a,b)=>a-b);
-        const spacingX = w / (groups.length + 1);
-        const vStart   = 120;
-        const vSpacing = 50;
-        groups.forEach((g, gi) => {
-            const nodes = incidents.filter(n => n.group === g);
-            nodes.forEach((n, ni) => {
-                n.x = (gi+1) * spacingX;
-                n.y = vStart + ni * vSpacing;
-            });
-        });
-    };
-    /********************
-     * Drawing pipeline *
-     *******************/
-    const draw = () => {
-        while (svg.firstChild) svg.removeChild(svg.firstChild);
-        const { w } = safeSize();
-        const coreX = w/2;
-        const coreY = phase >= 2 ? 60 : 200;
-        if (phase >= 2) applyTreeLayout();
-        // --- morphisms ---
-        morphisms.forEach(m => {
-            const from = incidents.find(i => i.id === m.from);
-            const to   = incidents.find(i => i.id === m.to);
-            if (!from || !to) return;
-            const line = document.createElementNS(NS,'line');
-            line.setAttribute('x1', from.x);
-            line.setAttribute('y1', from.y);
-            line.setAttribute('x2', to.x);
-            line.setAttribute('y2', to.y);
-            line.setAttribute('stroke', '#888');
-            line.setAttribute('stroke-width', '1.5');
-            svg.appendChild(line);
-            // arrow‑head (guard against zero‑length)
-            if (from.x !== to.x || from.y !== to.y) {
-                const head  = document.createElementNS(NS,'polygon');
-                const angle = Math.atan2(to.y - from.y, to.x - from.x);
-                const size  = 6;
-                const pts = [
-                    [to.x, to.y],
-                    [to.x - size*Math.cos(angle - Math.PI/6), to.y - size*Math.sin(angle - Math.PI/6)],
-                    [to.x - size*Math.cos(angle + Math.PI/6), to.y - size*Math.sin(angle + Math.PI/6)]
-                ].map(p => p.join(',')).join(' ');
-                head.setAttribute('points', pts);
-                head.setAttribute('fill', '#888');
-                svg.appendChild(head);
-            }
-        });
-        // --- incidents ---
-        incidents.forEach(node => {
-            const g = document.createElementNS(NS,'g');
-            const circle = document.createElementNS(NS,'circle');
-            circle.setAttribute('cx', node.x);
-            circle.setAttribute('cy', node.y);
-            circle.setAttribute('r', 12);
-            circle.setAttribute('fill', phase >= 1 ? `hsl(${node.group*60},60%,70%)` : '#4f8df7');
-            circle.setAttribute('stroke', '#222');
-            circle.setAttribute('stroke-width', '1');
-            g.appendChild(circle);
-            const txt = document.createElementNS(NS,'text');
-            txt.setAttribute('x', node.x);
-            txt.setAttribute('y', node.y + 4);
-            txt.setAttribute('text-anchor', 'middle');
-            txt.textContent = node.label;
-            g.appendChild(txt);
-            svg.appendChild(g);
-        });
-        // --- core ---
-        if (phase >= 2) {
-            const core = document.createElementNS(NS,'circle');
-            core.setAttribute('cx', coreX);
-            core.setAttribute('cy', coreY);
-            core.setAttribute('r', phase === 2 ? 18 : 24);
-            core.setAttribute('fill', phase === 2 ? '#ffb347' : '#ff8c00');
-            svg.appendChild(core);
-            const txt = document.createElementNS(NS,'text');
-            txt.setAttribute('x', coreX);
-            txt.setAttribute('y', coreY + 6);
-            txt.setAttribute('text-anchor', 'middle');
-            txt.setAttribute('font-weight', 'bold');
-            txt.textContent = 'Core';
-            svg.appendChild(txt);
-            incidents.forEach(node => {
-                const line = document.createElementNS(NS,'line');
-                line.setAttribute('x1', coreX);
-                line.setAttribute('y1', coreY);
-                line.setAttribute('x2', node.x);
-                line.setAttribute('y2', node.y);
-                line.setAttribute('stroke', phase === 3 ? '#ff8c00' : '#ffa500');
-                line.setAttribute('stroke-dasharray', '4 3');
-                svg.appendChild(line);
-            });
-        }
-        // --- auto‑height ---
-        const maxY = incidents.length ? Math.max(...incidents.map(n => n.y)) : coreY;
-        const needed = maxY + 100;
-        if (needed > parseFloat(svg.style.height)) svg.style.height = needed + 'px';
-    };
-    /****************
-     * UI handlers  *
-     ***************/
-    $('#addIncident').addEventListener('click', () => {
-        const { w } = safeSize();
-        incidents.push({
-            id: Date.now() + Math.random(),
-            label: `I${incidents.length + 1}`,
-            x: rnd(50, Math.max(100, w - 50)),
-            y: rnd(80, 200),
-            group: 0
-        });
-        draw();
-    });
-    $('#addMorphism').addEventListener('click', () => {
-        if (incidents.length < 2) { showToast('Need ≥ 2 incidents'); return; }
-        let aIdx = Math.floor(rnd(0, incidents.length));
-        let bIdx = Math.floor(rnd(0, incidents.length - 1));
-        if (bIdx >= aIdx) bIdx++;
-        morphisms.push({ from: incidents[aIdx].id, to: incidents[bIdx].id });
-        draw();
-    });
-    $('#stepPhase').addEventListener('click', () => {
-        const prev = phase;
-        phase = (phase + 1) % 4;
-        if (phase === 1) incidents.forEach(n => n.group = Math.floor(rnd(0, 3)));
-        if (prev < 2 && phase >= 2) applyTreeLayout();
-        draw();
-        updateReadAlong();
-        showToast(phases[phase]);
-    });
-    $('#reset').addEventListener('click', () => {
-        phase = 0; incidents = []; morphisms = []; svg.style.height = '400px'; draw(); updateReadAlong();
-    });
-    /****************
-     * Bootstrap    *
-     ***************/
-    const bootstrap = () => {
-        for (let i = 0; i < 4; i++) $('#addIncident').click();
-        draw(); updateReadAlong();
-    };
-    // run bootstrap after layout to ensure width > 0
-    window.addEventListener('load', () => requestAnimationFrame(bootstrap));
-    /****************
-     * Watchdog     *
-     ***************/
-    const limit = +visWrapper.dataset.timeout || 3000;
-    let waited = 0;
-    const watchdog = setInterval(() => {
-        if (visWrapper.dataset.smoke === 'ok') { clearInterval(watchdog); return; }
-        waited += 500;
-        if (waited >= limit) { clearInterval(watchdog); fallback('timeout'); }
-    }, 500);
-    requestAnimationFrame(() => { visWrapper.dataset.smoke = 'ok'; window.__canvasStatus = 'ready'; });
-} catch (err) {
-    fallback(err && err.message ? err.message : 'unknown error');
-}
-/****************
- * Fallback     *
- ****************/
-function fallback(reason) {
-    console.error('Fallback due to', reason);
-    window.__canvasStatus = 'fallback';
-    const w = document.querySelector('#vis-wrapper');
-    w.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="80" fill="#eee" stroke="#999" stroke-width="2"/><text x="100" y="105" font-size="14" text-anchor="middle" fill="#666">Static Diagram</text></svg>';
-    showToast(`Interactive view failed \u2013 static diagram shown (${reason}).`);
-    w.dataset.smoke = 'ok';
-}
+<nav><a href="../index.html">Back to Card Index</a></nav>
+<main id="app"><h1>Grounded theory and a finite colimit</h1>
+<p class="lede">Try a precise, limited analogy for coding incidents. You decide which incidents must receive the <strong>same code</strong>; the model computes exactly the identifications those decisions imply. It does not infer meaning or discover a core theory.</p>
+<p class="muted">Illustrative incidents only. Changes stay in this page until reset or reload; nothing is saved or uploaded by these controls.</p>
+<section class="card" aria-labelledby="build-title"><h2 id="build-title">1. Make your identifications explicit</h2>
+<p>A link here means “use the same code”, not just “these incidents are related”. Equality is symmetric and transitive, even though the declared map names a source and a target.</p>
+<div class="controls"><button id="addIncident">Add incident</button><label>From<select id="from"></select></label><label>To<select id="to"></select></label><button id="addMorphism" class="primary">Add identification</button><button id="undo">Undo last identification</button><button id="reset">Reset</button></div>
+<p id="status" role="status" aria-live="polite"></p><p id="edge-list"></p>
+<div id="vis-wrapper"><svg id="diagram" viewBox="0 0 900 230" role="img" aria-labelledby="diagram-title diagram-description"></svg></div>
+<div class="table-wrap"><table><caption id="class-count"></caption><thead><tr><th>Quotient class</th><th>Incidents mapped to it</th></tr></thead><tbody id="classes"></tbody></table></div>
+</section>
+<section class="card" aria-labelledby="read-title"><h2 id="read-title">2. Read the coding analogy</h2><div id="readalong" aria-live="polite"></div><button id="stepPhase">Next stage</button></section>
+<section class="card" aria-labelledby="test-title"><h2 id="test-title">3. Test a proposed coding</h2><p>Give each incident a non-empty code. A compatible assignment must be constant on every quotient class. Different classes may share a code: that adds a further distinction you choose to collapse.</p>
+<div id="coding-fields"></div><div class="controls"><button id="test-coding" class="primary">Test coding</button><button id="use-classes">Use quotient class labels</button></div><div id="factor-result" class="result" role="status" aria-live="polite">Enter codes, then test them.</div></section>
+<details class="card"><summary>What is actually computed?</summary>
+<p>The indexing category is the free category on the chosen directed graph. Each incident is represented by a singleton set, and each arrow by its unique singleton-to-singleton map. The colimit in <strong>Set</strong> is the disjoint union of those singletons, quotiented by the equivalence relation generated by the arrows. Its elements are the connected components of the identification graph, including isolated incidents.</p>
+<p>The canonical map <code>q</code> sends each incident to its class. A candidate map <code>f</code> into a set of code labels factors as <code>f = h ∘ q</code> exactly when its labels agree on every generating arrow. In that case <code>h</code> is unique because every quotient class has an incident representative. The checker shows the unique factor map for the labels you entered; it is an example of the general property, not an empirical test of a theory.</p>
+<p>A memo, comparison or causal relation is not automatically an equality or a set map. Choosing identifications is an analyst's modelling decision. There is no automatic single Core node, no claim of theoretical saturation, and no guarantee for unseen incidents. An initial algebra requires a separately specified endofunctor and algebra structure; neither is defined here, so this page makes no initial-algebra claim.</p>
+<p>Mathematical construction: <a href="https://stacks.math.columbia.edu/tag/002U">The Stacks Project, limits and colimits in the category of sets</a>. The grounded-theory connection is an illustrative interpretation, not a theorem about qualitative research.</p>
+</details>
+</main>
+<script id="quotient-model">
+/* Pure finite-set construction, shared with the independent law checks. */
+globalThis.CodingQuotient = (() => {
+ function quotient(ids, edges) {
+  if (!Array.isArray(ids) || new Set(ids).size !== ids.length) throw new Error('Incident IDs must be unique.');
+  const parent = new Map(ids.map(id => [id,id]));
+  const find = id => { if (!parent.has(id)) throw new Error('Unknown incident.'); let r=id;while(parent.get(r)!==r)r=parent.get(r);return r; };
+  for(const [a,b] of edges){const ra=find(a),rb=find(b);if(ra!==rb)parent.set(rb,ra);}
+  const groups=[];const roots=new Map();
+  for(const id of ids){const root=find(id);if(!roots.has(root)){roots.set(root,groups.length);groups.push([]);}groups[roots.get(root)].push(id);}
+  return groups;
+ }
+ function factor(ids,edges,labels){
+  const groups=quotient(ids,edges);
+  if(labels.length!==ids.length || labels.some(s=>typeof s!=='string'||!s.trim())) return {valid:false,message:'Enter one non-empty code for every incident.'};
+  const value=new Map(ids.map((id,i)=>[id,labels[i].trim()]));
+  for(const [a,b] of edges)if(value.get(a)!==value.get(b))return {valid:true,compatible:false,witness:[a,b],values:[value.get(a),value.get(b)]};
+  return {valid:true,compatible:true,mapping:groups.map((g,i)=>({classIndex:i,members:g,label:value.get(g[0])}))};
+ }
+ return {quotient,factor};
 })();
 </script>
-</body>
-</html>
+<script>
+(()=>{'use strict';const $=s=>document.querySelector(s);const NS='http://www.w3.org/2000/svg';let ids=[],edges=[],labels=new Map(),phase=0;
+const readings=[
+ ['Open coding','Record illustrative incidents. Their textual meaning is not analysed by this model. With no declared identifications, each incident remains its own quotient class.'],
+ ['Axial coding analogy','Compare incidents and choose any “same code” identifications. This equality-only toy is much narrower than the many relations and judgements used in qualitative coding. The colours come from your links, never random grouping.'],
+ ['Selective coding analogy','Inspect the quotient classes. A connected group contributes one class; disconnected groups remain separate. Selecting a core theme would require additional interpretation and evidence beyond this construction.'],
+ ['Review and new evidence','Try a candidate coding below, then add a new incident. A new isolated incident creates another class until you deliberately link it. Mathematical factorisation does not establish theoretical saturation.']
+];
+function say(s){$('#status').textContent=s;}
+function invalidated(){const r=$('#factor-result');r.className='result';r.textContent='Inputs changed. Test coding to check this assignment.';}
+function el(name,attrs,text){const e=document.createElementNS(NS,name);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;return e;}
+function draw(){
+ const groups=CodingQuotient.quotient(ids,edges);const membership=new Map();groups.forEach((g,i)=>g.forEach(id=>membership.set(id,i)));
+ for(const name of ['from','to']){const s=$('#'+name),old=s.value;s.replaceChildren(...ids.map(id=>new Option('I'+id,String(id))));s.value=ids.includes(Number(old))?old:String(ids[name==='to'?1:0]??ids[0]);}
+ $('#addIncident').disabled=ids.length>=12;$('#addMorphism').disabled=ids.length<2;$('#undo').disabled=!edges.length;
+ $('#edge-list').textContent=edges.length?'Declared maps: '+edges.map(([a,b])=>'I'+a+' → I'+b).join('; '):'No identifications declared.';
+ $('#class-count').textContent=ids.length+' incidents → '+groups.length+' quotient classes';
+ const body=$('#classes');body.replaceChildren();groups.forEach((g,i)=>{const tr=document.createElement('tr');for(const text of ['C'+(i+1),g.map(x=>'I'+x).join(', ')]){const td=document.createElement('td');td.textContent=text;tr.appendChild(td);}body.appendChild(tr);});
+ const svg=$('#diagram');svg.replaceChildren(el('title',{id:'diagram-title'},'Incidents and their quotient classes'),el('desc',{id:'diagram-description'},'Each incident maps to the class listed in the table below. The links are chosen identifications.'));
+ const x=id=>40+(ids.indexOf(id)+.5)*820/Math.max(1,ids.length);const cx=i=>40+(i+.5)*820/Math.max(1,groups.length);svg.appendChild(el('text',{x:12,y:20},'Incidents'));
+ edges.forEach(([a,b],i)=>svg.appendChild(el('path',{d:`M${x(a)},65 Q${(x(a)+x(b))/2},${25-(i%3)*7} ${x(b)},65`,fill:'none',stroke:'#63758d','stroke-width':2})));
+ ids.forEach(id=>{const g=membership.get(id);svg.appendChild(el('line',{x1:x(id),y1:80,x2:cx(g),y2:165,stroke:'#9baec7','stroke-dasharray':'5 4'}));svg.appendChild(el('circle',{cx:x(id),cy:65,r:17,fill:`hsl(${g*67%360} 50% 85%)`,stroke:'#354c67'}));svg.appendChild(el('text',{x:x(id),y:70,'text-anchor':'middle'},'I'+id));});
+ groups.forEach((g,i)=>{svg.appendChild(el('circle',{cx:cx(i),cy:180,r:22,fill:`hsl(${i*67%360} 50% 85%)`,stroke:'#354c67'}));svg.appendChild(el('text',{x:cx(i),y:185,'text-anchor':'middle'},'C'+(i+1)));});
+ const fields=$('#coding-fields');fields.replaceChildren();ids.forEach(id=>{const l=document.createElement('label');l.textContent='Code for I'+id;const input=document.createElement('input');input.id='code-'+id;input.maxLength=40;input.value=labels.get(id)||'';input.addEventListener('input',()=>{labels.set(id,input.value);invalidated();});l.appendChild(input);fields.appendChild(l);});
+ const [title,text]=readings[phase];const strong=document.createElement('strong');strong.textContent=(phase+1)+'/4 · '+title;const p=document.createElement('p');p.textContent=text;$('#readalong').replaceChildren(strong,p);
+ $('#vis-wrapper').dataset.smoke='ok';window.__canvasStatus='ready';
+}
+function reset(){ids=[1,2,3,4];edges=[];labels=new Map(ids.map(i=>[i,'Code '+i]));phase=0;draw();invalidated();say('Reset to four separate incidents.');}
+$('#addIncident').addEventListener('click',()=>{if(ids.length>=12)return;const id=ids.length+1;ids.push(id);labels.set(id,'Code '+id);draw();invalidated();say('Added I'+id+' as a separate incident; no saturation is inferred.');});
+$('#addMorphism').addEventListener('click',()=>{const a=Number($('#from').value),b=Number($('#to').value);if(a===b){say('Choose two different incidents. An identity adds no identification.');return;}if(edges.some(([x,y])=>x===a&&y===b||x===b&&y===a)){say('That identification is already declared.');return;}edges.push([a,b]);draw();invalidated();say('Declared I'+a+' and I'+b+' must receive the same code.');});
+$('#undo').addEventListener('click',()=>{if(!edges.length)return;edges.pop();draw();invalidated();say('Removed the last declared identification; classes recomputed.');});
+$('#stepPhase').addEventListener('click',()=>{phase=(phase+1)%4;draw();});
+$('#reset').addEventListener('click',reset);
+function test(){const r=CodingQuotient.factor(ids,edges,ids.map(i=>labels.get(i)));const box=$('#factor-result');box.className='result '+(r.compatible?'pass':'fail');if(!r.valid){box.textContent=r.message;return;}if(!r.compatible){box.textContent='Cannot factor: I'+r.witness[0]+' → I'+r.witness[1]+' requires the same code, but “'+r.values[0]+'” and “'+r.values[1]+'” differ.';return;}box.textContent='Compatible. The unique factor map is '+r.mapping.map(x=>'C'+(x.classIndex+1)+' → '+x.label).join('; ')+'. This verifies only your declared identifications.';}
+$('#test-coding').addEventListener('click',test);$('#use-classes').addEventListener('click',()=>{CodingQuotient.quotient(ids,edges).forEach((g,i)=>g.forEach(id=>labels.set(id,'Class '+(i+1))));draw();test();});reset();
+})();
+</script></body></html>

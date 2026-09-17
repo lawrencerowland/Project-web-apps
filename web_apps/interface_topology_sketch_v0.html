@@ -314,7 +314,7 @@
       <div class="bar">
         <div class="left">
           <h2>Controls (envelopes & visibility)</h2>
-          <div class="hint">Numbers are indicative; set them to match survey/standards later.</div>
+          <div class="hint">Numbers are illustrative drawing inputs. Verified site requirements and separate engineering checks would be needed for design use.</div>
         </div>
       </div>
       <div class="content">
@@ -347,10 +347,10 @@
           </div>
 
           <div class="control-group">
-            <h3>Read-out (what’s “doing the constraining”)</h3>
+            <h3>Read-out (distance from the site centre to assumed bands)</h3>
             <div class="small">
-              In plan, the most “active” constraints are those whose buffers/corridors intrude furthest into the triangular site.
-              In section, the dominant constraint is usually the <b>OHL corridor</b> (height & offsets) unless the mine dictates foundation strategy (piles/raft/ground improvement).
+              The figures rank up to four visible bands by distance from the triangle’s centre to the assumed band edge. A negative value means that centre lies inside the band. This is a geometric illustration, not a ranking of engineering risks or a buildable-area calculation.
+              In section, compare the assumed heights and depths. This drawing does not calculate which constraint governs a feasible design or select a foundation strategy.
             </div>
             <div class="kpi" id="dominancePills"></div>
           </div>
@@ -376,8 +376,8 @@
           <ul style="margin:8px 0 0 18px; padding:0; line-height:1.5; color:var(--muted)">
             <li><b>South-west corner</b>: canal + road bridge abutments + flood/overbank + access constraints (compound interface).</li>
             <li><b>Diagonal boundary</b>: rail viaduct piers/embankment + possession/access + stray current/EMC considerations (hard interface).</li>
-            <li><b>Overhead line crossing</b>: building height limits, crane management, earthing/bonding & work-at-height permits (soft-but-non-negotiable).</li>
-            <li><b>Mining passage</b>: ground risk allocation, monitoring obligations, “no-worsening” settlement envelope (latent interface).</li>
+            <li><b>Overhead line crossing</b>: establish asset-specific constraints for buildings, cranes, earthing/bonding and work near the line; identify the relevant permissions.</li>
+            <li><b>Mining passage</b>: investigate ground response and agree risk allocation, monitoring and acceptance criteria; the sketch sets no settlement limit.</li>
           </ul>
         </div>
 
@@ -392,7 +392,7 @@
 <div class="footer">
   <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
     <span class="badge" style="box-shadow:none; background:rgba(3,7,18,.18)">Legend: <span class="dot" style="background:var(--canal)"></span> Canal <span class="dot" style="background:var(--road)"></span> Road <span class="dot" style="background:var(--rail)"></span> Rail <span class="dot" style="background:var(--ohl)"></span> OHL <span class="dot" style="background:var(--mine)"></span> Mine</span>
-    <span class="badge" style="box-shadow:none; background:rgba(3,7,18,.18)">Tip: set buffers to match your authorities’ typical “no-build / permit / protection” distances when you get them.</span>
+    <span class="badge" style="box-shadow:none; background:rgba(3,7,18,.18)">Changing a band changes the sketch; it does not establish permission to build or verify a clearance. Use site-specific evidence for any later design assessment.</span>
   </div>
   <div style="margin-top:10px">
     If you want this to become a working project manager aid, the next step is to add: <code>import of survey (DXF/GeoJSON)</code>, <code>clearance rulesets</code>, and <code>auto-generated interface register</code> from the geometry.
@@ -802,7 +802,7 @@ function drawSection(){
     return r;
   }
   if (state.show.ohl){
-    g.appendChild(hitbox(120, yFromElev(state.section.hOhl)-60, 620, 120, "OHL vertical constraint", "Treat as a ‘system of systems’ interface: height limits, plant movement, temporary works, and earthing strategy dominate early options."));
+    g.appendChild(hitbox(120, yFromElev(state.section.hOhl)-60, 620, 120, "OHL vertical interface", "Investigate asset-specific requirements for buildings, plant movement, temporary works and earthing. This assumed band does not determine which constraint governs the design."));
   }
   if (state.show.mine){
     g.appendChild(hitbox(420, yFromElev(-state.section.dMine)-50, 380, 110, "Mining constraint", "Subsurface interface is often ‘latent’: surprises become change. Consider early intrusive investigation, monitoring, and risk allocation."));
@@ -899,11 +899,17 @@ function downloadSvg(svgEl, filename){
 function bind(){
   const $ = (id) => document.getElementById(id);
 
-  const setRangeLabel = (id, labelId, suffix="m") => {
-    const el = $(id), lab = $(labelId);
-    const upd = () => lab.textContent = `${parseFloat(el.value).toFixed(el.step.includes(".")?1:0)}${suffix}`;
-    el.addEventListener("input", () => { upd(); refresh(); });
-    upd();
+  const bindRange = (id, labelId, target, key, decimals=0) => {
+    const input = $(id), label = $(labelId);
+    const update = () => {
+      target[key] = Number(input.value);
+      label.textContent = `${target[key].toFixed(decimals)}m`;
+    };
+    input.addEventListener("input", () => {
+      update();
+      refresh();
+    });
+    update();
   };
 
   // checkboxes
@@ -921,36 +927,18 @@ function bind(){
   });
 
   // buffers
-  setRangeLabel("bufCanal","bufCanalVal");
-  setRangeLabel("bufRoad","bufRoadVal");
-  setRangeLabel("bufRail","bufRailVal");
-  setRangeLabel("ohlHalf","ohlHalfVal");
-  setRangeLabel("mineInf","mineInfVal");
-
-  $("bufCanal").addEventListener("input", e=> state.buffers.canal = parseFloat(e.target.value));
-  $("bufRoad").addEventListener("input", e=> state.buffers.road = parseFloat(e.target.value));
-  $("bufRail").addEventListener("input", e=> state.buffers.rail = parseFloat(e.target.value));
-  $("ohlHalf").addEventListener("input", e=> state.buffers.ohlHalf = parseFloat(e.target.value));
-  $("mineInf").addEventListener("input", e=> state.buffers.mineInf = parseFloat(e.target.value));
+  bindRange("bufCanal","bufCanalVal",state.buffers,"canal");
+  bindRange("bufRoad","bufRoadVal",state.buffers,"road");
+  bindRange("bufRail","bufRailVal",state.buffers,"rail");
+  bindRange("ohlHalf","ohlHalfVal",state.buffers,"ohlHalf");
+  bindRange("mineInf","mineInfVal",state.buffers,"mineInf");
 
   // section heights/depths
-  const setRangeLabel2 = (id, labelId, suffix="m") => {
-    const el = $(id), lab = $(labelId);
-    const upd = () => lab.textContent = `${parseFloat(el.value).toFixed(1)}${suffix}`;
-    el.addEventListener("input", () => { upd(); refresh(); });
-    upd();
-  };
-  setRangeLabel2("hRoad","hRoadVal");
-  setRangeLabel2("hRail","hRailVal");
-  setRangeLabel2("hOhl","hOhlVal");
-  setRangeLabel2("dMine","dMineVal");
-  setRangeLabel2("dCanal","dCanalVal");
-
-  $("hRoad").addEventListener("input", e=> state.section.hRoad = parseFloat(e.target.value));
-  $("hRail").addEventListener("input", e=> state.section.hRail = parseFloat(e.target.value));
-  $("hOhl").addEventListener("input", e=> state.section.hOhl = parseFloat(e.target.value));
-  $("dMine").addEventListener("input", e=> state.section.dMine = parseFloat(e.target.value));
-  $("dCanal").addEventListener("input", e=> state.section.dCanal = parseFloat(e.target.value));
+  bindRange("hRoad","hRoadVal",state.section,"hRoad",1);
+  bindRange("hRail","hRailVal",state.section,"hRail",1);
+  bindRange("hOhl","hOhlVal",state.section,"hOhl",1);
+  bindRange("dMine","dMineVal",state.section,"dMine",1);
+  bindRange("dCanal","dCanalVal",state.section,"dCanal",1);
 
   // cut buttons
   $("btnCutAA").addEventListener("click", ()=> setCut("AA"));

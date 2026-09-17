@@ -498,7 +498,7 @@
         <div class="cardBody">
           <div class="detailBody" id="detailBody">
             <p>
-              This worked example follows the sequence (S0, x0, W1, S1, x1, W2, …, ST) used to model sequential decision problems  [oai_citation:0‡2020 Powell SEQUENTIAL DECISION ANALYTICS AND MODELING Modeling exercises with python.pdf](file-service://file-562EYxyTvdZ54wvPUdD9tN) and explained in Powell’s SDAM text  [oai_citation:1‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4).
+              This worked example follows the sequence (S0, x0, W1, S1, x1, W2, …, ST) used to model sequential decision problems  <a href="https://warrenpowell.org/universal-modeling-framework/">Powell: model framework</a> and explained in Powell’s SDAM text  <a href="https://warrenpowell.org/universal-modeling-framework/">Powell: model framework</a>.
               Tap any state/decision/information node to see a plain‑English breakdown.
             </p>
 
@@ -507,13 +507,13 @@
                 <h3>State (S<sub>t</sub>) = “what we know now”</h3>
                 <p>
                   Use a compact state that is sufficient to decide and simulate forward. A helpful decomposition is:
-                  physical resources R<sub>t</sub>, other deterministic info I<sub>t</sub> (e.g., the current temperature), and beliefs B<sub>t</sub> about uncertain parameters  [oai_citation:2‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)  [oai_citation:3‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4).
+                  physical resources R<sub>t</sub>, other deterministic info I<sub>t</sub> (e.g., the current temperature), and beliefs B<sub>t</sub> about uncertain parameters  <a href="https://warrenpowell.org/universal-modeling-framework/">Powell: model framework</a>  <a href="https://warrenpowell.org/universal-modeling-framework/">Powell: model framework</a>.
                 </p>
               </div>
               <div class="kpi">
                 <h3>Exogenous info (W<sub>t+1</sub>) = “what arrives after we decide”</h3>
                 <p>
-                  W<sub>t+1</sub> is outside our direct control and arrives after x<sub>t</sub>—for example, updated temperature estimates or field‑test observations  [oai_citation:4‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4).
+                  W<sub>t+1</sub> is not known when x<sub>t</sub> is chosen and arrives after it; its distribution may depend on the state or chosen monitoring—for example, updated temperature estimates or field‑test observations  <a href="https://warrenpowell.org/universal-modeling-framework/">Powell: model framework</a>.
                 </p>
               </div>
             </div>
@@ -538,26 +538,24 @@ Path B (milder 2028 reading):
 
     <section class="card">
       <div class="cardHeader">
-        <h2>Sources (for the framework + real‑world project references)</h2>
+        <h2 id="public-sources">Sources (framework and real-world references)</h2>
       </div>
       <div class="cardBody sources">
         <div>
           <strong>Framework (Powell / SDA):</strong>
           <ul>
-            <li>Sequential decision sequence and definitions of S<sub>t</sub>, x<sub>t</sub>, W<sub>t+1</sub>  [oai_citation:5‡2020 Powell SEQUENTIAL DECISION ANALYTICS AND MODELING Modeling exercises with python.pdf](file-service://file-562EYxyTvdZ54wvPUdD9tN)  [oai_citation:6‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)</li>
-            <li>State decomposition into R<sub>t</sub>, I<sub>t</sub> (including “current temperature”), and belief state B<sub>t</sub>  [oai_citation:7‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)  [oai_citation:8‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)</li>
-            <li>Canvas/robustness requirements used to package this as a single interactive HTML  [oai_citation:9‡latest canvas instructions.txt](file-service://file-AV4fr7vAsFprzW6FM2bDAq)  [oai_citation:10‡latest canvas instructions.txt](file-service://file-AV4fr7vAsFprzW6FM2bDAq)</li>
+            <li>Sequential decision sequence and definitions of S<sub>t</sub>, x<sub>t</sub>, W<sub>t+1</sub>  <a href="https://warrenpowell.org/universal-modeling-framework/">Powell: model framework</a>  <a href="https://warrenpowell.org/universal-modeling-framework/">Powell: model framework</a></li>
+            <li>State decomposition into R<sub>t</sub>, I<sub>t</sub> (including “current temperature”), and belief state B<sub>t</sub>  <a href="https://warrenpowell.org/statevariables/">Powell: state variables</a>  <a href="https://warrenpowell.org/universal-modeling-framework/">Powell: model framework</a></li>
           </ul>
         </div>
         <div style="margin-top:10px;">
           <strong>Climate monitoring + example climate engineering projects:</strong>
           <ul>
-            <li>NASA GISTEMP: global surface temperature change estimate (dataset description)  [oai_citation:11‡data.giss.nasa.gov](https://data.giss.nasa.gov/gistemp/)</li>
-            <li>HadCRUT5: global temperature anomaly dataset description (Met Office)  [oai_citation:12‡Met Office](https://www.metoffice.gov.uk/hadobs/hadcrut5/)</li>
-            <li>Copernicus climate indicators / temperature information used as an example monitoring stream  [oai_citation:13‡climate.copernicus.eu](https://climate.copernicus.eu/climate-indicators/temperature)</li>
-            <li>UW Marine Cloud Brightening research programme overview  [oai_citation:14‡atmos.uw.edu](https://atmos.uw.edu/faculty-and-research/marine-cloud-brightening-program/)</li>
-            <li>Example MCB field test described by SRM360 (sea-salt sprayer plume measurements)  [oai_citation:15‡SRM360](https://srm360.org/outdoor-experiments/uw-marine-cloud-brightening/)</li>
-            <li>SCoPEx ended/cancelled (Harvard SGRP page; SRM360 summary; Science note)  [oai_citation:16‡The Salata Institute](https://salatainstitute.harvard.edu/research-initiatives/the-harvard-solar-geoengineering-research-program/)</li>
+            <li>NASA GISTEMP: global surface temperature change estimate (dataset description)  <a href="https://data.giss.nasa.gov/gistemp/">data.giss.nasa.gov</a></li>
+            <li>HadCRUT5: global temperature anomaly dataset description (Met Office)  <a href="https://www.metoffice.gov.uk/hadobs/hadcrut5/">Met Office</a></li>
+            <li>Copernicus climate indicators / temperature information used as an example monitoring stream  <a href="https://climate.copernicus.eu/climate-indicators/temperature">climate.copernicus.eu</a></li>
+            <li>UW Marine Cloud Brightening research programme overview  <a href="https://atmos.uw.edu/faculty-and-research/marine-cloud-brightening-program/">atmos.uw.edu</a></li>
+            <li>SCoPEx ended in March 2024 (Harvard SGRP)  <a href="https://salatainstitute.harvard.edu/research-initiatives/the-harvard-solar-geoengineering-research-program/">The Salata Institute</a></li>
           </ul>
         </div>
         <div class="help" style="margin-top:8px;">
@@ -988,7 +986,7 @@ Path B (milder 2028 reading):
         selectedChip.innerHTML = `<span class="miniDot ${dotClass}"></span><strong>${escapeHtml(d.title)}</strong><span>${escapeHtml(d.when)}</span>`;
 
         const bullets = d.bullets.map(b=>`<li>${escapeHtml(b)}</li>`).join('');
-        const notes = d.notes ? `<div class="callout">${escapeHtml(d.notes)}</div>` : '';
+        const notes = d.notes ? `<div class="callout">${escapeHtml(d.notes)} <a href="#public-sources">Public sources</a></div>` : '';
 
         detailBody.innerHTML = `
           <div class="detailTitle">
@@ -1167,7 +1165,7 @@ Path B (milder 2028 reading):
               'Scope includes SRM research only (no climate‑altering deployment), plus parallel carbon‑removal readiness.'
             ],
             'S0 stores the information needed to decide x0 and simulate forward (R0, I0, B0).',
-            'This mirrors the idea that state is “what we know” at time t and may include current temperature as “other information” It.  [oai_citation:17‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)  [oai_citation:18‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'This mirrors the idea that state is “what we know” at time t and may include current temperature as “other information” It.  (See the public sources below.)'
           ),
 
           x0: mkDetail('x0','decision','Decision','t=0 decision',
@@ -1178,7 +1176,7 @@ Path B (milder 2028 reading):
               'Create two contingency playbooks: one for hotter‑than‑expected warming, one for near‑track/milder outcomes.'
             ],
             'x0 is the controllable choice made using S0 (via a policy Xπ(S0)).',
-            'In Powell’s sequence, decisions are made from the state before new information arrives.  [oai_citation:19‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'In Powell’s sequence, decisions are made from the state before new information arrives.  (See the public sources below.)'
           ),
 
           // W1 branch
@@ -1190,7 +1188,7 @@ Path B (milder 2028 reading):
               'Uncertainty remains: short-term variability and observational uncertainty must be separated from structural trend.'
             ],
             'W1ᵃ is exogenous information arriving after x0 and outside direct control.',
-            'This is exactly the “Wt+1 arrives after we decide xt” pattern.  [oai_citation:20‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'This is exactly the “Wt+1 arrives after we decide xt” pattern.  (See the public sources below.)'
           ),
 
           W1b: mkDetail('W1b','info','Exogenous information','t=1 (2028 reading)',
@@ -1213,7 +1211,7 @@ Path B (milder 2028 reading):
               'B1: updated beliefs—higher probability of near-term overshoot; also higher perceived reputational risk.'
             ],
             'S1ᵃ summarises “what we know after seeing W1ᵃ”.',
-            'State updates reflect that W helps determine S next, which then drives the next decision.  [oai_citation:21‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'State updates reflect that W helps determine S next, which then drives the next decision.  (See the public sources below.)'
           ),
 
           x1a: mkDetail('x1a','decision','Decision','t=1 decision (2028‑Q2)',
@@ -1224,7 +1222,7 @@ Path B (milder 2028 reading):
               'Prepare (but do not yet execute) an SCoPEx‑like stratospheric dispersion study concept, noting SCoPEx itself ended/cancelled in 2024.'
             ],
             'x1ᵃ is the controlled response to S1ᵃ: accelerate learning while tightening governance guardrails.',
-            'Descriptors are informed by real programmes (UW MCB; SCoPEx history), but the decision is hypothetical.  [oai_citation:22‡atmos.uw.edu](https://atmos.uw.edu/faculty-and-research/marine-cloud-brightening-program/)'
+            'Descriptors are informed by real programmes (UW MCB; SCoPEx history), but the decision is hypothetical.  (See the public sources below.)'
           ),
 
           W2a: mkDetail('W2a','info','Exogenous information','t=2 (2028‑Q2 observations)',
@@ -1246,7 +1244,7 @@ Path B (milder 2028 reading):
               'B2: beliefs about efficacy and risk tighten (variance shrinks) from field evidence.'
             ],
             'S2ᵃ stores the readiness + knowledge needed to make a go/no-go pilot decision x2ᵃ.',
-            'This is the iterative “state of knowledge” view of S.  [oai_citation:23‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'This is the iterative “state of knowledge” view of S.  (See the public sources below.)'
           ),
 
           x2a: mkDetail('x2a','decision','Decision','t=2 decision (2028‑Q3)',
@@ -1257,7 +1255,7 @@ Path B (milder 2028 reading):
               'Commit to public reporting cadence and independent audit.'
             ],
             'x2ᵃ is a controlled choice balancing urgency against uncertainty and legitimacy.',
-            'Decision set X_t depends on feasibility constraints (governance approvals, engineering readiness)  [oai_citation:24‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'Decision set X_t depends on feasibility constraints (governance approvals, engineering readiness)  (See the public sources below.)'
           ),
 
           W3a: mkDetail('W3a','info','Exogenous information','t=3 (2028‑Q3 observations)',
@@ -1268,7 +1266,7 @@ Path B (milder 2028 reading):
               'Political response: support, moratoria, litigation, or conditions imposed by regulators.'
             ],
             'W3ᵃ arrives after x2ᵃ and is not fully controllable (even if influenced).',
-            'This is why policies must anticipate uncertainty in W.  [oai_citation:25‡2020 Powell SEQUENTIAL DECISION ANALYTICS AND MODELING Modeling exercises with python.pdf](file-service://file-562EYxyTvdZ54wvPUdD9tN)'
+            'This is why policies must anticipate uncertainty in W.  (See the public sources below.)'
           ),
 
           S3a: mkDetail('S3a','state','State','t=3 (2028‑Q4)',
@@ -1279,7 +1277,7 @@ Path B (milder 2028 reading):
               'B3: beliefs update again from pilot outcomes (Bayesian-like learning on efficacy/risks).'
             ],
             'S3ᵃ is the updated knowledge base before making x3ᵃ.',
-            'State is where you store “all the information you need from time t onward.”  [oai_citation:26‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'State is where you store “all the information you need from time t onward.”  (See the public sources below.)'
           ),
 
           x3a: mkDetail('x3a','decision','Decision','t=3 decision (2028‑Q4)',
@@ -1290,7 +1288,7 @@ Path B (milder 2028 reading):
               'Lock in governance commitments: data transparency, independent oversight, and international consultation.'
             ],
             'x3ᵃ is the “policy action” under uncertainty: it anticipates future W4ᵃ.',
-            'Good project directors act as if future decisions are uncertain because W will change the state.  [oai_citation:27‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'Good project directors act as if future decisions are uncertain because W will change the state.  (See the public sources below.)'
           ),
 
           W4a: mkDetail('W4a','info','Exogenous information','t=4 (2028‑Q4 observations)',
@@ -1312,7 +1310,7 @@ Path B (milder 2028 reading):
               'B4: more confident beliefs about what is safe/unsafe to attempt next.'
             ],
             'S4ᵃ is the end of the shown horizon; in a longer model, decisions would continue beyond t=4.',
-            'Terminal states still carry R/I/B to support downstream continuation.  [oai_citation:28‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'Terminal states still carry R/I/B to support downstream continuation.  (See the public sources below.)'
           ),
 
           // Path B
@@ -1335,7 +1333,7 @@ Path B (milder 2028 reading):
               'Engage international processes early; publish protocols for transparency.'
             ],
             'x1ᵇ keeps optionality: it reduces uncertainty and increases governance readiness.',
-            'Temperature tracking relies on established global datasets used by monitoring agencies.  [oai_citation:29‡data.giss.nasa.gov](https://data.giss.nasa.gov/gistemp/)'
+            'Temperature tracking relies on established global datasets used by monitoring agencies.  (See the public sources below.)'
           ),
 
           W2b: mkDetail('W2b','info','Exogenous information','t=2 (2028‑Q2 observations)',
@@ -1357,7 +1355,7 @@ Path B (milder 2028 reading):
               'B2: improved belief about efficacy/risks, with reduced uncertainty from measurement campaigns.'
             ],
             'S2ᵇ is “knowledge gained” without escalating deployment.',
-            'State variables are not just physical resources; they include information and beliefs.  [oai_citation:30‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'State variables are not just physical resources; they include information and beliefs.  (See the public sources below.)'
           ),
 
           x2b: mkDetail('x2b','decision','Decision','t=2 decision (2028‑Q3)',
@@ -1368,7 +1366,7 @@ Path B (milder 2028 reading):
               'Allocate more budget to uncertainty reduction (sensors, independent replication, transparent reporting).'
             ],
             'x2ᵇ is a “wait-and-learn” policy design: it preserves options while improving information quality.',
-            'This matches the idea that policy design is about mapping states to actions under uncertainty.  [oai_citation:31‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'This matches the idea that policy design is about mapping states to actions under uncertainty.  (See the public sources below.)'
           ),
 
           W3b: mkDetail('W3b','info','Exogenous information','t=3 (2028‑Q3 observations)',
@@ -1412,7 +1410,7 @@ Path B (milder 2028 reading):
               'International policy developments alter feasible action sets.'
             ],
             'W4ᵇ arrives after x3ᵇ and sets up S4ᵇ.',
-            'As in Powell, W is exogenous, but may be state/action dependent in richer models.  [oai_citation:32‡Powell-SDAM-Nov242022_final_w_frontcover.pdf](file-service://file-2vPZdZVzAibhsk9si8UtB4)'
+            'As in Powell, W is exogenous, but may be state/action dependent in richer models.  (See the public sources below.)'
           ),
 
           S4b: mkDetail('S4b','state','Terminal state','t=4 (2029‑Q1)',
